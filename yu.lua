@@ -22,6 +22,7 @@ local mouliegongFilter = fk.CreateFilterSkill{
 }
 local mouliegongProhibit = fk.CreateProhibitSkill{
   name = "#mou__liegong_prohibit",
+  is_prohibited = function() return false end,
   prohibit_use = function(self, player, card)
     -- FIXME: 确保是因为【杀】而出闪，并且指明好事件id
     if Fk.currentResponsePattern ~= "jink" or card.name ~= "jink" then
