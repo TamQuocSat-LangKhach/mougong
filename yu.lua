@@ -5,6 +5,134 @@ Fk:loadTranslationTable{
   ["mou_yu"] = "谋攻篇-虞包",
 }
 
+local moucaoren = General(extension, "mou__caoren", "wei", 4)
+moucaoren.shield = 1
+
+local moujushouDraw = fk.CreateTriggerSkill{
+  name = "#mou__jushou_draw",
+  mute = true,
+  events = { fk.TurnedOver },
+  can_trigger = function(self, event, target, player, data)
+    return target == player and player:hasSkill(self.name) and player.faceup
+  end,
+  on_cost = function() return true end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    room:broadcastSkillInvoke("mou__jushou", 3)
+    room:notifySkillInvoked(player, "mou__jushou", "drawcard")
+    player:drawCards(player.shield, self.name)
+  end,
+}
+local moujushouShibei = fk.CreateTriggerSkill{
+  name = "#mou__jushou_shibei",
+  mute = true,
+  events = { fk.Damaged },
+  can_trigger = function(self, event, target, player, data)
+    if not (target == player and player:hasSkill(self.name)) then
+      return
+    end
+    return not player.faceup
+  end,
+  on_cost = function(self, event, target, player, data)
+    local room = player.room
+    local choices = { "turnover", "add1shield", "Cancel" }
+    if player.shield >= 5 then table.removeOne(choices, "add1shield") end
+    local choice = room:askForChoice(player, choices, self.name)
+    if choice ~= "Cancel" then
+      self.cost_data = choice
+      return true
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    room:broadcastSkillInvoke("mou__jushou", 2)
+    room:notifySkillInvoked(player, "mou__jushou", "masochism")
+    if self.cost_data == "turnover" then
+      player:turnOver()
+    else
+      room:changeShield(player, 1)
+    end
+  end,
+}
+local moujushou = fk.CreateActiveSkill{
+  name = "mou__jushou",
+  mute = true,
+  can_use = function(self, player)
+    return player:usedSkillTimes(self.name) == 0 and player.faceup
+  end,
+  target_num = 0,
+  card_num = 0,
+  card_filter = function() return false end,
+  on_use = function(self, room, effect)
+    local from = room:getPlayerById(effect.from)
+    room:broadcastSkillInvoke("mou__jushou", 1)
+    room:notifySkillInvoked(from, "mou__jushou", "defensive")
+    from:turnOver()
+    local s = from.shield
+    if s < 5 then
+      local cards = room:askForDiscard(from, 1, math.min(2, 5 - s), true,
+        self.name, true, nil, "#mou__jushou-discard")
+      if #cards > 0 then
+        room:changeShield(from, #cards)
+      end
+    end
+  end,
+}
+moujushou:addRelatedSkill(moujushouDraw)
+moujushou:addRelatedSkill(moujushouShibei)
+moucaoren:addSkill(moujushou)
+local moujiewei = fk.CreateActiveSkill{
+  name = "mou__jiewei",
+  can_use = function(self, player)
+    return player:usedSkillTimes(self.name) == 0 and player.shield > 0
+  end,
+  target_num = 1,
+  card_num = 0,
+  card_filter = function() return false end,
+  target_filter = function(self, to_select, selected)
+    return #selected == 0 and to_select ~= Self.id and
+      not Fk:currentRoom():getPlayerById(to_select):isKongcheng()
+  end,
+  on_use = function(self, room, effect)
+    local player = room:getPlayerById(effect.from)
+    room:changeShield(player, -1)
+    local target = room:getPlayerById(effect.tos[1])
+
+    local cids = target.player_cards[Player.Hand]
+    room:fillAG(player, cids)
+
+    local id = room:askForAG(player, cids, false, self.name)
+    room:closeAG(player)
+
+    if not id then return false end
+    room:obtainCard(player, id, false)
+  end,
+}
+moucaoren:addSkill(moujiewei)
+Fk:loadTranslationTable{
+  ["mou__caoren"] = "谋曹仁",
+  ["mou__jushou"] = "据守",
+  ["#mou__jushou_shibei"] = "据守",
+  ["#mou__jushou_draw"] = "据守",
+  [":mou__jushou"] = "①出牌阶段限一次，若你的武将牌正面朝上，你可以翻面，" ..
+    "然后你弃置至多两张牌并获得等量的“护甲”。<br/>" ..
+    "②当你受到伤害后，若你的武将牌背面朝上，你可以选择一项：" ..
+    "1.翻面；2.获得1点“护甲”。<br/>" ..
+    "③当你的武将牌从背面翻至正面时，你摸等同于你“护甲”值的牌。",
+  ["#mou__jushou-discard"] = "据守：你现在可以弃至多两张牌并获得等量护甲",
+  ["turnover"] = "翻面",
+  ["add1shield"] = "获得1点护甲",
+  ["mou__jiewei"] = "解围",
+  [":mou__jiewei"] = "出牌阶段限一次，你可以失去1点“护甲”并选择一名其他" ..
+    "角色，你观看其手牌并获得其中一张。",
+  ["$mou__jushou1"] = "白马沉河共歃誓，怒涛没城亦不悔！",
+  ["$mou__jushou2"] = "山水速疾来去易，襄樊镇固永难开！",
+  ["$mou__jushou3"] = "汉水溢流断归路，守城之志穷且坚！",
+  ["$mou__jiewei1"] = "同袍之谊，断不可弃之！",
+  ["$mou__jiewei2"] = "贼虽势盛，若吾出马，亦可解之。",
+  ["~mou__caoren"] = "吾身可殉，然襄樊之地万不可落于吴蜀之手……",
+}
+
 local mouhuangzhong = General(extension, "mou__huangzhong", "shu", 4)
 local mouliegongFilter = fk.CreateFilterSkill{
   name = "#mou__liegong_filter",
