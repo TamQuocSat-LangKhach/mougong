@@ -191,21 +191,19 @@ local mouliegong = fk.CreateTriggerSkill{
     suits = suits:split("+")
     local cards = room:getNCards(#suits - 1)
     room:moveCardTo(cards, Card.DiscardPile) -- FIXME
-    cardUseEvent.liegong_damage = #table.filter(cards, function(id)
+    data.additionalDamage = (data.additionalDamage or 0) +
+    #table.filter(cards, function(id)
       local c = Fk:getCardById(id)
       return table.contains(suits, c:getSuitString())
     end)
   end,
 
-  refresh_events = {fk.TargetConfirmed, fk.CardUsing,
-    fk.DamageCaused, fk.CardUseFinished},
+  refresh_events = {fk.TargetConfirmed, fk.CardUsing, fk.CardUseFinished},
   can_refresh = function(self, event, target, player, data)
     if not (target == player and player:hasSkill(self.name)) then return end
     local room = player.room
     if event == fk.CardUseFinished then
       return room.logic:getCurrentEvent().liegong_used
-    elseif event == fk.DamageCaused then
-      return room.logic:getCurrentEvent().parent.parent.liegong_used
     else
       return true
     end
@@ -218,9 +216,6 @@ local mouliegong = fk.CreateTriggerSkill{
       for _, p in ipairs(room:getAlivePlayers()) do
         room:setPlayerMark(p, "mouliegong", 0)
       end
-    elseif event == fk.DamageCaused then
-      data.damage = data.damage + room.logic:getCurrentEvent()
-        .parent.parent.liegong_damage
     else
       local suit = data.card:getSuitString()
       if table.contains({ "spade", "heart", "club", "diamond" }, suit) then
