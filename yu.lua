@@ -214,7 +214,7 @@ local mouliegong = fk.CreateTriggerSkill{
       room:setPlayerMark(player, "mouliegongRecord", 0)
       room:setPlayerMark(player, "@mouliegongRecord", 0)
       for _, p in ipairs(room:getAlivePlayers()) do
-        room:setPlayerMark(p, "mouliegong", 0)
+        room:setPlayerMark(p, "mou__liegong", 0)
       end
     else
       local suit = data.card:getSuitString()
