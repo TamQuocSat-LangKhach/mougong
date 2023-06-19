@@ -4,7 +4,113 @@ extension.extensionName = "mougong"
 Fk:loadTranslationTable{
   ["mou_yu"] = "谋攻篇-虞包",
 }
+local mouhuanggai = General(extension, "mou__huanggai", "wu", 2, 4)
+mouhuanggai.shield = 2
+local mou__kurou = fk.CreateTriggerSkill{
+  name = "mou__kurou",
+  anim_type = "control",
+  events = {fk.EventPhaseStart},
+  can_trigger = function(self, event, target, player, data)
+    return target == player and player:hasSkill(self.name) and player.phase == Player.Play
+  end,
+  on_cost = function(self, event, target, player, data)
+     local room = player.room
+     local tar, card =room:askForChooseCardAndPlayers(
+      player,
+      table.map(room:getOtherPlayers(player, true), function(p) return p.id end), 1, 1, ".|.|.|hand", "#mou__kurou-give", self.name , true)
+    if #tar > 0 and card then
+      self.cost_data = tar[1]
+      self.cost_data2 = card
+      return true
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+     room:obtainCard(self.cost_data, self.cost_data2, false, fk.ReasonGive)
+    if Fk:getCardById(self.cost_data2).trueName == "analeptic" or Fk:getCardById(self.cost_data2).trueName == "peach" then
+      room:loseHp(player, 2, self.name)
+    else
+      room:loseHp(player, 1, self.name)  
+    end
+  end,
+}
+local mou__kurou_hujia = fk.CreateTriggerSkill{
+  name = "#mou__kurou_hujia",
+  frequency = Skill.Compulsory,
+  events = {fk.HpLost},
+  on_trigger = function(self, event, target, player, data)
+    for i = 1, data.num do
+      if player.shield >= 5 then break end
+      self:doCost(event, target, player, data)
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    player.room:changeShield(player, 2)
+  end,
+}
+mou__kurou:addRelatedSkill(mou__kurou_hujia)
+mouhuanggai:addSkill(mou__kurou)
+local mou__zhaxiang = fk.CreateTriggerSkill{
+  name = "mou__zhaxiang",
+  anim_type = "drawcard",
+  frequency = Skill.Compulsory,
+  events = {fk.DrawNCards},
+  can_trigger = function(self, event, target, player, data)
+    return target == player and player:hasSkill(self.name) and player:isWounded()
+  end,
+  on_use = function(self, event, target, player, data)
+    data.n = data.n + player:getLostHp()
+  end,
+}
 
+local mou__zhaxiang_trigger = fk.CreateTriggerSkill{
+  name = "#mou__zhaxiang_trigger",
+  mute = true,
+  frequency = Skill.Compulsory,
+  events = {fk.TargetSpecified},
+  can_trigger = function(self, event, target, player, data)
+    return target == player and player.phase == Player.Play and player:hasSkill("mou__zhaxiang") and data.card.type ~=Card.TypeEquip and player:getMark("mou__zhaxiang-phase") <= player:getLostHp()
+  end,
+  on_use = function(self, event, target, player, data)
+    data.disresponsive = true
+  end,
+  
+  refresh_events = {fk.CardUsing},
+  can_refresh = function(self, event, target, player, data)
+    return target == player and player:hasSkill("mou__zhaxiang", true) and player.phase == Player.Play
+  end,
+  on_refresh = function(self, event, target, player, data)
+    player.room:addPlayerMark(player, "mou__zhaxiang-phase", 1)
+  end,
+}
+local mou__zhaxiang_targetmod = fk.CreateTargetModSkill{
+  name = "#mou__zhaxiang_targetmod",
+  residue_func = function(self, player, skill, scope, card)
+    if card and player:hasSkill("mou__zhaxiang") and player.phase == Player.Play and player:getMark("mou__zhaxiang-phase") < player:getLostHp() then
+      return 999
+    end
+    return 0
+  end,
+  distance_limit_func =  function(self, player, skill, card)
+    if card and player:hasSkill("mou__zhaxiang") and player:getMark("mou__zhaxiang-phase") < player:getLostHp() and player.phase == Player.Play then
+      return 999
+    end
+  end,
+}
+mou__zhaxiang:addRelatedSkill(mou__zhaxiang_targetmod)
+mou__zhaxiang:addRelatedSkill(mou__zhaxiang_trigger)
+mouhuanggai:addSkill(mou__zhaxiang)
+Fk:loadTranslationTable{
+  ["mou__huanggai"] = "谋黄盖",
+  ["mou__kurou"] = "苦肉",
+  ["#mou__kurou_hujia"] = "苦肉",
+  [":mou__kurou"] = "①出牌阶段开始时，你可以将一张手牌交给一名其他角色，若如此做，你失去一点体力，若你交出的牌为【桃】或【酒】则改为两点。;②，当你失去一点体力值时，你获得两点护甲。",
+  ["mou__zhaxiang"] = "诈降",
+  [":mou__zhaxiang"] = "锁定技，①摸牌阶段，你的摸牌基数+X；②出牌阶段，你使用的前X张牌无距离和次数限制且无法响应。(X为你已损失的体力值)。",
+  ["#mou__kurou-give"] = "苦肉：你可以将一张手牌交给一名其他角色，若如此做，你失去一点体力，若你交出的牌为【桃】或【酒】则改为两点",
+
+  ["~mouhuanggai"] = "'暂无",
+}
 local moucaoren = General(extension, "mou__caoren", "wei", 4)
 moucaoren.shield = 1
 
