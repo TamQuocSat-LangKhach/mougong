@@ -109,7 +109,11 @@ Fk:loadTranslationTable{
   [":mou__zhaxiang"] = "锁定技，①摸牌阶段，你的摸牌基数+X；②出牌阶段，你使用的前X张牌无距离和次数限制且无法响应。(X为你已损失的体力值)。",
   ["#mou__kurou-give"] = "苦肉：你可以将一张手牌交给一名其他角色，若如此做，你失去一点体力，若你交出的牌为【桃】或【酒】则改为两点",
 
-  ["~mouhuanggai"] = "'暂无",
+  ["$mou__kurou1"] = "既不能破，不如依张子布之言，投降便罢！",
+  ["$mou__kurou2"] = "周瑜小儿！破曹不得，便欺吾三世老臣乎？",
+  ["$mou__zhaxiang1"] = "江东六郡之卒，怎敌丞相百万雄师！	",
+  ["$mou__zhaxiang2"] = "闻丞相虚心纳士，盖愿率众归降！",
+  ["~mou__huanggai"] = "哈哈哈哈，公瑾计成，老夫死也无憾了……",
 }
 local moucaoren = General(extension, "mou__caoren", "wei", 4)
 moucaoren.shield = 1

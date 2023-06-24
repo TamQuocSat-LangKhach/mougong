@@ -1,3 +1,4 @@
+local tong = require 'packages.mougong.tong'
 local yu = require 'packages.mougong.yu'
 
 Fk:loadTranslationTable{
@@ -5,5 +6,6 @@ Fk:loadTranslationTable{
 }
 
 return {
+  tong,
   yu,
 }
