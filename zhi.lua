@@ -4,6 +4,99 @@ extension.extensionName = "mougong"
 Fk:loadTranslationTable{
   ["mou_zhi"] = "谋攻篇-知包",
 }
+local sunquan = General(extension, "mou__sunquan", "wu", 4)
+local mou__zhiheng = fk.CreateActiveSkill{
+  name = "mou__zhiheng",
+  anim_type = "drawcard",
+  min_card_num = 1,
+  target_num = 0,
+  can_use = function(self, player)
+    return player:usedSkillTimes(self.name) == 0
+  end,
+  on_use = function(self, room, effect)
+    local from = room:getPlayerById(effect.from)
+    local hand = from:getCardIds(Player.Hand)
+    local more = #hand > 0
+    for _, id in ipairs(hand) do
+      if not table.contains(effect.cards, id) then
+        more = false
+        break
+      end
+    end
+    local num1 = from:getMark("@tongye")
+    room:throwCard(effect.cards, self.name, from, from)
+    room:drawCards(from, #effect.cards + (more and 1 or 0) + num1, self.name)
+    if more and num1 > 0 then
+      room:removePlayerMark(from, "@tongye", 1)
+    end
+  end
+}
+local mou__tongye = fk.CreateTriggerSkill{
+  name = "mou__tongye",
+  anim_type = "control",
+  events = {fk.EventPhaseStart},
+  frequency = Skill.Compulsory,
+  can_trigger = function(self, event, target, player, data)
+    if target == player and player:hasSkill(self.name) then
+      if player.phase == Player.Finish then 
+        return true
+      elseif player.phase == Player.Start then
+        return player:getMark("@@tongye1") > 0 or player:getMark("@@tongye2") >0
+      end
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+     local n = 0
+    for _, p in ipairs(room:getAlivePlayers()) do
+      for _, id in ipairs(p:getCardIds{Player.Equip}) do
+         n = n+1
+      end
+    end
+    if player.phase == Player.Start then
+      if player:getMark("@@tongye1") ~= 0 then
+        if player:getMark("tongye_num") ~=n then
+          room:addPlayerMark(player, "@tongye", 1)
+        else
+          room:removePlayerMark(player, "@tongye", 1)
+        end
+        room:setPlayerMark(player, "@@tongye1", 0)
+      end
+      if player:getMark("@@tongye2") ~= 0 then
+        if player:getMark("tongye_num") == n then
+          room:addPlayerMark(player, "@tongye", 1)
+        else
+          room:removePlayerMark(player, "@tongye", 1)
+        end
+        room:setPlayerMark(player, "@@tongye2", 0)
+      end
+       room:setPlayerMark(player, "tongye_num", 0)
+    else
+      room:addPlayerMark(player, "tongye_num", n)
+      local choice = room:askForChoice(player, { "tongye1", "tongye2"}, self.name)
+      if choice == "tongye1" then
+        room:addPlayerMark(player, "@@tongye1")
+      end
+      if choice == "tongye2" then
+        room:addPlayerMark(player, "@@tongye2")
+      end
+    end
+  end,
+}
+sunquan:addSkill(mou__zhiheng)
+sunquan:addSkill(mou__tongye)
+sunquan:addSkill("jiuyuan")
+Fk:loadTranslationTable{
+  ["mou__sunquan"] = "谋孙权",
+  ["mou__zhiheng"] = "制衡",
+  [":mou__zhiheng"] = "出牌阶段限一次，你可以弃置任意张牌并摸等量的牌。若你以此法弃置了所有的手牌，你多摸1+X张牌(X为你的“业”数)，然后你弃置一枚“业”。",
+  ["mou__tongye"] = "统业",
+  [":mou__tongye"] = "锁定技，结束阶段，你可以猜测场上的装备数量于你的下个准备阶段开始时有无变化。若你猜对，你获得一枚“业”，猜错，你弃置一枚“业”。",
+    ["@tongye"] = "业",
+    ["@@tongye1"] = "有变化",
+    ["@@tongye2"] = "无变化",
+  
+}
 local mouzhouyu = General(extension, "mou__zhouyu", "wu", 3)
 local mou__yingzi = fk.CreateTriggerSkill{
   name = "mou__yingzi",
@@ -74,14 +167,14 @@ local mou__fanjian = fk.CreateActiveSkill{
     if choice == "mou__fanjian_fanmian" then
       target:turnOver()
     elseif choice == "mou__fanjian_true" then
-      if self.interaction.data == Fk:getCardById(effect.cards[1]).suit then 
-        player:setMark("mou__fanjian-turn", 1)
+      if self.interaction.data == Fk:getCardById(effect.cards[1]):getSuitString() then 
+        room:setPlayerMark(player, "mou__fanjian-turn", 1)
       else 
         room:loseHp(target, 1, self.name)
       end
-    else
-      if self.interaction.data ~= Fk:getCardById(effect.cards[1]).suit then 
-        player:setMark("mou__fanjjan-turn", 1)
+    elseif choice == "mou__fanjian_false" then
+      if self.interaction.data ~= Fk:getCardById(effect.cards[1]):getSuitString() then 
+        room:setPlayerMark(player, "mou__fanjian-turn", 1)
       else 
         room:loseHp(target, 1, self.name)
       end
@@ -129,7 +222,12 @@ Fk:loadTranslationTable{
   [":mou__fanjian_fanmian"] = "翻面",
   ["#mou__fanjian-choice"] = "反间:请猜测选择的牌花色是否与%arg 相同或者选择翻面。",
   ["#fanjian_log"] = "%from 发动了“%arg2”，声明的花色为 【%arg】。",
-  ["@moufanjianRecord"] = "反间",
-  ["~mouzhouyu"] = "'暂无",
+  ["@moufanjianRecord-turn"] = "反间",
+  
+  ["$mou__yingzi1"] = "交之总角，付之九州！",
+  ["$mou__yingzi2"] = "定策分两治，纵马饮三江！",
+  ["$mou__fanjian1"] = "若不念汝三世之功，今日定斩不赦！",
+  ["$mou__fanjian2"] = "比之自内，不自失也！",
+  ["~mou__zhouyu"] = "瑜虽不惧曹军，但惧白驹过隙……",
 }
 return extension
