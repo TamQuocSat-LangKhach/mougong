@@ -76,14 +76,14 @@ local mou__luanji = fk.CreateViewAsSkill{
 local mouyuanshao = General(extension, "mou__yuanshao", "qun", 4)
 mou__xueyi:addRelatedSkill(mou__xueyi_Max)
 mou__luanji:addRelatedSkill(mou__luanji_Draw)
-mouyuanshao:addSkill(mou__xueyi)
 mouyuanshao:addSkill(mou__luanji)
+mouyuanshao:addSkill(mou__xueyi)
 Fk:loadTranslationTable{
   ["mou__yuanshao"] = "谋袁绍",
   ["mou__luanji"] = "乱击",
   [":mou__luanji"] = "①出牌阶段限一次，你可以将两张手牌当做【万箭齐发】使用。;②当有角色因响应你的【万箭齐发】打出【闪】时，你摸一张牌。",
   ["mou__xueyi"] = "血裔",
-  [":mou__xueyi"] = "主公技，①锁定技，你的手牌上限+2X(X为场上现存其他群势力角色数)。;②当你所有牌指定其他群雄角色为目标时，你摸一张牌。",
+  [":mou__xueyi"] = "主公技，①锁定技，你的手牌上限+2X(X为场上现存其他群势力角色数)。;②当你使用牌指定其他群雄角色为目标时，你摸一张牌。",
 }
 
 return extension
