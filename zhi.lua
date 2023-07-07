@@ -93,8 +93,8 @@ Fk:loadTranslationTable{
   ["mou__tongye"] = "统业",
   [":mou__tongye"] = "锁定技，结束阶段，你可以猜测场上的装备数量于你的下个准备阶段开始时有无变化。若你猜对，你获得一枚“业”，猜错，你弃置一枚“业”。",
     ["@tongye"] = "业",
-    ["@@tongye1"] = "有变化",
-    ["@@tongye2"] = "无变化",
+    ["@@tongye1"] = "统业猜测:有变化",
+    ["@@tongye2"] = "统业猜测:无变化",
   
 }
 local mouzhouyu = General(extension, "mou__zhouyu", "wu", 3)
@@ -163,7 +163,8 @@ local mou__fanjian = fk.CreateActiveSkill{
         arg = self.interaction.data,
         arg2 = self.name
       }
-    local choice = room:askForChoice(target, { "mou__fanjian_true", "mou__fanjian_false" , "mou__fanjian_fanmian" }, self.name,"#mou__fanjian-choice:::"..self.interaction.data, true)
+      local choiceList = { "mou__fanjian_true","mou__fanjian_false", "mou__fanjian_fanmian" }
+    local choice = room:askForChoice(player, choiceList , self.name,"#mou__fanjian-active:::"..self.interaction.data)
     if choice == "mou__fanjian_fanmian" then
       target:turnOver()
     elseif choice == "mou__fanjian_true" then
@@ -214,13 +215,11 @@ Fk:loadTranslationTable{
   [":mou__yingzi"] = "锁定技，摸牌阶段开始时，你每满足以下一项条件此摸牌阶段摸牌基数和本回合手牌上限便+1，你的手牌数不少于2，你的装备区内牌数不少于1，你的体力值不少于2。",
   ["mou__fanjian"] = "反间",
   [":mou__fanjian"] = "出牌阶段，你可以选择一名其他角色和一张牌(每种花色每回合限一次)并声明一个花色，其须选择一项:①猜测此牌花色是否与你声明的花色相同;②翻面。;然后其正面向上获得此牌。若其选择猜测且猜测错误，其失去1点体力，否则其令你〖反间〗于本回合失效。",
-  ["mou__fanjian_true"] = "花色正确",
-  ["mou__fanjian_false"] = "花色错误",
+  ["mou__fanjian_true"] = "花色相同",
+  ["mou__fanjian_false"] = "花色不相同",
   ["mou__fanjian_fanmian"] = "你翻面",
-  [":mou__fanjian_true"] = "正确",
-  [":mou__fanjian_false"] = "错误",
-  [":mou__fanjian_fanmian"] = "翻面",
-  ["#mou__fanjian-choice"] = "反间:请猜测选择的牌花色是否与%arg 相同或者选择翻面。",
+  
+  ["#mou__fanjian-active"] = "反间:请猜测选择的牌花色是否与%arg 相同或者选择翻面。",
   ["#fanjian_log"] = "%from 发动了“%arg2”，声明的花色为 【%arg】。",
   ["@moufanjianRecord-turn"] = "反间",
   
