@@ -164,7 +164,7 @@ local mou__fanjian = fk.CreateActiveSkill{
         arg2 = self.name
       }
       local choiceList = { "mou__fanjian_true","mou__fanjian_false", "mou__fanjian_fanmian" }
-    local choice = room:askForChoice(player, choiceList , self.name,"#mou__fanjian-active:::"..self.interaction.data)
+    local choice = room:askForChoice( target, choiceList , self.name,"#mou__fanjian-active:::"..self.interaction.data)
     if choice == "mou__fanjian_fanmian" then
       target:turnOver()
     elseif choice == "mou__fanjian_true" then
