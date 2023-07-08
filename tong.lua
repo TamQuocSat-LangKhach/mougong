@@ -4,6 +4,161 @@ extension.extensionName = "mougong"
 Fk:loadTranslationTable{
   ["mou_tong"] = "谋攻篇-同包",
 }
+local sunce = General(extension, "mou__sunce", "wu", 2 , 4)
+local mou__jiang_draw = fk.CreateTriggerSkill{
+  name = "#mou__jiang_draw",
+  anim_type = "drawcard",
+  events ={fk.TargetSpecified, fk.TargetConfirmed},
+  can_trigger = function(self, event, target, player, data)
+    return target == player and player:hasSkill("mou__jiang") and
+      ((data.card.trueName == "slash" and data.card.color == Card.Red) or data.card.name == "duel")
+  end,
+  on_use = function(self, event, target, player, data)
+    player:drawCards(1, self.name)
+  end,
+}
+local mou__jiang_target = fk.CreateTriggerSkill{
+  name = "#mou__jiang_target",
+  anim_type = "offensive",
+  events = {fk.TargetSpecifying},
+  can_trigger = function(self, event, target, player, data)
+    return target == player and player:hasSkill("mou__jiang") and #player.room.alive_players > 2 and data.card.trueName == "duel"
+  end,
+  on_cost = function(self, event, target, player, data)
+    local room = player.room
+    local targets = {}
+    for _, p in ipairs(room:getOtherPlayers(player)) do
+      if not table.contains(data.tos[1], p.id) and not player:isProhibited(p, data.card) then
+        table.insertIfNeed(targets, p.id)
+      end
+    end
+    local to = room:askForChoosePlayers(player, targets, 1, 1, "#mou__jiang-choose:::"..data.card:toLogString(), "mou__jiang", true)
+    if #to > 0 then
+      self.cost_data = to[1]
+      return true
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    player.room:loseHp(player, 1)
+    TargetGroup:pushTargets(data.targetGroup, self.cost_data)
+  end,
+}
+local mou__jiang = fk.CreateViewAsSkill{
+  name = "mou__jiang",
+  anim_type = "offensive",
+  card_filter = function()
+    return false
+  end,
+  view_as = function(self, cards)
+    local card = Fk:cloneCard("duel")
+    card:addSubcards(Self:getCardIds(Player.Hand))
+    card.skillName = self.name
+    return card
+  end,
+  enabled_at_play = function(self, player)
+    local X = 1
+    if player:usedSkillTimes("mou__zhiba", Player.HistoryGame) > 0 then
+        local num1 = 0
+      for _, p in ipairs(Fk:currentRoom().alive_players) do
+        if p.kingdom == "wu" then 
+          num1 = num1 + 1
+        end
+      end
+      X = num1
+    end
+    return player:usedSkillTimes(self.name, Player.HistoryPhase) < X and not player:isKongcheng()
+  end,
+}
+local mou__hunzi = fk.CreateTriggerSkill{
+  name ="mou__hunzi",
+  frequency = Skill.Wake,
+  events = {fk.AfterDying},
+  can_trigger = function(self, event, target, player, data)
+    return target == player and player:hasSkill(self.name) and
+      player:usedSkillTimes(self.name, Player.HistoryGame) == 0 
+  end,
+  can_wake = function(self, event, target, player, data)
+    return true
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    room:changeMaxHp(player, -1)
+    room:changeShield(player, 2)
+    player:drawCards(3, self.name)
+    room:handleAddLoseSkills(player, "mou__yingzi|yinghun", nil, true, false)
+  end,
+}
+local mou__zhiba_draw = fk.CreateTriggerSkill{
+  name = "#mou__zhiba_draw",
+  anim_type = "control",
+  mute = true,
+  frequency = Skill.Compulsory,
+  events = {fk.Death},
+  can_trigger = function(self, event, target, player, data)
+    return target ~= player and player:hasSkill("mou__zhiba", false, true) and data.damage and data.damage.skillName == "mou__zhiba"
+  end,
+  on_use = function(self, event, target, player, data)
+    player:drawCards(3, self.name)
+  end,
+}
+local mou__zhiba = fk.CreateTriggerSkill{
+  name = "mou__zhiba$",
+  anim_type = "defensive",
+  frequency = Skill.Limited,
+  events = {fk.EnterDying},
+  can_trigger = function(self, event, target, player, data)
+    return target == player and player:hasSkill(self.name) and player:usedSkillTimes(self.name, Player.HistoryGame) == 0 and
+      not table.every(player.room:getOtherPlayers(player), function(p) return p.kingdom ~= "wu" end)
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    local targets = {}
+    for _, p in ipairs(room:getOtherPlayers(player)) do
+      if p.kingdom == "wu" then
+        table.insert(targets, p)
+      end
+    end
+    if #targets > 0 then
+      for _, p in ipairs(targets) do
+        room:recover{
+          who = player,
+          num = 1,
+          recoverBy = p,
+          skillName = self.name
+        }
+      end
+    end
+    if not player.dying then
+      for _, p in ipairs(targets) do
+        room:damage{
+          to = p,
+          damage = 1,
+          skillName = self.name,
+        }
+      end
+    end
+  end,
+}
+mou__jiang:addRelatedSkill(mou__jiang_draw)
+mou__jiang:addRelatedSkill(mou__jiang_target)
+mou__zhiba:addRelatedSkill(mou__zhiba_draw)
+sunce:addSkill(mou__jiang)
+sunce:addSkill(mou__hunzi)
+sunce:addSkill(mou__zhiba)
+sunce:addRelatedSkill("mou__yingzi")
+sunce:addRelatedSkill("yinghun")
+Fk:loadTranslationTable{
+  ["mou__sunce"] = "谋孙策",
+  ["#mou__jiang_draw"] = "激昂",
+  ["#mou__jiang_target"] = "激昂",
+  ["#mou__jiang-choose"] = "激昂:你可以为【%arg】额外指定一个目标，若如此做，你失去一点体力。",
+  ["mou__jiang"] = "激昂",
+  [":mou__jiang"] = "①当你使用【决斗】指定目标时，你可以额外指定一个目标，然后你失去一点体力。②当你使用【决斗】或红色【杀】指定目标后，或成为【决斗】或红色【杀】的目标后，你可以摸一张牌。③出牌阶段限X次，你可以将所有手牌当做决斗使用。(X为1，若已发动“制霸”，则X改为现存吴势力角色数)",
+  ["mou__hunzi"] = "魂姿",
+  [":mou__hunzi"] = "觉醒技，当你脱离濒死状态时，你减1点体力上限，获得两点护甲并摸三张牌然后获得〖英姿〗和〖英魂〗。",
+  ["mou__zhiba"] = "制霸",
+  [":mou__zhiba"] = "主公技，限定技，当你进入濒死状态时，你可以回复X点体力并修改“激昂”(X为吴势力角色数)，然后其他吴势力角色依次受到1点无来源伤害，若其因此死亡，你摸三张牌。",
+}
 
 local liucheng = General(extension, "mou__liucheng", "qun", 3, 3, General.Female)
 
