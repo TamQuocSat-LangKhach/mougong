@@ -115,26 +115,30 @@ local mou__zhiba = fk.CreateTriggerSkill{
     local targets = {}
     for _, p in ipairs(room:getOtherPlayers(player)) do
       if p.kingdom == "wu" then
-        table.insert(targets, p)
+        table.insert(targets, p.id)
       end
     end
     if #targets > 0 then
-      for _, p in ipairs(targets) do
+      for _, id in ipairs(targets) do
         room:recover{
           who = player,
           num = 1,
-          recoverBy = p,
+          recoverBy = player,
           skillName = self.name
         }
       end
     end
-    if not player.dying then
-      for _, p in ipairs(targets) do
-        room:damage{
-          to = p,
-          damage = 1,
-          skillName = self.name,
-        }
+    if not player.dead then
+      for _, id in ipairs(targets) do
+         local p = room:getPlayerById(id)
+        if not p.dead then
+          room:damage{
+            from = nil,
+            to = p,
+            damage = 1,
+            skillName = self.name
+          }
+        end
       end
     end
   end,
