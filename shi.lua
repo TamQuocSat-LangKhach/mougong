@@ -38,7 +38,7 @@ local mou__tieji = fk.CreateTriggerSkill{
 }
 
 local machao = General:new(extension, "mou__machao", "shu", 4)
-machao.subkingdom = "god"
+
 machao:addSkill("mashu")
 machao:addSkill(mou__tieji)
 Fk:loadTranslationTable{
@@ -47,8 +47,8 @@ Fk:loadTranslationTable{
   [":mou__tieji"] = "你可以令目标角色不能响应此【杀】，且其所有非锁定技失效直到回合结束。然后你与其进行谋弈。若你赢，且你选择的选项为：“直取敌营”，则你获得其一张牌；“扰阵疲敌”，你摸两张牌。",
   ["tieji-zhiqu"] = "直取敌营: 谋奕成功后获得对方一张牌",
   ["tieji-raozheng"] = "扰阵疲敌:谋奕成功后你摸两张牌",
-  ["tieji-chuzheng"] = "出阵迎敌",
-  ["tieji-huwei"] = "拱卫中军",
+  ["tieji-chuzheng"] = "出阵迎敌:用于防御直取敌营",
+  ["tieji-huwei"] = "拱卫中军:用于防御扰阵疲敌",
   ["#mou__tieji-active"] = "铁骑:请选择你需要进行谋奕的选项",
   ["#tieji_log"] = "%from 发动了“%arg2”谋奕结果为【%arg】。",
  
