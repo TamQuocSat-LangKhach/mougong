@@ -5,6 +5,141 @@ Fk:loadTranslationTable{
   ["mou_zhi"] = "谋攻篇-知包",
 }
 
+local daqiao = General(extension, "mou__daqiao", "wu", 3, 3, General.Female)
+local mou__guose = fk.CreateActiveSkill{
+  name = "mou__guose",
+  anim_type = "control",
+  card_num = 1,
+  target_num = 1,
+  can_use = function(self, player)
+    return player:usedSkillTimes(self.name, Player.HistoryPhase) < 4 
+  end,
+  card_filter = function(self, to_select, selected)
+    return #selected == 0 and Fk:getCardById(to_select).suit == Card.Diamond
+  end,
+  target_filter = function(self, to_select, selected, selected_cards)
+    if #selected == 0 and #selected_cards > 0 then
+      local target = Fk:currentRoom():getPlayerById(to_select)
+      local card = Fk:cloneCard("indulgence")
+      card:addSubcard(selected_cards[1])
+      return target:hasDelayedTrick("indulgence") or (to_select ~= Self.id and not Self:isProhibited(target, card))
+    end
+  end,
+  on_use = function(self, room, effect)
+    local player = room:getPlayerById(effect.from)
+    local target = room:getPlayerById(effect.tos[1])
+    if target:hasDelayedTrick("indulgence") then
+      room:throwCard(effect.cards, self.name, player, player)
+      for _, id in ipairs(target.player_cards[Player.Judge]) do
+        local card = target:getVirualEquip(id)
+        if not card then card = Fk:getCardById(id) end
+        if card.name == "indulgence" then
+          room:throwCard({id}, self.name, target, player)
+        end
+      end
+    else
+      room:useVirtualCard("indulgence", effect.cards, player, target, self.name)
+    end
+    player:drawCards(2, self.name)
+    if not player:isNude() then
+      room:askForDiscard(player, 1, 1, true, self.name, false)
+    end
+  end,
+}
+local mou__liuli = fk.CreateTriggerSkill{
+  name = "mou__liuli",
+  anim_type = "defensive",
+  events = {fk.TargetConfirming},
+  can_trigger = function(self, event, target, player, data)
+    local ret = target == player and player:hasSkill(self.name) and
+      data.card.trueName == "slash"
+    if ret then
+      local room = player.room
+      local from = room:getPlayerById(data.from)
+      for _, p in ipairs(room.alive_players) do
+        if p ~= player and p.id ~= data.from and player:inMyAttackRange(p) and not from:isProhibited(p, data.card) then
+          return true
+        end
+      end
+    end
+  end,
+  on_cost = function(self, event, target, player, data)
+    local room = player.room
+    local prompt = "#mou__liuli-target"
+    local targets = {}
+    local from = room:getPlayerById(data.from)
+    for _, p in ipairs(room.alive_players) do
+      if p ~= player and p.id ~= data.from and player:inMyAttackRange(p) and not from:isProhibited(p, data.card) then
+        table.insert(targets, p.id)
+      end
+    end
+    if #targets == 0 then return false end
+    local plist, cid = room:askForChooseCardAndPlayers(player, targets, 1, 1, nil, prompt, self.name, true)
+    if #plist > 0 then
+      self.cost_data = {plist[1], cid}
+      return true
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    local to = self.cost_data[1]
+    room:doIndicate(player.id, { to })
+    room:throwCard(self.cost_data[2], self.name, player, player)
+    TargetGroup:removeTarget(data.targetGroup, player.id)
+    TargetGroup:pushTargets(data.targetGroup, to)
+    
+    if Fk:getCardById(self.cost_data[2]).suit == Card.Heart and player:getMark("mou__liuli-turn") == 0 then
+        local targets = {}
+      local from = room:getPlayerById(data.from)
+      for _, p in ipairs(room.alive_players) do
+        if p ~= player and p.id ~= data.from and p:getMark("@liuli_dangxian") == 0 then
+           table.insert(targets, p.id)
+        end
+      end
+     local tar = room:askForChoosePlayers(player, targets, 1, 1, "#mou__liuli-choose", self.name, true)
+      if #tar > 0 then
+         room:removePlayerMark(player, "mou__liuli-turn", 1)
+          for _, p in ipairs(room.alive_players) do
+            if p:getMark("@liuli_dangxian") ~= 0 then
+                room:removePlayerMark(p, "@liuli_dangxian", 1)
+            end
+          end
+         room:addPlayerMark(room:getPlayerById(tar[1]), "@liuli_dangxian", 1)
+      end
+    end
+  end,
+}
+
+local mou__liuli_dangxian = fk.CreateTriggerSkill{
+  name = "#mou__liuli_dangxian",
+  anim_type = "offensive",
+  frequency = Skill.Compulsory,
+  events = {fk.EventPhaseChanging},
+  can_trigger = function(self, event, target, player, data)
+    return target == player and player:getMark("@liuli_dangxian") ~=0 and data.to == Player.Start
+  end,
+  on_use = function(self, event, target, player, data)
+    player.room:removePlayerMark(player, "@liuli_dangxian", 1)
+    player:gainAnExtraPhase(Player.Play)
+  end,
+}
+mou__liuli:addRelatedSkill(mou__liuli_dangxian)
+daqiao:addSkill(mou__guose)
+daqiao:addSkill(mou__liuli)
+Fk:loadTranslationTable{
+  ["mou__daqiao"] = "谋大乔",
+  ["mou__guose"] = "国色",
+  [":mou__guose"] = "出牌阶段限四次，你可以选择一项：1.将一张<font color='red'>♦</font>牌当【乐不思蜀】使用；"..
+  "2.弃置一张<font color='red'>♦</font>牌并弃置场上的一张【乐不思蜀】。选择完成后，你摸两张牌，然后弃置一张牌。",
+  ["mou__liuli"] = "流离",
+  ["#mou__liuli_dangxian"] = "流离",
+  [":mou__liuli"] = "每当你成为【杀】的目标时，你可以弃置一张牌并选择你攻击范围内为此【杀】合法目标（无距离限制）的一名角色：若如此做，该角色代替你成为此【杀】的目标。若你以此法弃置了<font color='red'>♥️</font>牌，则你可以令一名不为此【杀】使用者的其他角色获得“流离”标记，且移去场上所有其他的“流离”（每回合限一次）。有“流离”的角色回合开始时，其移去其“流离”并执行一个额外的出牌阶段。",
+  ["#mou__liuli-target"] = "流离：你可以弃置一张牌，将【杀】的目标转移给一名其他角色。若你以此法弃置的牌花色是<font color='red'>♥️</font>，则你可以令一名除此杀使用者的其他角色获得“流离”标记",
+  ["#mou__liuli-choose"] = "流离：你可以令一名除此【杀】使用者的其他角色获得“流离”标记并清除场上的其他流离标记。",
+   ["@liuli_dangxian"] = "流离",
+
+}
+
 local caocao = General(extension, "mou__caocao", "wei", 4)
 local mou__jianxiong = fk.CreateTriggerSkill{
   name = "mou__jianxiong",
