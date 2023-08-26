@@ -128,7 +128,7 @@ local moujushouDraw = fk.CreateTriggerSkill{
   on_cost = function() return true end,
   on_use = function(self, event, target, player, data)
     local room = player.room
-    room:broadcastSkillInvoke("mou__jushou", 3)
+    player:broadcastSkillInvoke("mou__jushou", 3)
     room:notifySkillInvoked(player, "mou__jushou", "drawcard")
     player:drawCards(player.shield, self.name)
   end,
@@ -155,7 +155,7 @@ local moujushouShibei = fk.CreateTriggerSkill{
   end,
   on_use = function(self, event, target, player, data)
     local room = player.room
-    room:broadcastSkillInvoke("mou__jushou", 2)
+    player:broadcastSkillInvoke("mou__jushou", 2)
     room:notifySkillInvoked(player, "mou__jushou", "masochism")
     if self.cost_data == "turnover" then
       player:turnOver()
@@ -175,7 +175,7 @@ local moujushou = fk.CreateActiveSkill{
   card_filter = function() return false end,
   on_use = function(self, room, effect)
     local from = room:getPlayerById(effect.from)
-    room:broadcastSkillInvoke("mou__jushou", 1)
+    from:broadcastSkillInvoke("mou__jushou", 1)
     room:notifySkillInvoked(from, "mou__jushou", "defensive")
     from:turnOver()
     local s = from.shield

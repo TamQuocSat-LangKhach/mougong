@@ -542,7 +542,7 @@ local mou__yanyu_trigger = fk.CreateTriggerSkill{
   on_use = function(self, event, target, player, data)
     local room = player.room
     room:notifySkillInvoked(player, mou__yanyu.name, self.anim_type)
-    room:broadcastSkillInvoke(mou__yanyu.name)
+    player:broadcastSkillInvoke(mou__yanyu.name)
     room:drawCards(self.cost_data, 3*player:usedSkillTimes(mou__yanyu.name, Player.HistoryTurn), mou__yanyu.name)
   end,
 }
