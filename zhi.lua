@@ -136,8 +136,13 @@ Fk:loadTranslationTable{
   [":mou__liuli"] = "每当你成为【杀】的目标时，你可以弃置一张牌并选择你攻击范围内为此【杀】合法目标（无距离限制）的一名角色：若如此做，该角色代替你成为此【杀】的目标。若你以此法弃置了<font color='red'>♥️</font>牌，则你可以令一名不为此【杀】使用者的其他角色获得“流离”标记，且移去场上所有其他的“流离”（每回合限一次）。有“流离”的角色回合开始时，其移去其“流离”并执行一个额外的出牌阶段。",
   ["#mou__liuli-target"] = "流离：你可以弃置一张牌，将【杀】的目标转移给一名其他角色。若你以此法弃置的牌花色是<font color='red'>♥️</font>，则你可以令一名除此杀使用者的其他角色获得“流离”标记",
   ["#mou__liuli-choose"] = "流离：你可以令一名除此【杀】使用者的其他角色获得“流离”标记并清除场上的其他流离标记。",
-   ["@liuli_dangxian"] = "流离",
+  ["@liuli_dangxian"] = "流离",
 
+  ["$mou__guose1"] = "还望将军，稍等片刻。",
+  ["$mou__guose2"] = "将军，请留步。",
+  ["$mou__liuli1"] = "无论何时何地，我都在你身边。",
+  ["$mou__liuli2"] = "辗转流离，只为此刻与君相遇。",
+  ["~mou__daqiao"] = "此心无可依，惟有泣别离……",
 }
 
 local caocao = General(extension, "mou__caocao", "wei", 4)
@@ -318,6 +323,14 @@ Fk:loadTranslationTable{
   ["#mou__qingzheng-discard"] = "清正:请选择一种花色的所有牌弃置，总共%arg 次 现在是第%arg2 次",
   ["#mou__hujia-choose"] = "护驾:是否发动【护驾】，防止此次伤害?选择一名其他角色“魏”势力角色将此伤害转移给其?",
   ["@mou__jianxiong"] = "治世",
+
+  ["$mou__jianxiong1"] = "古今英雄盛世，尽赴沧海东流。",
+  ["$mou__jianxiong2"] = "骖六龙行御九州，行四海路下八邦！",
+  ["$mou__qingzheng1"] = "立威行严法，肃佞正国纲！",
+  ["$mou__qingzheng2"] = "悬杖分五色，治法扬清名。",
+  ["$mou__hujia1"] = "虎贲三千，堪当敌万余！",
+  ["$mou__hujia2"] = "壮士八百，足护卫吾身！",
+  ["~mou__caocao"] = "狐死归首丘，故乡安可忘……",
 }
 local sunquan = General(extension, "mou__sunquan", "wu", 4)
 local mou__zhiheng = fk.CreateActiveSkill{
@@ -402,22 +415,60 @@ local mou__tongye = fk.CreateTriggerSkill{
     end
   end,
 }
+local mou__jiuyuan = fk.CreateTriggerSkill{
+  name = "mou__jiuyuan$",
+  anim_type = "support",
+  frequency = Skill.Compulsory,
+  events = {fk.PreHpRecover, fk.CardUsing},
+  can_trigger = function(self, event, target, player, data)
+    if event == fk.PreHpRecover then
+      return
+        target == player and
+        player:hasSkill(self.name) and
+        data.card and
+        data.card.trueName == "peach" and
+        data.recoverBy and
+        data.recoverBy.kingdom == "wu" and
+        data.recoverBy ~= player
+    elseif event == fk.CardUsing then
+      return player:hasSkill(self.name) and target ~= player and target.kingdom == "wu" and data.card.trueName == "peach"
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    if event == fk.PreHpRecover then
+      data.num = data.num + 1
+    elseif event == fk.CardUsing then
+      player:drawCards(1, self.name)
+    end
+  end,
+}
 sunquan:addSkill(mou__zhiheng)
 sunquan:addSkill(mou__tongye)
-sunquan:addSkill("jiuyuan")
+sunquan:addSkill(mou__jiuyuan)
 Fk:loadTranslationTable{
   ["mou__sunquan"] = "谋孙权",
   ["mou__zhiheng"] = "制衡",
   [":mou__zhiheng"] = "出牌阶段限一次，你可以弃置任意张牌并摸等量的牌。若你以此法弃置了所有的手牌，你多摸1+X张牌(X为你的“业”数)，然后你弃置一枚“业”。",
   ["mou__tongye"] = "统业",
   [":mou__tongye"] = "锁定技，结束阶段，你可以猜测场上的装备数量于你的下个准备阶段开始时有无变化。若你猜对，你获得一枚“业”，猜错，你弃置一枚“业”。",
-    ["tongye1"] = "统业猜测:有变化",
-    ["tongye2"] = "统业猜测:无变化",
-    ["@tongye"] = "业",
-    ["@@tongye1"] = "统业猜测:有变化",
-    ["@@tongye2"] = "统业猜测:无变化",
-  
+  ["mou__jiuyuan"] = "救援",
+  [":mou__jiuyuan"] = "主公技，锁定技，其他吴势力角色使用【桃】时，你摸一张牌。其他吴势力角色对你使用【桃】回复的体力+1。",
+
+  ["tongye1"] = "统业猜测:有变化",
+  ["tongye2"] = "统业猜测:无变化",
+  ["@tongye"] = "业",
+  ["@@tongye1"] = "统业猜测:有变化",
+  ["@@tongye2"] = "统业猜测:无变化",
+
+  ["$mou__zhiheng1"] = "稳坐山河，但观世变。",
+  ["$mou__zhiheng2"] = "身处惊涛，尤可弄潮。",
+  ["$mou__tongye1"] = "上下一心，君臣同志。",
+  ["$mou__tongye2"] = "胸有天下者，必可得其国。",
+  ["$mou__jiuyuan1"] = "汝救护有功，吾必当厚赐。",
+  ["$mou__jiuyuan2"] = "诸位将军，快快拦住贼军！",
+  ["~mou__sunquan"] = "风急举发，命不久矣……",
 }
+
 local mouzhouyu = General(extension, "mou__zhouyu", "wu", 3)
 local mou__yingzi = fk.CreateTriggerSkill{
   name = "mou__yingzi",

@@ -162,6 +162,18 @@ Fk:loadTranslationTable{
   [":mou__hunzi"] = "觉醒技，当你脱离濒死状态时，你减1点体力上限，获得两点护甲并摸三张牌然后获得〖英姿〗和〖英魂〗。",
   ["mou__zhiba"] = "制霸",
   [":mou__zhiba"] = "主公技，限定技，当你进入濒死状态时，你可以回复X点体力并修改“激昂”(X为吴势力角色数)，然后其他吴势力角色依次受到1点无来源伤害，若其因此死亡，你摸三张牌。",
+
+  ["$mou__jiang1"] = "义武奋扬，荡尽犯我之寇！",
+  ["$mou__jiang2"] = "锦绣江东，岂容小丑横行！",
+  ["$mou__hunzi1"] = "群雄逐鹿之时，正是吾等崭露头角之日！",
+  ["$mou__hunzi2"] = "胸中远志几时立，正逢建功立业时！",
+  ["$mou__zhiba1"] = "知君英豪，望来归效！",
+  ["$mou__zhiba2"] = "孰胜孰负，犹未可知！",
+  ["$mou__yingzi_mou__sunce1"] = "今与公瑾相约，共图天下霸业！",
+  ["$mou__yingzi_mou__sunce2"] = "空言岂尽意，跨马战沙场！",
+  ["$yinghun_mou__sunce1"] = "父亲英魂犹在，助我定乱平贼！",
+  ["$yinghun_mou__sunce2"] = "扫尽门庭之寇，贼自畏我之威！",
+  ["~mou__sunce"] = "大志未展，权弟当继……",
 }
 
 local liucheng = General(extension, "mou__liucheng", "qun", 3, 3, General.Female)

@@ -5,77 +5,6 @@ Fk:loadTranslationTable{
   ["mou_neng"] = "谋攻篇-能包",
 }
 
-local mou__lijian = fk.CreateActiveSkill{
-  name = "mou__lijian",
-  anim_type = "offensive",
-  can_use = function(self, player)
-    return player:usedSkillTimes(self.name) == 0
-  end,
-  card_filter = function(self, to_select, selected)
-    return #selected < #Fk:currentRoom().alive_players and
-      not Self:prohibitDiscard(Fk:getCardById(to_select))
-  end,
-  target_filter = function(self, to_select, selected, selected_cards)
-    return #selected < #selected_cards + 1 and to_select ~= Self.id 
-  end,
-  min_card_num = 1,
-  min_target_num = 2,
-  feasible = function (self, selected, selected_cards)
-    return #selected > 1 and #selected == #selected_cards +1 
-  end,
-  on_use = function(self, room, effect)
-    local player = room:getPlayerById(effect.from)
-    room:throwCard(effect.cards, self.name, player, player)
-    local tos = table.simpleClone(effect.tos)
-    room:sortPlayersByAction(tos, false)
-    local targets = table.map(tos, function(id) return room:getPlayerById(id) end)
-    for _, src in ipairs(targets) do
-      if not src.dead then
-        if table.contains(tos, src.id) then
-          local dest = src:getNextAlive()
-          while not table.contains(targets, dest) do
-            dest = dest:getNextAlive()
-          end
-          if dest == src then break end
-          table.removeOne(tos, src.id)
-          room:useVirtualCard("duel", nil, src, dest, self.name)
-        else
-          break
-        end
-      end
-    end
-  end,
-}
-local mou__biyue = fk.CreateTriggerSkill{
-  name = "mou__biyue",
-  anim_type = "drawcard",
-  events = {fk.EventPhaseStart},
-  can_trigger = function(self, event, target, player, data)
-    return target == player and player:hasSkill(self.name) and player.phase == Player.Finish
-  end,
-  on_use = function(self, event, target, player, data)
-    local targets = {}
-    player.room.logic:getEventsOfScope(GameEvent.ChangeHp, 999, function(e)
-      local damage = e.data[5]
-      if damage then
-        table.insertIfNeed(targets, damage.to.id)
-      end
-    end, Player.HistoryTurn)
-   
-    player:drawCards(math.min(1 + #targets, 5), self.name)
-  end,
-}
-local diaochan = General:new(extension, "mou__diaochan", "qun", 3, 3, General.Female)
-diaochan:addSkill(mou__lijian)
-diaochan:addSkill(mou__biyue)
-Fk:loadTranslationTable{
-  ["mou__diaochan"] = "谋貂蝉",
-  ["mou__lijian"] = "离间",
-  [":mou__lijian"] = "出牌阶段限一次，你可以选择至少两名其他角色并弃置X张牌（X为你选择的角色数减一），然后他们依次对逆时针最近座次的你选择的另一名角色视为使用一张【决斗】。",
-  ["mou__biyue"] = "闭月",
-  [":mou__biyue"] = "回合结束时，你可以摸X张牌(X为本回合内受到过伤害的角色数+1且至多为5)。",
-}
-
 local mou__xueyi = fk.CreateTriggerSkill{
   name = "mou__xueyi$",
   anim_type = "drawcard",
@@ -157,6 +86,12 @@ Fk:loadTranslationTable{
   [":mou__luanji"] = "①出牌阶段限一次，你可以将两张手牌当做【万箭齐发】使用。;②当有角色因响应你的【万箭齐发】打出【闪】时，你摸一张牌。",
   ["mou__xueyi"] = "血裔",
   [":mou__xueyi"] = "主公技，①锁定技，你的手牌上限+2X(X为场上现存其他群势力角色数)。;②当你使用牌指定其他群雄角色为目标时，你摸一张牌。",
+
+  ["$mou__luanji1"] = "与我袁本初为敌，下场只有一个！",
+  ["$mou__luanji2"] = "弓弩手，乱箭齐下，射杀此贼！",
+  ["$mou__xueyi1"] = "四世三公之贵，岂是尔等寒门可及？",
+  ["$mou__xueyi2"] = "吾袁门名冠天下，何须奉天子为傀？",
+  ["~mou__yuanshao"] = "我不可能输给曹阿瞒，不可能！",
 }
 
 return extension
