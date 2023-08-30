@@ -601,4 +601,110 @@ Fk:loadTranslationTable{
   ["$mou__fanjian2"] = "比之自内，不自失也！",
   ["~mou__zhouyu"] = "瑜虽不惧曹军，但惧白驹过隙……",
 }
+
+local mouzhenji = General(extension, "mou__zhenji", "wei", 3, 3, General.Female)
+local mou__luoshen = fk.CreateTriggerSkill{
+  name = "mou__luoshen",
+  anim_type = "drawcard",
+  events = {fk.EventPhaseStart},
+  can_trigger = function(self, event, target, player, data)
+    return target == player and player:hasSkill(self.name) and player.phase == Player.Start
+  end,
+  on_cost = function(self, event, target, player, data)
+    local to = player.room:askForChoosePlayers(player, table.map(player.room:getOtherPlayers(player, false), Util.IdMapper),
+      1, 1, "#mou__luoshen-choose", self.name, true)
+    if #to > 0 then
+      self.cost_data = to[1]
+      return true
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    local x = (#room.alive_players + 1) // 2
+    local to = room:getPlayerById(self.cost_data)
+    local targets = {to}
+    for _=2, x do
+      player:drawCards(1)
+      to = to:getNextAlive(true)
+      if to == player then
+        to = to:getNextAlive(true)
+      end
+      table.insertIfNeed(targets, to)
+    end
+    room:doIndicate(player.id, table.map(targets, Util.IdMapper))
+    for _, p in ipairs(targets) do
+      if player.dead then break end
+      if not (p.dead or p:isKongcheng()) then
+        local cards = room:askForCard(p, 1, 1, false, self.name, false, nil, "#mou__luoshen-show:"..player.id)
+        p:showCards(cards)
+        local card = Fk:getCardById(cards[1])
+        if card.color == Card.Red then
+          room:throwCard(cards, self.name, p, p)
+        elseif card.color == Card.Black then
+          room:moveCards({
+            ids = cards,
+            from = p.id,
+            to = player.id,
+            toArea = Player.Hand,
+            moveReason = fk.ReasonPrey,
+            proposer = player.id,
+            skillName = "mou__luoshen_prey",
+          })
+        end
+      end
+    end
+  end,
+
+  refresh_events = {fk.AfterCardsMove, fk.AfterTurnEnd},
+  can_refresh = function(self, event, target, player, data)
+    return true
+  end,
+  on_refresh = function(self, event, target, player, data)
+    local room = player.room
+    if event == fk.AfterCardsMove then
+      for _, move in ipairs(data) do
+        if move.to == player.id and move.toArea == Card.PlayerHand and move.skillName == "mou__luoshen_prey" then
+          for _, info in ipairs(move.moveInfo) do
+            local id = info.cardId
+            if room:getCardArea(id) == Card.PlayerHand and room:getCardOwner(id) == player then
+              room:setCardMark(Fk:getCardById(id), "@@mou__luoshen-inhand", 1)
+            end
+          end
+        end
+      end
+    elseif event == fk.AfterTurnEnd then
+      for _, id in ipairs(player:getCardIds(Player.Hand)) do
+        room:setCardMark(Fk:getCardById(id), "@@mou__luoshen-inhand", 0)
+      end
+    end
+  end,
+}
+local mou__luoshen_maxcards = fk.CreateMaxCardsSkill{
+  name = "#mou__luoshen_maxcards",
+  exclude_from = function(self, player, card)
+    return card:getMark("@@mou__luoshen-inhand") > 0
+  end,
+}
+mou__luoshen:addRelatedSkill(mou__luoshen_maxcards)
+mouzhenji:addSkill(mou__luoshen)
+mouzhenji:addSkill("qingguo")
+Fk:loadTranslationTable{
+  ["mou__zhenji"] = "谋甄姬",
+  ["mou__luoshen"] = "洛神",
+  [":mou__luoshen"] = "准备阶段，你可以选择一名角色，自其开始的X名其他角色依次展示一张手牌（X为场上存活角色数的一半，向上取整）："..
+  "若为黑色，你获得之（这些牌不计入你本回合的手牌上限）；若为红色，其弃置之。",
+
+  ["#mou__luoshen-choose"] = "发动洛神，选择一名其他角色作为起始角色",
+  ["#mou__luoshen-show"] = "洛神：展示一张手牌，若为黑色则%src获得之，若为红色则弃置之",
+
+  ["@@mou__luoshen-inhand"] = "洛神",
+
+  ["$mou__luoshen1"] = "商灵缤兮恭迎，伞盖纷兮若云。",
+  ["$mou__luoshen2"] = "晨张兮细帷，夕茸兮兰櫋。",
+  ["$qingguo_mou__zhenji1"] = "凌波荡兮微步，香罗袜兮生尘。",
+  ["$qingguo_mou__zhenji2"] = "辛夷展兮修裙，紫藤舒兮绣裳。",
+  ["~mou__zhenji"] = "秀目回兮难得，徒逍遥兮莫离……",
+}
+
+
 return extension

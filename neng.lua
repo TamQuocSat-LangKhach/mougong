@@ -5,6 +5,274 @@ Fk:loadTranslationTable{
   ["mou_neng"] = "谋攻篇-能包",
 }
 
+local mousunshangxiang = General(extension, "mou__sunshangxiang", "shu", 4, 4, General.Female)
+
+local mou__jieyin = fk.CreateTriggerSkill{
+  name = "mou__jieyin",
+  events = {fk.GameStart, fk.EventPhaseStart, fk.Deathed},
+  frequency = Skill.Quest,
+  mute = true,
+  can_trigger = function(self, event, target, player, data)
+    if player:getQuestSkillState(self.name) or not player:hasSkill(self.name) then
+      return false
+    end
+    if event == fk.GameStart then
+      return true
+    elseif event == fk.EventPhaseStart then
+      if player.phase ~= Player.Play then return false end
+      local mark = player:getMark("mou__jieyin_target")
+      if mark ~= 0 then
+        return not player.room:getPlayerById(mark).dead
+      end
+    elseif event == fk.Deathed then
+      return player:getMark("mou__jieyin_target") == target.id
+    end
+  end,
+  on_cost = Util.TrueFunc,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    room:notifySkillInvoked(player, self.name)
+    if event == fk.GameStart then
+      player:broadcastSkillInvoke(self.name, 1)
+      local targets = table.map(room:getOtherPlayers(player, false), function(p) return p.id end)
+      local tos = room:askForChoosePlayers(player, targets, 1, 1, "#mou__jieyin-choose", self.name, false)
+      if #tos > 0 then
+        local to = room:getPlayerById(tos[1])
+        room:setPlayerMark(to, "@@mou__jieyin", 1)
+        room:setPlayerMark(player, "mou__jieyin_target", tos[1])
+      end
+      return false
+    elseif event == fk.EventPhaseStart then
+      player:broadcastSkillInvoke(self.name, 1)
+      local mark = player:getMark("mou__jieyin_target")
+      if mark ~= 0 then
+        local to = room:getPlayerById(mark)
+        local x = math.max(1,math.min(2, to:getHandcardNum()))
+        local cards = room:askForCard(to, x, 2, false, self.name, true, ".", "#mou__jieyin-price:" .. player.id .. "::".. tostring(x))
+        if #cards > 0 then
+          room:moveCards({
+            ids = cards,
+            from = mark,
+            to = player.id,
+            toArea = Player.Hand,
+            moveReason = fk.ReasonGive,
+            proposer = mark,
+            skillName = self.name,
+            moveVisible = false
+          })
+          room:changeShield(to, 1)
+          return false
+        else
+          local mark2 = type(player:getMark("mou__jieyin_break")) == "table" and player:getMark("mou__jieyin_break") or {}
+          if not table.contains(mark2, mark) then
+            table.insert(mark2, mark)
+            room:setPlayerMark(player, "mou__jieyin_break", mark2)
+            local targets = {}
+            for _, p in ipairs(room.alive_players) do
+              if p ~= player and p ~= to then
+                table.insert(targets, p.id)
+              end
+            end
+            if #targets > 0 then
+              local tos = room:askForChoosePlayers(player, targets, 1, 1, "#mou__jieyin-transfer::" .. mark, self.name, true)
+              if #tos > 0 then
+                room:setPlayerMark(player, "mou__jieyin_target", tos[1])
+                if table.every(room.alive_players, function (p)
+                  return p:getMark("mou__jieyin_target") ~= mark
+                end) then
+                  room:setPlayerMark(to, "@@mou__jieyin", 0)
+                end
+                room:setPlayerMark(room:getPlayerById(tos[1]), "@@mou__jieyin", 1)
+                return false
+              end
+            end
+          end
+        end
+      end
+    end
+    player:broadcastSkillInvoke(self.name, 2)
+    room:updateQuestSkillState(player, self.name, true)
+    local mark = player:getMark("mou__jieyin_target")
+    room:setPlayerMark(player, "mou__jieyin_target", 0)
+    local to = room:getPlayerById(mark)
+    if to:getMark("@@mou__jieyin") > 0 and table.every(room.alive_players, function (p)
+      return p:getMark("mou__jieyin_target") ~= mark
+    end) then
+      room:setPlayerMark(to, "@@mou__jieyin", 0)
+    end
+    if player:isWounded() then
+      room:recover({
+        who = player,
+        num = 1,
+        recoverBy = player,
+        skillName = self.name
+      })
+    end
+    room:changeKingdom(player, "wu", true)
+    local dowry = player:getPile("mou__liangzhu_dowry")
+    if #dowry > 0 then
+      room:moveCards({
+        ids = dowry,
+        from = player.id,
+        to = player.id,
+        toArea = Player.Hand,
+        moveReason = fk.ReasonPrey,
+        proposer = player.id,
+        skillName = self.name,
+        moveVisible = true
+      })
+    end
+    room:changeMaxHp(player, -1)
+  end,
+
+  refresh_events = {fk.BuryVictim},
+  can_refresh = function(self, event, target, player, data)
+    return player == target and player:getMark("mou__jieyin_target") ~= 0
+  end,
+  on_refresh = function(self, event, target, player, data)
+    local room = player.room
+    local mark = player:getMark("mou__jieyin_target")
+    room:setPlayerMark(player, "mou__jieyin_target", 0)
+    local to = room:getPlayerById(mark)
+    if to:getMark("@@mou__jieyin") > 0 and table.every(room.alive_players, function (p)
+      return p:getMark("mou__jieyin_target") ~= mark
+    end) then
+      room:setPlayerMark(to, "@@mou__jieyin", 0)
+    end
+  end,
+}
+
+local mou__liangzhu = fk.CreateActiveSkill{
+  name = "mou__liangzhu",
+  anim_type = "control",
+  prompt = "#mou__liangzhu-active",
+  card_num = 0,
+  target_num = 1,
+  can_use = function(self, player)
+    return player:usedSkillTimes(self.name, Player.HistoryPhase) == 0
+  end,
+  card_filter = function() return false end,
+  target_filter = function(self, to_select, selected, selected_cards)
+    return #selected == 0 and to_select ~= Self.id and #Fk:currentRoom():getPlayerById(to_select):getCardIds(Player.Equip) > 0
+  end,
+  on_use = function(self, room, effect)
+    local player = room:getPlayerById(effect.from)
+    local target = room:getPlayerById(effect.tos[1])
+    if target.dead or player.dead or #target:getCardIds(Player.Equip) == 0 then return end
+    local id = room:askForCardChosen(player, target, "e", self.name)
+    player:addToPile("mou__liangzhu_dowry", id, true, self.name)
+    local mark = player:getMark("mou__jieyin_target")
+    if mark ~= 0 then
+      local to = room:getPlayerById(mark)
+      if to.dead then return false end
+      local choices = {"draw2"}
+      if to:isWounded() then
+        table.insert(choices, "recover")
+      end
+      local choice = room:askForChoice(to, choices, self.name, "#mou__liangzhu-choice", false, {"draw2", "recover"})
+      if choice == "draw2" then
+        room:drawCards(to, 2, self.name)
+      else
+        room:recover({
+          who = to,
+          num = 1,
+          recoverBy = player,
+          skillName = self.name
+        })
+      end
+    end
+  end,
+}
+local mou__xiaoji = fk.CreateTriggerSkill{
+  name = "mou__xiaoji",
+  anim_type = "drawcard",
+  events = {fk.AfterCardsMove},
+  can_trigger = function(self, event, target, player, data)
+    if not player:hasSkill(self.name) then return end
+    for _, move in ipairs(data) do
+      if move.from == player.id then
+        for _, info in ipairs(move.moveInfo) do
+          if info.fromArea == Card.PlayerEquip then
+            return true
+          end
+        end
+      end
+    end
+  end,
+  on_trigger = function(self, event, target, player, data)
+    local i = 0
+    for _, move in ipairs(data) do
+      if move.from == player.id then
+        for _, info in ipairs(move.moveInfo) do
+          if info.fromArea == Card.PlayerEquip then
+            i = i + 1
+          end
+        end
+      end
+    end
+    self.cancel_cost = false
+    for _ = 1, i do
+      if self.cancel_cost or not player:hasSkill(self.name) then break end
+      self:doCost(event, target, player, data)
+    end
+  end,
+  on_cost = function(self, event, target, player, data)
+    if player.room:askForSkillInvoke(player, self.name) then
+      return true
+    end
+    self.cancel_cost = true
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    room:drawCards(player, 2, self.name)
+    if player.dead then return false end
+    local targets = table.map(table.filter(room.alive_players, function (p)
+      return #p:getCardIds("ej") > 0
+    end), Util.IdMapper)
+    if #targets == 0 then return false end
+    local tos = room:askForChoosePlayers(player, targets, 1, 1, "#mou__xiaoji-discard", self.name, true)
+    if #tos == 0 then return false end
+    local to = room:getPlayerById(tos[1])
+    local card = room:askForCardChosen(player, to, "ej", self.name)
+    room:throwCard({card}, self.name, to, player)
+  end,
+}
+mou__liangzhu:addAttachedKingdom("shu")
+mou__xiaoji:addAttachedKingdom("wu")
+mousunshangxiang:addSkill(mou__jieyin)
+mousunshangxiang:addSkill(mou__liangzhu)
+mousunshangxiang:addSkill(mou__xiaoji)
+
+Fk:loadTranslationTable{
+  ["mou__sunshangxiang"] = "谋孙尚香",
+  ["mou__jieyin"] = "结姻",
+  [":mou__jieyin"] = "游戏开始时，你选择一名其他角色令其获得“助”。"..
+  "出牌阶段开始时，有“助”的角色须选择一项：1. 若其有手牌，交给你两张手牌（若其手牌不足两张则交给你所有手牌），然后其获得一点“护甲”；"..
+  "2. 令你移动或移除助标记（若其不是第一次获得“助”标记，则你只能移除“助”标记）。<br>\
+  <strong>失败</strong>：当“助”标记被移除时，你回复1点体力并获得你武将牌上所有“妆”牌，你将势力修改为“吴”，减1点体力上限。",
+  ["mou__liangzhu"] = "良助",
+  [":mou__liangzhu"] = "蜀势力技，出牌阶段限一次，你可以将其他角色装备区一张牌置于你的武将牌上，称为“妆”，然后有“助”的角色回复1点体力或摸两张牌。",
+  ["mou__xiaoji"] = "枭姬",
+  [":mou__xiaoji"] = "吴势力技，当你失去装备区里的一张牌后，你摸两张牌，然后你可以弃置场上的一张牌。",
+
+  ["#mou__jieyin-choose"] = "结姻：选择一名角色，令其获得“助”标记",
+  ["#mou__jieyin-price"] = "结姻：选择%arg张手牌交给%src，或点取消令其移动“助”标记",
+  ["#mou__jieyin-transfer"] = "结姻：将%dest的“助”标记移动给一名角色，或点取消移除“助”标记",
+  ["@@mou__jieyin"] = "助",
+  ["#mou__liangzhu-active"] = "发动良助，选择一名角色，将其装备区里的一张牌作为“妆”",
+  ["mou__liangzhu_dowry"] = "妆",
+  ["#mou__liangzhu-choice"] = "良助：选择回复1点体力或者摸2张牌",
+  ["#mou__xiaoji-discard"] = "枭姬：选择一名角色，弃置其装备区或判定区里的一张牌",
+
+  ["$mou__jieyin1"] = "君若不负吾心，妾自随君千里。",
+  ["$mou__jieyin2"] = "夫妻之情既断，何必再问归期！",
+  ["$mou__liangzhu1"] = "助君得胜战，跃马提缨枪！",
+  ["$mou__liangzhu2"] = "平贼成君业，何惜上沙场！",
+  ["$mou__xiaoji1"] = "吾之所通，何止十八般兵刃！",
+  ["$mou__xiaoji2"] = "既如此，就让尔等见识一番！",
+  ["~mou__sunshangxiang"] = "此去一别，竟无再见之日……",
+}
+
 local mou__xueyi = fk.CreateTriggerSkill{
   name = "mou__xueyi$",
   anim_type = "drawcard",
