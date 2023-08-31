@@ -583,8 +583,147 @@ Fk:loadTranslationTable{
   ["~mou__xiahoushi"] = "玄鸟不曾归，君亦不再来……",
 }
 
+local mouzhurong = General(extension, "mou__zhurong", "shu", 4, 4, General.Female)
 
+local mou__juxiang = fk.CreateTriggerSkill{
+  name = "mou__juxiang",
+  anim_type = "defensive",
+  frequency = Skill.Compulsory,
+  events = {fk.PreCardEffect, fk.CardUseFinished, fk.EventPhaseStart},
+  can_trigger = function(self, event, target, player, data)
+    if not player:hasSkill(self.name) then return false end
+    if event == fk.PreCardEffect then
+      return data.card.trueName == "savage_assault" and data.to == player.id
+    elseif event == fk.CardUseFinished then
+      if target ~= player and data.card.trueName == "savage_assault" then
+        local room = player.room
+        local card_ids = data.card:isVirtual() and data.card.subcards or { data.card.id }
+        return #card_ids > 0 and table.every(card_ids, function (id)
+          return room:getCardArea(id) == Card.Processing
+        end)
+      end
+    elseif event == fk.EventPhaseStart then
+      if target == player and player.phase == Player.Finish then
+        local room = player.room
+        local cards = room:getTag("mou__juxiang")
+        return (type(cards) ~= "table" or #cards > 0) and #player.room.logic:getEventsOfScope(GameEvent.UseCard, 1, function (e)
+          local use = e.data[1]
+          return use.from == player.id and use.card.trueName == "savage_assault"
+        end, Player.HistoryTurn) == 0
+      end
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    if event == fk.PreCardEffect then
+      return true
+    elseif event == fk.CardUseFinished then
+      player.room:obtainCard(player, data.card, true, fk.ReasonJustMove)
+    elseif event == fk.EventPhaseStart then
+      local room = player.room
+      local cards = room:getTag("mou__juxiang")
+      if type(cards) ~= "table" then
+        cards = {
+          {Card.Spade, 13}, {Card.Spade, 11}, {Card.Spade, 9}, {Card.Spade, 7},
+          {Card.Club, 13}, {Card.Club, 11}, {Card.Club, 9}, {Card.Club, 7}
+        }
+      end
+      if #cards == 0 then return false end
+      local to_give =  table.remove(cards, math.random(1, #cards))
+      room:setTag("mou__juxiang", cards)
+      local targets = room:askForChoosePlayers(player, table.map(room.alive_players, Util.IdMapper),
+      1, 1, "#mou__juxiang-choose", self.name, false)
+      if #targets > 0 then
+        local toGain = room:printCard("savage_assault", to_give[1], to_give[2])
+        room:moveCards({
+          ids = {toGain.id},
+          to = targets[1],
+          toArea = Card.PlayerHand,
+          moveReason = fk.ReasonGive,
+          proposer = player.id,
+          skillName = self.name,
+          moveVisible = true,
+        })
+      end
+    end
+  end,
+}
+local mou__lieren = fk.CreateTriggerSkill{
+  name = "mou__lieren",
+  anim_type = "offensive",
+  events = {fk.TargetSpecified},
+  can_trigger = function(self, event, target, player, data)
+    if not (target == player and player:hasSkill(self.name)) then return false end
+    if data.card.trueName == "slash" and #AimGroup:getAllTargets(data.tos) == 1 then
+      local to = player.room:getPlayerById(data.to)
+      return not (to.dead or to:isKongcheng())
+    end
+  end,
+  on_cost = function(self, event, target, player, data)
+    return player.room:askForSkillInvoke(player, self.name, nil, "#mou__lieren-invoke::"..data.to)
+  end,
+  on_use = function(self, event, _, player, data)
+    local room = player.room
+    local target = room:getPlayerById(data.to)
+    room:drawCards(player, 1, self.name)
+    if player.dead or target.dead or player:isKongcheng() or target:isKongcheng() then return false end
+    local pindian = player:pindian({target}, self.name)
+    if pindian.results[data.to].winner == player then
+      data.extra_data = data.extra_data or {}
+      local mou__lieren_record = data.extra_data.mou__lieren_record or {}
+      table.insert(mou__lieren_record, player.id)
+      data.extra_data.mou__lieren_record = mou__lieren_record
+    end
+  end,
+}
+local mou__lieren_delay = fk.CreateTriggerSkill{
+  name = "#mou__lieren_delay",
+  events = {fk.CardUseFinished},
+  can_trigger = function(self, event, target, player, data)
+    return not player.dead and data.extra_data and data.extra_data.mou__lieren_record and
+      table.contains(data.extra_data.mou__lieren_record, player.id)
+  end,
+  on_cost = Util.TrueFunc,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    player:broadcastSkillInvoke(mou__lieren.name)
+    local tos = TargetGroup:getRealTargets(data.tos)
+    local targets = table.map(table.filter(room.alive_players, function(p)
+      return p ~= player and not table.contains(tos, p.id) end), Util.IdMapper)
+    targets = room:askForChoosePlayers(player, targets, 1, 1, "#mou__lieren-choose", mou__lieren.name, true)
+    if #targets > 0 then
+      room:damage{
+        from = player,
+        to = room:getPlayerById(targets[1]),
+        damage = 1,
+        skillName = mou__lieren.name,
+      }
+    end
+  end,
+}
+mou__lieren:addRelatedSkill(mou__lieren_delay)
+mouzhurong:addSkill(mou__juxiang)
+mouzhurong:addSkill(mou__lieren)
 
+Fk:loadTranslationTable{
+  ["mou__zhurong"] = "谋祝融",
+  ["mou__juxiang"] = "巨象",
+  [":mou__juxiang"] = "锁定技，【南蛮入侵】对你无效；当其他角色使用的【南蛮入侵】结算结束后，你获得之。"..
+  "结束阶段，若你本回合未使用过【南蛮入侵】，你随机将游戏外一张【南蛮入侵】交给一名角色（游戏外共有8张【南蛮入侵】）。",
+  ["mou__lieren"] = "烈刃",
+  [":mou__lieren"] = "当你使用【杀】指定一名其他角色为唯一目标后，你可以摸一张牌，然后与其拼点。"..
+  "若你赢，此【杀】结算结束后，你可对另一名其他角色造成1点伤害。",
+
+  ["#mou__juxiang-choose"] = "巨象：选择1名角色获得【南蛮入侵】",
+  ["#mou__lieren-invoke"] = "是否使用烈刃，摸一张牌并与%dest拼点",
+  ["#mou__lieren_delay"] = "烈刃",
+  ["#mou__lieren-choose"] = "烈刃：可选择一名角色，对其造成1点伤害",
+
+  ["$mou__juxiang1"] = "哼！何须我亲自出马！",
+  ["$mou__juxiang2"] = "都给我留下吧！",
+  ["$mou__lieren1"] = "哼！可知本夫人厉害？",
+  ["$mou__lieren2"] = "我的飞刀，谁敢小瞧？",
+  ["~mou__zhurong"] = "大王……这诸葛亮果然厉害……",
+}
 
 
 return extension
