@@ -141,5 +141,134 @@ Fk:loadTranslationTable{
   ["$mou__biyue2"] = "芳草更芊芊，荷池映玉颜。",
   ["~mou__diaochan"] = "终不负阿父之托……",
 }
+local mou__lianhuan = fk.CreateActiveSkill{
+  name = "mou__lianhuan",
+  mute = true,
+  card_num = 1,
+  min_target_num = 0,
+  prompt = "#mou__lianhuan",
+  can_use = function(self, player)
+    return not player:isKongcheng()
+  end,
+  card_filter = function(self, to_select, selected, selected_targets)
+    return #selected == 0 and Fk:getCardById(to_select).suit == Card.Club and Fk:currentRoom():getCardArea(to_select) ~= Player.Equip
+  end,
+  target_filter = function(self, to_select, selected, selected_cards)
+    if #selected_cards ~= 1 or Self:getMark("mou__lianhuan_used-phase") > 0 then return false end
+    local card = Fk:cloneCard("iron_chain")
+    card:addSubcard(selected_cards[1])
+    return card.skill:canUse(Self, card) and card.skill:targetFilter(to_select, selected, selected_cards, card) and
+      not Self:isProhibited(Fk:currentRoom():getPlayerById(to_select), card)
+  end,
+  on_use = function(self, room, effect)
+    local player = room:getPlayerById(effect.from)
+    player:broadcastSkillInvoke(self.name)
+    if #effect.tos == 0 then
+      room:notifySkillInvoked(player, self.name, "drawcard")
+      room:recastCard(effect.cards, player, self.name)
+    else
+      room:notifySkillInvoked(player, self.name, "control")
+      room:sortPlayersByAction(effect.tos)
+      room:addPlayerMark(player, "mou__lianhuan_used-phase")
+      room:useVirtualCard("iron_chain", effect.cards, player, table.map(effect.tos, function(id)
+        return room:getPlayerById(id) end), self.name)
+    end
+  end,
+}
+local mou__lianhuan_targetmod = fk.CreateTargetModSkill{
+  name = "#mou__lianhuan_targetmod",
+  extra_target_func = function(self, player, skill, card)
+    if card and card.name == "iron_chain" and player:getMark("mou__lianhuan_levelup") > 0  then
+      return 999
+    end
+  end,
+}
+mou__lianhuan:addRelatedSkill(mou__lianhuan_targetmod)
+local mou__lianhuan_ts = fk.CreateTriggerSkill{
+  name = "#mou__lianhuan_ts",
+  anim_type = "control",
+  events = {fk.CardUsing , fk.TargetSpecified},
+  can_trigger = function(self, event, target, player, data)
+    if event == fk.CardUsing then
+      return player:hasSkill(self.name) and target == player and data.card.name == "iron_chain" and player:getMark("mou__lianhuan_levelup") == 0 and player.hp > 0
+    else
+      local room = player.room
+      local to = room:getPlayerById(data.to)
+      if player:hasSkill(self.name) and target == player and data.card.name == "iron_chain" and not (to.dead or to.chained or to:isKongcheng()) then
+        local use_data = room.logic:getCurrentEvent()
+        return player:getMark("mou__lianhuan_levelup") > 0 or (use_data and use_data.data[1].extra_data and use_data.data[1].extra_data.mou__lianhuan_used)
+      end
+    end
+  end,
+  on_cost = function(self, event, target, player, data)
+    local room = player.room
+    if event == fk.CardUsing then
+      return room:askForSkillInvoke(player, self.name, nil, "#mou__lianhuan-invoke")
+    else
+      return true
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    if event == fk.CardUsing then
+      data.extra_data = data.extra_data or {}
+      data.extra_data.mou__lianhuan_used = true
+      room:loseHp(player, 1, self.name)
+    else
+      local to = room:getPlayerById(data.to)
+      if to:isKongcheng() then return false end
+      local throw = table.random(to:getCardIds("h"), 1)
+      room:throwCard(throw, self.name, to, player)
+    end
+  end,
+}
+mou__lianhuan:addRelatedSkill(mou__lianhuan_ts)
+local mou__niepan = fk.CreateTriggerSkill{
+  name = "mou__niepan",
+  anim_type = "defensive",
+  frequency = Skill.Limited,
+  events = {fk.AskForPeaches},
+  can_trigger = function(self, event, target, player, data)
+    return target == player and player:hasSkill(self.name) and player.dying and player:usedSkillTimes(self.name, Player.HistoryGame) == 0
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    player:throwAllCards("hej")
+    if player.dead then return end
+    if not player.faceup then
+      player:turnOver()
+    end
+    if player.chained then
+      player:setChainState(false)
+    end
+    player:drawCards(2, self.name)
+    if not player.dead and player:isWounded() then
+      room:recover({
+        who = player,
+        num = math.min(2, player.maxHp) - player.hp,
+        recoverBy = player,
+        skillName = self.name,
+      })
+    end
+    room:addPlayerMark(player, "mou__lianhuan_levelup")
+  end,
+}
+
+local mou__pangtong = General:new(extension, "mou__pangtong", "shu", 3, 3)
+mou__pangtong:addSkill(mou__lianhuan)
+mou__pangtong:addSkill(mou__niepan)
+
+Fk:loadTranslationTable{
+  ["mou__pangtong"] = "谋庞统",
+
+  ["mou__lianhuan"] = "连环",
+  [":mou__lianhuan"] = "出牌阶段，你可以将一张梅花手牌当【铁索连环】使用（每个出牌阶段限一次）或重铸；当你使用【铁索连环】时，你可以失去1点体力。若如此做，当此牌指定一名角色为目标后，若其未横置，你随机弃置其一张手牌。",
+  ["#mou__lianhuan"] = "连环：你可以将一张手牌当【铁索连环】使用（每个出牌阶段限一次）或重铸",
+  ["#mou__lianhuan_ts"] = "连环",
+  ["#mou__lianhuan-invoke"] = "连环：你可以失去1点体力，当此【铁索连环】指定未横置的角色为目标后，你随机弃置其一张手牌",
+
+  ["mou__niepan"] = "涅槃",
+  [":mou__niepan"] = "限定技，当你处于濒死状态时，你可以弃置区域里的所有牌，复原你的武将牌，然后摸两张牌并将体力回复至2点，最后修改〖连环〗。<br><b>连环·修改：</b>出牌阶段，你可以将一张梅花手牌当【铁索连环】使用（每个出牌阶段限一次）或重铸；你使用【铁索连环】可以额外指定任意名角色为目标；当你使用【铁索连环】指定一名角色为目标后，若其未横置，你随机弃置其一张手牌。",
+}
 
 return extension
