@@ -361,5 +361,129 @@ Fk:loadTranslationTable{
   ["$mou__xueyi2"] = "吾袁门名冠天下，何须奉天子为傀？",
   ["~mou__yuanshao"] = "我不可能输给曹阿瞒，不可能！",
 }
+local mou__huaxiong = General:new(extension, "mou__huaxiong", "qun", 3, 4)
+mou__huaxiong.shield = 1
+local mou__yaowu = fk.CreateTriggerSkill{
+  name = "mou__yaowu",
+  mute = true,
+  frequency = Skill.Compulsory,
+  events = {fk.DamageInflicted},
+  can_trigger = function(self, event, target, player, data)
+    return target == player and player:hasSkill(self.name) and data.card and data.card.trueName == "slash" and (data.card.color ~= Card.Red or data.from)
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    player:broadcastSkillInvoke(self.name)
+    if data.card.color ~= Card.Red then
+      room:notifySkillInvoked(player, self.name, "drawcard")
+      player:drawCards(1, self.name)
+    else
+      room:notifySkillInvoked(player, self.name, "negative")
+      local from = data.from
+      local choices = {"draw1"}
+      if from:isWounded() then
+        table.insert(choices, "recover")
+      end
+      if room:askForChoice(from, choices, self.name) == "recover" then
+        room:recover({ who = from, num = 1, recoverBy = from, skillName = self.name })
+      else
+        from:drawCards(1, self.name)
+      end
+    end
+  end,
+}
+mou__huaxiong:addSkill(mou__yaowu)
+local mou__yangwei = fk.CreateActiveSkill{
+  name = "mou__yangwei",
+  anim_type = "drawcard",
+  target_num = 0,
+  card_num = 0,
+  card_filter = Util.FalseFunc,
+  can_use = function(self, player)
+    return player:usedSkillTimes(self.name, Player.HistoryPhase) == 0 and player:getMark("mou__yangwei_used") == 0
+  end,
+  on_use = function(self, room, effect)
+    local player = room:getPlayerById(effect.from)
+    player:drawCards(2, self.name)
+    room:setPlayerMark(player, "@@mou__yangwei-phase", 1)
+    room:setPlayerMark(player, "mou__yangwei_used", 1)
+  end,
+}
+local mou__yangwei_targetmod = fk.CreateTargetModSkill{
+  name = "#mou__yangwei_targetmod",
+  residue_func = function(self, player, skill, scope)
+    if player:getMark("@@mou__yangwei-phase") > 0 and skill.trueName == "slash_skill" and scope == Player.HistoryPhase then
+      return 1
+    end
+  end,
+  bypass_distances = function(self, player, skill)
+    return player:getMark("@@mou__yangwei-phase") > 0 and skill.trueName == "slash_skill"
+  end,
+}
+mou__yangwei:addRelatedSkill(mou__yangwei_targetmod)
+local mou__yangwei_trigger = fk.CreateTriggerSkill{
+  name = "#mou__yangwei_trigger",
+  mute = true,
+  events = {fk.TargetSpecified},
+  can_trigger = function(self, event, target, player, data)
+    return target == player and player:hasSkill(self.name) and player:getMark("@@mou__yangwei-phase") > 0
+    and data.card and data.card.trueName == "slash"
+  end,
+  on_cost = Util.TrueFunc,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    player:broadcastSkillInvoke("mou__yangwei")
+    room:notifySkillInvoked(player, "mou__yangwei", "offensive")
+    room:addPlayerMark(room:getPlayerById(data.to), fk.MarkArmorNullified)
+    data.extra_data = data.extra_data or {}
+    data.extra_data.mou__yangweiNullified = data.extra_data.mou__yangweiNullified or {}
+    data.extra_data.mou__yangweiNullified[tostring(data.to)] = (data.extra_data.mou__yangweiNullified[tostring(data.to)] or 0) + 1
+  end,
 
+  refresh_events = {fk.CardUseFinished, fk.TurnStart, fk.EventPhaseStart},
+  can_refresh = function(self, event, target, player, data)
+    if event == fk.CardUseFinished then
+      return data.extra_data and data.extra_data.mou__yangweiNullified
+    elseif event == fk.TurnStart then
+      return player == target and player:getMark("mou__yangwei_used") > 0
+    else
+      return player == target and player.phase == Player.Finish and player:getMark("mou__yangwei_removed-turn") > 0
+    end
+  end,
+  on_refresh = function(self, event, target, player, data)
+    local room = player.room
+    if event == fk.CardUseFinished then
+      for key, num in pairs(data.extra_data.mou__yangweiNullified) do
+        local p = room:getPlayerById(tonumber(key))
+        if p:getMark(fk.MarkArmorNullified) > 0 then
+          room:removePlayerMark(p, fk.MarkArmorNullified, num)
+        end
+      end
+      data.mou__yangweiNullified = nil
+    elseif event == fk.TurnStart then
+      room:setPlayerMark(player, "mou__yangwei_removed-turn", 1)
+    else
+      room:setPlayerMark(player, "mou__yangwei_used", 0)
+    end
+  end,
+}
+mou__yangwei:addRelatedSkill(mou__yangwei_trigger)
+mou__huaxiong:addSkill(mou__yangwei)
+Fk:loadTranslationTable{
+  ["mou__huaxiong"] = "谋华雄",
+  
+  ["mou__yaowu"] = "耀武",
+  [":mou__yaowu"] = "锁定技，当你受到【杀】造成的伤害时，若此【杀】：为红色，伤害来源选择回复1点体力或摸一张牌；不为红色，你摸一张牌。",
+
+  ["mou__yangwei"] = "扬威",
+  [":mou__yangwei"] = "出牌阶段限一次，你可以摸两张牌且本阶段获得“威”标记，然后此技能失效直到下个回合的结束阶段。<br><em>“威”标记效果：使用【杀】的次数上限+1、使用【杀】无距离限制且无视防具牌。</em>",
+  ["@@mou__yangwei-phase"] = "威",
+  ["#mou__yangwei_trigger"] = "扬威",
+
+  ["$mou__yaowu1"] = "俞涉小儿，岂是我的对手！",
+  ["$mou__yaowu2"] = "上将潘凤？哼！还不是死在我刀下！",
+  ["$mou__yangwei1"] = "哈哈哈哈！现在谁不知我华雄？",
+  ["$mou__yangwei2"] = "定要关外诸侯，知我威名!",
+  ["~mou__huaxiong"] = "小小马弓手，竟然……啊……",
+}
 return extension

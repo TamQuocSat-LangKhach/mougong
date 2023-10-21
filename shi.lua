@@ -141,6 +141,7 @@ Fk:loadTranslationTable{
   ["$mou__biyue2"] = "芳草更芊芊，荷池映玉颜。",
   ["~mou__diaochan"] = "终不负阿父之托……",
 }
+
 local mou__lianhuan = fk.CreateActiveSkill{
   name = "mou__lianhuan",
   mute = true,
@@ -270,5 +271,132 @@ Fk:loadTranslationTable{
   ["mou__niepan"] = "涅槃",
   [":mou__niepan"] = "限定技，当你处于濒死状态时，你可以弃置区域里的所有牌，复原你的武将牌，然后摸两张牌并将体力回复至2点，最后修改〖连环〗。<br><b>连环·修改：</b>出牌阶段，你可以将一张梅花手牌当【铁索连环】使用（每个出牌阶段限一次）或重铸；你使用【铁索连环】可以额外指定任意名角色为目标；当你使用【铁索连环】指定一名角色为目标后，若其未横置，你随机弃置其一张手牌。",
 }
+local mou__xuhuang = General:new(extension, "mou__xuhuang", "wei", 4, 4)
+local mou__duanliang = fk.CreateActiveSkill{
+  name = "mou__duanliang",
+  anim_type = "control",
+  mute = true,
+  can_use = function(self, player)
+    return player:usedSkillTimes(self.name, Player.HistoryPhase) < 1
+  end,
+  card_num = 0,
+  card_filter = function() return false end,
+  target_num = 1,
+  target_filter = function(self, to_select, selected)
+    return #selected == 0 and to_select ~= Self.id
+  end,
+  on_use = function(self, room, effect)
+    local player = room:getPlayerById(effect.from)
+    local to = room:getPlayerById(effect.tos[1])
+    room:notifySkillInvoked(player, self.name)
+    player:broadcastSkillInvoke(self.name, 1)
+    local choice = room:askForChoice(player, {"mou__duanliang-weicheng" ,"mou__duanliang-jinjun"}, self.name,"#mou__duanliang-active")
+    local choice1 = room:askForChoice(to, {"mou__duanliang-tuji" ,"mou__duanliang-shoucheng"} , self.name,"#mou__duanliang-active")
+    local jieguo
+    if (choice == "mou__duanliang-weicheng" and choice1 ~= "mou__duanliang-tuji") or (choice == "mou__duanliang-jinjun" and choice1 ~= "mou__duanliang-shoucheng") then
+      jieguo = "谋奕成功"
+    else
+      jieguo = "谋奕失败"
+      player:broadcastSkillInvoke(self.name, 4)
+    end
+    room:doBroadcastNotify("ShowToast", Fk:translate(jieguo))
+    if choice == "mou__duanliang-weicheng" then
+      if choice1 ~= "mou__duanliang-tuji" then
+        player:broadcastSkillInvoke(self.name, 2)
+        local use
+        if #room.draw_pile > 0 then
+          local id = room.draw_pile[1]
+          local card = Fk:cloneCard("supply_shortage")
+          card:addSubcard(id)
+          if not to:hasDelayedTrick("supply_shortage") and not player:isProhibited(to, card) then
+            room:useVirtualCard("supply_shortage", {id}, player, to, self.name)
+            use = true
+          end
+        end
+        if not use and not to:isNude() then
+          local id = room:askForCardChosen(player, to, "he", self.name)
+          room:obtainCard(player, id, false, fk.ReasonPrey)
+        end
+      end
+    else
+      if choice1 ~= "mou__duanliang-shoucheng" then
+        player:broadcastSkillInvoke(self.name, 3)
+        if not player:isProhibited(to, Fk:cloneCard("duel")) then
+          room:useVirtualCard("duel", nil, player, to, self.name)
+        end
+      end
+    end
+  end,
+}
+mou__xuhuang:addSkill(mou__duanliang)
+local mou__shipo = fk.CreateTriggerSkill{
+  name = "mou__shipo",
+  anim_type = "control",
+  events = {fk.EventPhaseStart},
+  can_trigger = function(self, event, target, player, data)
+    if target == player and player:hasSkill(self.name) and player.phase == Player.Finish then
+      return table.find(player.room:getOtherPlayers(player), function (p) return p.hp < player.hp or p:hasDelayedTrick("supply_shortage") end)
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    local targets1 = table.filter(player.room.alive_players, function (p) return p.hp < player.hp end)
+    local targets2 = table.filter(player.room:getOtherPlayers(player), function (p) return p:hasDelayedTrick("supply_shortage") end)
+    local choices = {}
+    if #targets1 > 0 then table.insert(choices, "mou__shipo_choice1") end
+    if #targets2 > 0 then table.insert(choices, "mou__shipo_choice2") end
+    local choice = room:askForChoice(player, choices, self.name, "#mou__shipo-choose")
+    local targets = {}
+    if choice == "mou__shipo_choice2" then
+      targets = targets2
+    else
+      local tos = room:askForChoosePlayers(player, table.map(targets1, Util.IdMapper), 1, 1, "#mou__shipo-choose", self.name, false)
+      targets = {room:getPlayerById(tos[1])}
+    end
+    for _, to in ipairs(targets) do
+      if player.dead then break end
+      local card = room:askForCard(to, 1, 1, false, self.name, true, ".", "#mou__shipo-give::"..player.id)
+      if #card > 0 then
+        local get = card[1]
+        room:obtainCard(player, get, false, fk.ReasonGive)
+        if room:getCardArea(get) == Card.PlayerHand and room:getCardOwner(get) == player then
+          local tos = room:askForChoosePlayers(player, table.map(room:getOtherPlayers(player), Util.IdMapper), 1, 1, "#mou__shipo-present:::"..Fk:getCardById(get):toLogString(), self.name, true)
+          if #tos > 0 then
+            room:obtainCard(tos[1], get, false, fk.ReasonGive)
+          end
+        end
+      else
+        room:damage { from = player, to = to, damage = 1, skillName = self.name }
+      end
+    end
+  end,
+}
+mou__xuhuang:addSkill(mou__shipo)
+Fk:loadTranslationTable{
+  ["mou__xuhuang"] = "谋徐晃",
+  
+  ["mou__duanliang"] = "断粮",
+  [":mou__duanliang"] = "出牌阶段限一次，你可以与一名其他角色进行一次“谋弈”：<br>围城断粮，你将牌堆顶的一张牌当无距离限制的【兵粮寸断】对其使用，若无法使用改为你获得其一张牌；<br>擂鼓进军，你视为对其使用一张【决斗】。",
+  ["mou__duanliang-weicheng"] = "围城断粮: 谋奕成功后视为使用【兵粮寸断】",
+  ["mou__duanliang-jinjun"] = "擂鼓进军:谋奕成功后视为使用【决斗】",
+  ["mou__duanliang-tuji"] = "全军突击:用于防御围城断粮(兵粮寸断)",
+  ["mou__duanliang-shoucheng"] = "闭门守城:用于防御擂鼓进军(决斗)",
+  ["#mou__duanliang-active"] = "断粮：请选择你需要进行谋奕的选项",
 
+  ["mou__shipo"] = "势迫",
+  [":mou__shipo"] = "结束阶段，你可以令一名体力值小于你的角色或所有判定区里有【兵粮寸断】的其他角色选择一项：1.交给你一张手牌，且你可以将此牌交给一名其他角色；2.受到1点伤害。",
+  ["mou__shipo_choice1"] = "选择一名体力值小于你的角色",
+  ["mou__shipo_choice2"] = "所有判定区里有【兵粮寸断】的其他角色",
+  ["#mou__shipo-choose"] = "选择“势迫”的目标",
+  ["#mou__shipo-give"] = "势迫：你须交给%dest一张手牌，否则受到1点伤害",
+  ["#mou__shipo-present"] = "势迫：你可以将%arg交给一名其他角色",
+
+  ["$mou__duanliang1"] = "常读兵法，终有良策也！",
+  ["$mou__duanliang2"] = "烧敌粮草，救主于危急！",
+  ["$mou__duanliang3"] = "敌陷混乱之机，我军可长驱直入！",
+  ["$mou__duanliang4"] = "敌既识破吾计，则断不可行矣！",
+  ["$mou__shipo1"] = "已向尔等陈明利害，奉劝尔等早日归降！",
+  ["$mou__shipo2"] = "此时归降或可封赏，即至城破必斩无赦！",
+  ["~mou__xuhuang"] = "为主效劳，何畏生死……",
+}
 return extension
