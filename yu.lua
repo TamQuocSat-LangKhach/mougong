@@ -468,5 +468,10 @@ Fk:loadTranslationTable{
   ["#mou__fenwei-choice"] = "奋威：1. 令%dest获得“威”；2. 移去“威”，令%arg的目标取消%dest",
   ["#mou__fenwei_get"] = "令其获得“威”",
   ["#mou__fenwei_cancel"] = "移去“威”,取消目标",
+  ["$mou__qixi1"] = "击敌不备，奇袭拔寨！",
+  ["$mou__qixi2"] = "轻羽透重铠，奇袭溃坚城！",
+  ["$mou__fenwei1"] = "舍身护主，扬吴将之风！",
+  ["$mou__fenwei2"] = "袭军挫阵，奋江东之威！",
+  ["~mou__ganning"] = "蛮将休得猖狂！呃啊！",
 }
 return extension
