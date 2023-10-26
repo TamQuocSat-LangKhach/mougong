@@ -705,6 +705,122 @@ Fk:loadTranslationTable{
   ["$qingguo_mou__zhenji2"] = "辛夷展兮修裙，紫藤舒兮绣裳。",
   ["~mou__zhenji"] = "秀目回兮难得，徒逍遥兮莫离……",
 }
+local mou__zhangjiao = General(extension, "mou__zhangjiao", "qun", 3)
+local mou__leiji = fk.CreateActiveSkill{
+  name = "mou__leiji",
+  anim_type = "offensive",
+  can_use = function(self, player)
+    return player:getMark("@daobing") >= 4
+  end,
+  card_num = 0,
+  card_filter = function() return false end,
+  target_num = 1,
+  target_filter = function(self, to_select, selected)
+    return #selected == 0 and to_select ~= Self.id
+  end,
+  on_use = function(self, room, effect)
+    local player = room:getPlayerById(effect.from)
+    local to = room:getPlayerById(effect.tos[1])
+    room:removePlayerMark(player, "@daobing", 4)
+    room:damage { from = player, to = to, damage = 1, skillName = self.name, damageType = fk.ThunderDamage }
+  end,
+}
+mou__zhangjiao:addSkill(mou__leiji)
+local mou__guidao = fk.CreateTriggerSkill{
+  name = "mou__guidao",
+  anim_type = "special",
+  events = {fk.GameStart , fk.Damaged, fk.DamageInflicted},
+  can_trigger = function(self, event, target, player, data)
+    if event == fk.GameStart then
+      return player:hasSkill(self.name) and player:getMark("@daobing") < 8
+    elseif event == fk.Damaged then
+      return player:hasSkill(self.name) and data.damageType ~= fk.NormalDamage and player:getMark("@daobing") < 8 and player:getMark("mou__guidao_invalidity") == 0
+    else
+      return player:hasSkill(self.name) and target == player and player:getMark("@daobing") >= 2
+    end
+  end,
+  on_cost = function (self, event, target, player, data)
+    if event == fk.DamageInflicted then
+      local prompt = player.phase == Player.NotActive and "#mou__guidao_invalidity-invoke" or "#mou__guidao-invoke"
+      return player.room:askForSkillInvoke(player, self.name, nil, prompt)
+    else
+      return true
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    if event == fk.GameStart then
+      room:setPlayerMark(player, "@daobing", math.min(8, player:getMark("@daobing")+4))
+    elseif event == fk.Damaged then
+      room:setPlayerMark(player, "@daobing", math.min(8, player:getMark("@daobing")+2))
+    else
+      room:removePlayerMark(player, "@daobing", 2)
+      if player.phase == Player.NotActive then room:addPlayerMark(player, "mou__guidao_invalidity") end
+      return true
+    end
+  end,
+  refresh_events = {fk.TurnStart},
+  can_refresh = function (self, event, target, player, data)
+    return target == player and player:getMark("mou__guidao_invalidity") > 0
+  end,
+  on_refresh = function (self, event, target, player, data)
+    player.room:setPlayerMark(player, "mou__guidao_invalidity", 0)
+  end,
+}
+mou__zhangjiao:addSkill(mou__guidao)
+local mou__huangtian = fk.CreateTriggerSkill{
+  name = "mou__huangtian",
+  anim_type = "support",
+  frequency = Skill.Compulsory,
+  events = {fk.TurnStart , fk.Damage},
+  can_trigger = function(self, event, target, player, data)
+    if event == fk.TurnStart then
+      return player:hasSkill(self.name) and target == player and player.room:getTag("RoundCount") == 1 and  #player:getAvailableEquipSlots(Card.SubtypeTreasure) > 0 and table.find(player.room.void, function(id) return Fk:getCardById(id).name == "mougong__peace_spell" end)
+    else
+      return player:hasSkill(self.name) and target and target ~= player and target.kingdom == "qun" and player:hasSkill("mou__guidao",true) and player:getMark("@daobing") < 8 and player:getMark("mou__huangtian-round") < 4
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    if event == fk.TurnStart then
+      local spell = table.find(room.void, function(id) return Fk:getCardById(id).name == "mougong__peace_spell" end)
+      if not spell then return end
+      local existingEquip = player:getEquipments(Card.SubtypeTreasure)
+      if #existingEquip > 0 then
+        room:moveCards({ ids = existingEquip, toArea = Card.DiscardPile, moveReason = fk.ReasonPutIntoDiscardPile, },
+        {ids = {spell}, to = player.id, toArea = Card.PlayerEquip, moveReason = fk.ReasonPut, })
+      else
+        room:moveCards({ids = {spell}, to = player.id, toArea = Card.PlayerEquip, moveReason = fk.ReasonPut, })
+      end
+    else
+      local n = math.min(2, 8-player:getMark("@daobing"), 4-player:getMark("mou__huangtian-round"))
+      room:addPlayerMark(player, "@daobing", n)
+      room:addPlayerMark(player, "mou__huangtian-round", n)
+    end
+  end,
+}
+mou__zhangjiao:addSkill(mou__huangtian)
+Fk:loadTranslationTable{
+  ["mou__zhangjiao"] = "谋张角",
+  ["mou__leiji"] = "雷击",
+  [":mou__leiji"] = "出牌阶段，你可以移去4个“道兵”标记，对一名其他角色造成1点雷电伤害。",
+  ["@daobing"] = "道兵",
+  ["mou__guidao"] = "鬼道",
+  [":mou__guidao"] = "①游戏开始时，你获得4个“道兵”标记（你至多拥有8个“道兵”标记）；<br>"..
+  "②当一名角色受到属性伤害后，你获得2个“道兵”标记；<br>"..
+  "③当你受到伤害时，你可以移去2个“道兵”标记，防止此伤害，若此时为你回合外，鬼道②失效直到你下回合开始。",
+  ["#mou__guidao-invoke"] = "鬼道:你可以移去2个“道兵”标记，防止此次受到的伤害",
+  ["#mou__guidao_invalidity-invoke"] = "鬼道:可移去2个“道兵”标记，防止此伤害，且鬼道②失效直到你下回合开始",
+  ["mou__huangtian"] = "黄天",
+  [":mou__huangtian"] = "主公技，锁定技，①第一轮的你的回合开始时，你将游戏外的【太平要术】置入装备区；<br>②当其他群势力角色造成伤害后，若你拥有技能“鬼道”，你获得2个“道兵”标记（每轮你至多以此法获得4个标记）。",
 
+  ["$mou__leiji1"] = "云涌风起，雷电聚集！",
+  ["$mou__leiji2"] = "乾坤无极，风雷受命！",
+  ["$mou__guidao1"] = "世间万法，殊途同归！",
+  ["$mou__guidao2"] = "从无邪恶之法，唯有作恶之人！",
+  ["$mou__huangtian1"] = "汝等既顺黄天，当应天公之命！",
+  ["$mou__huangtian2"] = "黄天佑我，道兵显威！",
+  ["~mou__zhangjiao"] = "只叹未能覆汉，徒失天时。",
+}
 
 return extension
