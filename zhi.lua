@@ -769,7 +769,7 @@ local mou__guidao = fk.CreateTriggerSkill{
 }
 mou__zhangjiao:addSkill(mou__guidao)
 local mou__huangtian = fk.CreateTriggerSkill{
-  name = "mou__huangtian",
+  name = "mou__huangtian$",
   anim_type = "support",
   frequency = Skill.Compulsory,
   events = {fk.TurnStart , fk.Damage},
