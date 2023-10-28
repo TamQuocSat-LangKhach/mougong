@@ -399,4 +399,138 @@ Fk:loadTranslationTable{
   ["$mou__shipo2"] = "此时归降或可封赏，即至城破必斩无赦！",
   ["~mou__xuhuang"] = "为主效劳，何畏生死……",
 }
+
+local mou__ganning = General(extension, "mou__ganning", "wu", 4)
+local mou__qixi = fk.CreateActiveSkill{
+  name = "mou__qixi",
+  anim_type = "control",
+  can_use = function(self, player)
+    return not player:isKongcheng() and player:usedSkillTimes(self.name, Player.HistoryPhase) == 0
+  end,
+  card_num = 0,
+  card_filter = Util.FalseFunc,
+  target_num = 1,
+  target_filter = function(self, to_select, selected)
+    return #selected == 0 and to_select ~= Self.id
+  end,
+  on_use = function(self, room, effect)
+    local player = room:getPlayerById(effect.from)
+    local to = room:getPlayerById(effect.tos[1])
+    local suits = {"spade","club","heart","diamond","nosuit"}
+    local num = {0,0,0,0,0}
+    local max_num = 0
+    for _, id in ipairs(player:getCardIds("h")) do
+      local card = Fk:getCardById(id)
+      num[card.suit] = num[card.suit] + 1
+      max_num = math.max(max_num, num[card.suit])
+    end
+    local max_suit = {}
+    for i = 1, 5 do
+      if num[i] == max_num then
+        table.insert(max_suit, suits[i])
+      end
+    end
+    local choice = room:askForChoice(to, suits, self.name, "#mou__qixi-guess::"..player.id)
+    local wrong_num = 0
+    local right = table.contains(max_suit, choice)
+    if not right then
+      wrong_num = wrong_num + 1
+      if room:askForSkillInvoke(player, self.name, nil, "#mou__qixi-again") then
+        table.removeOne(suits, choice)
+        choice = room:askForChoice(to, suits, self.name, "#mou__qixi-guess::"..player.id)
+        if table.contains(max_suit, choice) then
+          right = true
+        else
+          wrong_num = wrong_num + 1
+        end
+      end
+    end
+    if right and not player:isKongcheng() then
+      player:showCards(player:getCardIds("h"))
+    end
+    local throw_num = math.min(#to:getCardIds("hej"), wrong_num)
+    if player.dead or throw_num == 0 then return end
+    local throw = room:askForCardsChosen(player, to, throw_num, throw_num, "hej", self.name)
+    room:throwCard(throw, self.name, to, player)
+  end
+}
+mou__ganning:addSkill(mou__qixi)
+local mou__fenwei = fk.CreateActiveSkill{
+  name = "mou__fenwei",
+  anim_type = "control",
+  min_card_num = 1,
+  max_card_num = 1,
+  min_target_num = 1,
+  max_target_num = 3,
+  frequency = Skill.Limited,
+  target_filter = function(self, to_select, selected)
+    return #selected < 3
+  end,
+  card_filter = function(self, to_select, selected)
+    return #selected < 3
+  end,
+  feasible = function(self, selected, selected_cards)
+    return #selected >= 1 and #selected <= 3 and #selected_cards == #selected
+  end,
+  can_use = function(self, player)
+    return player:usedSkillTimes(self.name, Player.HistoryGame) == 0 and not player:isNude()
+  end,
+  on_use = function(self, room, effect)
+    local player = room:getPlayerById(effect.from)
+    for i, to in ipairs(table.map(effect.tos, Util.Id2PlayerMapper)) do
+      to:addToPile("@mou__fenwei", effect.cards[i], true, self.name)
+    end
+    player:drawCards(#effect.cards, self.name)
+  end,
+}
+local mou__fenwei_trigger = fk.CreateTriggerSkill{
+  name = "#mou__fenwei_trigger",
+  anim_type = "defensive",
+  events = {fk.TargetConfirming},
+  can_trigger = function(self, event, target, player, data)
+    return player:hasSkill(self.name) and data.card.type == Card.TypeTrick and #target:getPile("@mou__fenwei") > 0
+  end,
+  on_cost = Util.TrueFunc,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    local choice = room:askForChoice(player, {"#mou__fenwei_get" , "#mou__fenwei_cancel"}, self.name, "#mou__fenwei-choice::"..target.id..":"..data.card:toLogString())
+    if choice == "#mou__fenwei_get" then
+      local dummy = Fk:cloneCard("slash")
+      dummy:addSubcards(target:getPile("@mou__fenwei"))
+      room:obtainCard(target, dummy, true, fk.ReasonJustMove)
+    else
+      room:moveCards({
+        from = target.id,
+        ids = target:getPile("@mou__fenwei"),
+        toArea = Card.DiscardPile,
+        moveReason = fk.ReasonPutIntoDiscardPile,
+      })
+      AimGroup:cancelTarget(data, target.id)
+    end
+  end,
+}
+mou__fenwei:addRelatedSkill(mou__fenwei_trigger)
+mou__ganning:addSkill(mou__fenwei)
+Fk:loadTranslationTable{
+  ["mou__ganning"] = "谋甘宁",
+  ["mou__qixi"] = "奇袭",
+  [":mou__qixi"] = "出牌阶段限一次，你可以选择一名其他角色，令其猜测你手牌中最多的花色。若猜错，你可以令该角色从未猜测过的花色中再次猜测；若猜对，你展示所有手牌。然后你弃置其区域内X张牌（X为此阶段该角色猜错的次数，不足则全弃）。",
+  ["#mou__qixi-again"] = "奇袭：你可以令其再猜一次",
+  ["#mou__qixi-guess"] = "奇袭：猜测%dest手牌中最多的花色",
+  ["mou__fenwei"] = "奋威",
+  [":mou__fenwei"] = "限定技，出牌阶段，你可以将至多三张牌分别置于等量名角色的武将牌上，称为“威”，然后你摸等量牌。有“威”的角色成为锦囊牌的目标时，你须选择一项：1. 令其获得“威”；2. 移去其“威”，取消此目标。",
+  ["@mou__fenwei"] = "威",
+  ["#mou__fenwei_trigger"] = "奋威",
+  ["#mou__fenwei-choice"] = "奋威：1. 令%dest获得“威”；2. 移去“威”，令%arg的目标取消%dest",
+  ["#mou__fenwei_get"] = "令其获得“威”",
+  ["#mou__fenwei_cancel"] = "移去“威”,取消目标",
+  ["$mou__qixi1"] = "击敌不备，奇袭拔寨！",
+  ["$mou__qixi2"] = "轻羽透重铠，奇袭溃坚城！",
+  ["$mou__fenwei1"] = "舍身护主，扬吴将之风！",
+  ["$mou__fenwei2"] = "袭军挫阵，奋江东之威！",
+  ["~mou__ganning"] = "蛮将休得猖狂！呃啊！",
+}
+
+
+
 return extension
