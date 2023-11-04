@@ -13,7 +13,7 @@ local mou__jieyin = fk.CreateTriggerSkill{
   frequency = Skill.Quest,
   mute = true,
   can_trigger = function(self, event, target, player, data)
-    if player:getQuestSkillState(self.name) or not player:hasSkill(self.name) then
+    if player:getQuestSkillState(self.name) or not player:hasSkill(self) then
       return false
     end
     if event == fk.GameStart then
@@ -188,7 +188,7 @@ local mou__xiaoji = fk.CreateTriggerSkill{
   anim_type = "drawcard",
   events = {fk.AfterCardsMove},
   can_trigger = function(self, event, target, player, data)
-    if not player:hasSkill(self.name) then return end
+    if not player:hasSkill(self) then return end
     for _, move in ipairs(data) do
       if move.from == player.id then
         for _, info in ipairs(move.moveInfo) do
@@ -212,7 +212,7 @@ local mou__xiaoji = fk.CreateTriggerSkill{
     end
     self.cancel_cost = false
     for _ = 1, i do
-      if self.cancel_cost or not player:hasSkill(self.name) then break end
+      if self.cancel_cost or not player:hasSkill(self) then break end
       self:doCost(event, target, player, data)
     end
   end,
@@ -280,7 +280,7 @@ local mou__xueyi = fk.CreateTriggerSkill{
   can_trigger = function(self, event, target, player, data)
      local room = player.room
      local to = room:getPlayerById(data.to)
-     return target == player and player:hasSkill(self.name) and to.kingdom == "qun" and to ~= player
+     return target == player and player:hasSkill(self) and to.kingdom == "qun" and to ~= player
   end,
   on_use = function(self, event, target, player, data)
     player:drawCards(1, self.name)
@@ -289,7 +289,7 @@ local mou__xueyi = fk.CreateTriggerSkill{
 local mou__xueyi_Max = fk.CreateMaxCardsSkill{
   name = "#mou__xueyi_Max",
   correct_func = function(self, player)
-    if player:hasSkill(self.name) then
+    if player:hasSkill(self) then
       local hmax = 0
       for _, p in ipairs(Fk:currentRoom().alive_players) do
         if p ~= player and p.kingdom == "qun" then 
@@ -307,7 +307,7 @@ local mou__luanji_Draw = fk.CreateTriggerSkill{
   anim_type = "offensive",
   events = {fk.CardUseFinished,fk.CardRespondFinished},
   can_trigger = function(self, event, target, player, data)
-    if player:hasSkill(self.name) and data.card.name == "jink" then
+    if player:hasSkill(self) and data.card.name == "jink" then
       return data.responseToEvent and data.responseToEvent.from == player.id and data.responseToEvent.card.name =="archery_attack"
     end 
   end,
@@ -369,7 +369,7 @@ local mou__yaowu = fk.CreateTriggerSkill{
   frequency = Skill.Compulsory,
   events = {fk.DamageInflicted},
   can_trigger = function(self, event, target, player, data)
-    return target == player and player:hasSkill(self.name) and data.card and data.card.trueName == "slash" and (data.card.color ~= Card.Red or data.from)
+    return target == player and player:hasSkill(self) and data.card and data.card.trueName == "slash" and (data.card.color ~= Card.Red or data.from)
   end,
   on_use = function(self, event, target, player, data)
     local room = player.room
@@ -426,7 +426,7 @@ local mou__yangwei_trigger = fk.CreateTriggerSkill{
   mute = true,
   events = {fk.TargetSpecified},
   can_trigger = function(self, event, target, player, data)
-    return target == player and player:hasSkill(self.name) and player:getMark("@@mou__yangwei-phase") > 0
+    return target == player and player:hasSkill(self) and player:getMark("@@mou__yangwei-phase") > 0
     and data.card and data.card.trueName == "slash"
   end,
   on_cost = Util.TrueFunc,

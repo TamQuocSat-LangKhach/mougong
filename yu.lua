@@ -11,7 +11,7 @@ local mou__kurou = fk.CreateTriggerSkill{
   anim_type = "control",
   events = {fk.EventPhaseStart},
   can_trigger = function(self, event, target, player, data)
-    return target == player and player:hasSkill(self.name) and player.phase == Player.Play
+    return target == player and player:hasSkill(self) and player.phase == Player.Play
   end,
   on_cost = function(self, event, target, player, data)
      local room = player.room
@@ -56,7 +56,7 @@ local mou__zhaxiang = fk.CreateTriggerSkill{
   frequency = Skill.Compulsory,
   events = {fk.DrawNCards},
   can_trigger = function(self, event, target, player, data)
-    return target == player and player:hasSkill(self.name) and player:isWounded()
+    return target == player and player:hasSkill(self) and player:isWounded()
   end,
   on_use = function(self, event, target, player, data)
     data.n = data.n + player:getLostHp()
@@ -123,7 +123,7 @@ local moujushouDraw = fk.CreateTriggerSkill{
   mute = true,
   events = { fk.TurnedOver },
   can_trigger = function(self, event, target, player, data)
-    return target == player and player:hasSkill(self.name) and player.faceup
+    return target == player and player:hasSkill(self) and player.faceup
   end,
   on_cost = function() return true end,
   on_use = function(self, event, target, player, data)
@@ -138,7 +138,7 @@ local moujushouShibei = fk.CreateTriggerSkill{
   mute = true,
   events = { fk.Damaged },
   can_trigger = function(self, event, target, player, data)
-    if not (target == player and player:hasSkill(self.name)) then
+    if not (target == player and player:hasSkill(self)) then
       return
     end
     return not player.faceup
@@ -250,7 +250,7 @@ local mouliegongFilter = fk.CreateFilterSkill{
     return card.trueName == "slash" and
       card.name ~= "slash" and
       not player:getEquipment(Card.SubtypeWeapon) and
-      player:hasSkill(self.name)
+      player:hasSkill(self)
   end,
   view_as = function(self, card, player)
     local c = Fk:cloneCard("slash", card.suit, card.number)
@@ -275,7 +275,7 @@ local mouliegong = fk.CreateTriggerSkill{
   anim_type = "offensive",
   events = {fk.TargetSpecified},
   can_trigger = function(self, event, target, player, data)
-    return target == player and player:hasSkill(self.name) and
+    return target == player and player:hasSkill(self) and
       data.card.trueName == "slash" and
       #TargetGroup:getRealTargets(data.tos) == 1 and
       player:getMark("@mouliegongRecord") ~= 0
@@ -303,7 +303,7 @@ local mouliegong = fk.CreateTriggerSkill{
 
   refresh_events = {fk.TargetConfirmed, fk.CardUsing, fk.CardUseFinished},
   can_refresh = function(self, event, target, player, data)
-    if not (target == player and player:hasSkill(self.name)) then return end
+    if not (target == player and player:hasSkill(self)) then return end
     local room = player.room
     if event == fk.CardUseFinished then
       return room.logic:getCurrentEvent().liegong_used
@@ -416,7 +416,7 @@ local dujiang = fk.CreateTriggerSkill{
   events = {fk.EventPhaseStart},
   anim_type = "drawcard",
   can_trigger = function(self, event, target, player, data)
-    return player:usedSkillTimes(self.name, Player.HistoryGame) == 0 and player:hasSkill(self.name) and target == player and player.phase == Player.Start
+    return player:usedSkillTimes(self.name, Player.HistoryGame) == 0 and player:hasSkill(self) and target == player and player.phase == Player.Start
   end,
   can_wake = function(self, event, target, player, data)
     return player.shield >= 3
@@ -432,7 +432,7 @@ local duojing = fk.CreateTriggerSkill{
   anim_type = "offensive",
   events = {fk.TargetSpecifying},
   can_trigger = function(self, event, target, player, data)
-    return target == player and player:hasSkill(self.name) and data.card.trueName == "slash" and player.shield > 0
+    return target == player and player:hasSkill(self) and data.card.trueName == "slash" and player.shield > 0
   end,
   on_cost = function(self, event, target, player, data)
     return player.room:askForSkillInvoke(player, self.name, nil, "#duojing-invoke:"..data.to)

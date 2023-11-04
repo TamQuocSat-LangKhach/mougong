@@ -10,7 +10,7 @@ local mou__tieji = fk.CreateTriggerSkill{
   events = {fk.TargetSpecifying},
   mute = true,
   can_trigger = function(self, event, target, player, data)
-    return target == player and player:hasSkill(self.name) and
+    return target == player and player:hasSkill(self) and
       data.card.trueName == "slash"
   end,
   on_use = function(self, event, target, player, data)
@@ -111,7 +111,7 @@ local mou__biyue = fk.CreateTriggerSkill{
   anim_type = "drawcard",
   events = {fk.EventPhaseStart},
   can_trigger = function(self, event, target, player, data)
-    return target == player and player:hasSkill(self.name) and player.phase == Player.Finish
+    return target == player and player:hasSkill(self) and player.phase == Player.Finish
   end,
   on_use = function(self, event, target, player, data)
     local targets = {}
@@ -191,11 +191,11 @@ local mou__lianhuan_ts = fk.CreateTriggerSkill{
   events = {fk.CardUsing , fk.TargetSpecified},
   can_trigger = function(self, event, target, player, data)
     if event == fk.CardUsing then
-      return player:hasSkill(self.name) and target == player and data.card.name == "iron_chain" and player:getMark("mou__lianhuan_levelup") == 0 and player.hp > 0
+      return player:hasSkill(self) and target == player and data.card.name == "iron_chain" and player:getMark("mou__lianhuan_levelup") == 0 and player.hp > 0
     else
       local room = player.room
       local to = room:getPlayerById(data.to)
-      if player:hasSkill(self.name) and target == player and data.card.name == "iron_chain" and not (to.dead or to.chained or to:isKongcheng()) then
+      if player:hasSkill(self) and target == player and data.card.name == "iron_chain" and not (to.dead or to.chained or to:isKongcheng()) then
         local use_data = room.logic:getCurrentEvent()
         return player:getMark("mou__lianhuan_levelup") > 0 or (use_data and use_data.data[1].extra_data and use_data.data[1].extra_data.mou__lianhuan_used)
       end
@@ -230,7 +230,7 @@ local mou__niepan = fk.CreateTriggerSkill{
   frequency = Skill.Limited,
   events = {fk.AskForPeaches},
   can_trigger = function(self, event, target, player, data)
-    return target == player and player:hasSkill(self.name) and player.dying and player:usedSkillTimes(self.name, Player.HistoryGame) == 0
+    return target == player and player:hasSkill(self) and player.dying and player:usedSkillTimes(self.name, Player.HistoryGame) == 0
   end,
   on_use = function(self, event, target, player, data)
     local room = player.room
@@ -334,7 +334,7 @@ local mou__shipo = fk.CreateTriggerSkill{
   anim_type = "control",
   events = {fk.EventPhaseStart},
   can_trigger = function(self, event, target, player, data)
-    if target == player and player:hasSkill(self.name) and player.phase == Player.Finish then
+    if target == player and player:hasSkill(self) and player.phase == Player.Finish then
       return table.find(player.room:getOtherPlayers(player), function (p) return p.hp < player.hp or p:hasDelayedTrick("supply_shortage") end)
     end
   end,
@@ -488,7 +488,7 @@ local mou__fenwei_trigger = fk.CreateTriggerSkill{
   anim_type = "defensive",
   events = {fk.TargetConfirming},
   can_trigger = function(self, event, target, player, data)
-    return player:hasSkill(self.name) and data.card.type == Card.TypeTrick and #target:getPile("@mou__fenwei") > 0
+    return player:hasSkill(self) and data.card.type == Card.TypeTrick and #target:getPile("@mou__fenwei") > 0
   end,
   on_cost = Util.TrueFunc,
   on_use = function(self, event, target, player, data)

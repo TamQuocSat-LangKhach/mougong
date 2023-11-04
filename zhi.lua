@@ -51,7 +51,7 @@ local mou__liuli = fk.CreateTriggerSkill{
   anim_type = "defensive",
   events = {fk.TargetConfirming},
   can_trigger = function(self, event, target, player, data)
-    local ret = target == player and player:hasSkill(self.name) and
+    local ret = target == player and player:hasSkill(self) and
       data.card.trueName == "slash"
     if ret then
       local room = player.room
@@ -151,7 +151,7 @@ local mou__jianxiong = fk.CreateTriggerSkill{
   anim_type = "masochism",
   events = {fk.Damaged},
   can_trigger = function(self, event, target, player, data)
-     return target == player and player:hasSkill(self.name) and ((data.card and target.room:getCardArea(data.card) == Card.Processing) or 2 - player:getMark("@mou__jianxiong") > 0)
+     return target == player and player:hasSkill(self) and ((data.card and target.room:getCardArea(data.card) == Card.Processing) or 2 - player:getMark("@mou__jianxiong") > 0)
   end,
   on_use = function(self, event, target, player, data)
     if data.card and target.room:getCardArea(data.card) == Card.Processing then
@@ -194,7 +194,7 @@ local mou__qingzheng = fk.CreateTriggerSkill{
   anim_type = "control",
   events = {fk.EventPhaseStart},
   can_trigger = function(self, event, target, player, data)
-    if target == player and player:hasSkill(self.name) and player.phase == Player.Play then
+    if target == player and player:hasSkill(self) and player.phase == Player.Play then
        local num = 3 - player:getMark("@mou__jianxiong")
        local suits = {}
       for _, id in ipairs(player.player_cards[Player.Hand]) do
@@ -277,7 +277,7 @@ local mou__hujia = fk.CreateTriggerSkill{
   anim_type = "defensive",
   events = {fk.DamageInflicted},
   can_trigger = function(self, event, target, player, data)
-     return player:hasSkill(self.name) and target == player and player:usedSkillTimes(self.name, Player.HistoryRound) == 0
+     return player:hasSkill(self) and target == player and player:usedSkillTimes(self.name, Player.HistoryRound) == 0
   end,
   on_cost = function(self, event, target, player, data)
     local targets = table.map(table.filter(player.room:getOtherPlayers(player), function(p) return p.kingdom == "wei" end), function(p) return p.id end)
@@ -365,7 +365,7 @@ local mou__tongye = fk.CreateTriggerSkill{
   events = {fk.EventPhaseStart},
   frequency = Skill.Compulsory,
   can_trigger = function(self, event, target, player, data)
-    if target == player and player:hasSkill(self.name) then
+    if target == player and player:hasSkill(self) then
       if player.phase == Player.Finish then 
         return true
       elseif player.phase == Player.Start then
@@ -424,14 +424,14 @@ local mou__jiuyuan = fk.CreateTriggerSkill{
     if event == fk.PreHpRecover then
       return
         target == player and
-        player:hasSkill(self.name) and
+        player:hasSkill(self) and
         data.card and
         data.card.trueName == "peach" and
         data.recoverBy and
         data.recoverBy.kingdom == "wu" and
         data.recoverBy ~= player
     elseif event == fk.CardUsing then
-      return player:hasSkill(self.name) and target ~= player and target.kingdom == "wu" and data.card.trueName == "peach"
+      return player:hasSkill(self) and target ~= player and target.kingdom == "wu" and data.card.trueName == "peach"
     end
   end,
   on_use = function(self, event, target, player, data)
@@ -476,7 +476,7 @@ local mou__yingzi = fk.CreateTriggerSkill{
   frequency = Skill.Compulsory,
   events = {fk.DrawNCards},
   can_trigger = function(self, event, target, player, data)
-     return target == player and player:hasSkill(self.name) and (#player.player_cards[Player.Hand] > 1 or #player.player_cards[Player.Equip] > 0 or player.hp > 1)
+     return target == player and player:hasSkill(self) and (#player.player_cards[Player.Hand] > 1 or #player.player_cards[Player.Equip] > 0 or player.hp > 1)
   end,
   on_use = function(self, event, target, player, data)
      if player.hp > 1 then
@@ -608,7 +608,7 @@ local mou__luoshen = fk.CreateTriggerSkill{
   anim_type = "drawcard",
   events = {fk.EventPhaseStart},
   can_trigger = function(self, event, target, player, data)
-    return target == player and player:hasSkill(self.name) and player.phase == Player.Start
+    return target == player and player:hasSkill(self) and player.phase == Player.Start
   end,
   on_cost = function(self, event, target, player, data)
     local to = player.room:askForChoosePlayers(player, table.map(player.room:getOtherPlayers(player, false), Util.IdMapper),
@@ -732,11 +732,11 @@ local mou__guidao = fk.CreateTriggerSkill{
   events = {fk.GameStart , fk.Damaged, fk.DamageInflicted},
   can_trigger = function(self, event, target, player, data)
     if event == fk.GameStart then
-      return player:hasSkill(self.name) and player:getMark("@daobing") < 8
+      return player:hasSkill(self) and player:getMark("@daobing") < 8
     elseif event == fk.Damaged then
-      return player:hasSkill(self.name) and data.damageType ~= fk.NormalDamage and player:getMark("@daobing") < 8 and player:getMark("mou__guidao_invalidity") == 0
+      return player:hasSkill(self) and data.damageType ~= fk.NormalDamage and player:getMark("@daobing") < 8 and player:getMark("mou__guidao_invalidity") == 0
     else
-      return player:hasSkill(self.name) and target == player and player:getMark("@daobing") >= 2
+      return player:hasSkill(self) and target == player and player:getMark("@daobing") >= 2
     end
   end,
   on_cost = function (self, event, target, player, data)
@@ -775,9 +775,9 @@ local mou__huangtian = fk.CreateTriggerSkill{
   events = {fk.TurnStart , fk.Damage},
   can_trigger = function(self, event, target, player, data)
     if event == fk.TurnStart then
-      return player:hasSkill(self.name) and target == player and player.room:getTag("RoundCount") == 1 and  #player:getAvailableEquipSlots(Card.SubtypeTreasure) > 0 and table.find(player.room.void, function(id) return Fk:getCardById(id).name == "mougong__peace_spell" end)
+      return player:hasSkill(self) and target == player and player.room:getTag("RoundCount") == 1 and  #player:getAvailableEquipSlots(Card.SubtypeTreasure) > 0 and table.find(player.room.void, function(id) return Fk:getCardById(id).name == "mougong__peace_spell" end)
     else
-      return player:hasSkill(self.name) and target and target ~= player and target.kingdom == "qun" and player:hasSkill("mou__guidao",true) and player:getMark("@daobing") < 8 and player:getMark("mou__huangtian-round") < 4
+      return player:hasSkill(self) and target and target ~= player and target.kingdom == "qun" and player:hasSkill("mou__guidao",true) and player:getMark("@daobing") < 8 and player:getMark("mou__huangtian-round") < 4
     end
   end,
   on_use = function(self, event, target, player, data)
