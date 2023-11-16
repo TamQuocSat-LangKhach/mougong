@@ -7,7 +7,7 @@ Fk:loadTranslationTable{
 local mou__tieji = fk.CreateTriggerSkill{
   name = "mou__tieji",
   anim_type = "offensive",
-  events = {fk.TargetSpecifying},
+  events = {fk.TargetSpecified},
   mute = true,
   can_trigger = function(self, event, target, player, data)
     return target == player and player:hasSkill(self) and
@@ -50,11 +50,11 @@ machao:addSkill(mou__tieji)
 Fk:loadTranslationTable{
   ["mou__machao"] = "谋马超",
   ["mou__tieji"] = "铁骑",
-  [":mou__tieji"] = "你可以令目标角色不能响应此【杀】，且其所有非锁定技失效直到回合结束。然后你与其进行谋弈。若你赢，且你选择的选项为：“直取敌营”，则你获得其一张牌；“扰阵疲敌”，你摸两张牌。",
+  [":mou__tieji"] = "每当你使用【杀】指定其他角色为目标后，你可令其不能响应此【杀】，且所有非锁定技失效直到回合结束。然后你与其进行谋弈。若你赢，且你选择的选项为：“直取敌营”，则你获得其一张牌；“扰阵疲敌”，你摸两张牌。",
   ["tieji-zhiqu"] = "直取敌营: 谋奕成功后获得对方一张牌",
   ["tieji-raozheng"] = "扰阵疲敌:谋奕成功后你摸两张牌",
-  ["tieji-chuzheng"] = "出阵迎敌:用于防御直取敌营",
-  ["tieji-huwei"] = "拱卫中军:用于防御扰阵疲敌",
+  ["tieji-chuzheng"] = "出阵迎敌:用于防御直取敌营(获得你牌)",
+  ["tieji-huwei"] = "拱卫中军:用于防御扰阵疲敌(摸两张牌)",
   ["#mou__tieji-active"] = "铁骑:请选择你需要进行谋奕的选项",
   ["#tieji_log"] = "%from 发动了“%arg2”谋奕结果为【%arg】。",
 
@@ -236,12 +236,7 @@ local mou__niepan = fk.CreateTriggerSkill{
     local room = player.room
     player:throwAllCards("hej")
     if player.dead then return end
-    if not player.faceup then
-      player:turnOver()
-    end
-    if player.chained then
-      player:setChainState(false)
-    end
+    player:reset()
     player:drawCards(2, self.name)
     if not player.dead and player:isWounded() then
       room:recover({
@@ -270,6 +265,12 @@ Fk:loadTranslationTable{
 
   ["mou__niepan"] = "涅槃",
   [":mou__niepan"] = "限定技，当你处于濒死状态时，你可以弃置区域里的所有牌，复原你的武将牌，然后摸两张牌并将体力回复至2点，最后修改〖连环〗。<br><b>连环·修改：</b>出牌阶段，你可以将一张梅花手牌当【铁索连环】使用（每个出牌阶段限一次）或重铸；你使用【铁索连环】可以额外指定任意名角色为目标；当你使用【铁索连环】指定一名角色为目标后，若其未横置，你随机弃置其一张手牌。",
+
+  ["$mou__lianhuan1"] = "任凭潮涌，连环无惧！",
+  ["$mou__lianhuan2"] = "并排横江，可利水战！",
+  ["$mou__niepan1"] = "凤雏涅槃，只为再生！",
+  ["$mou__niepan2"] = "烈火焚身，凤羽更丰！",
+  ["~mou__pangtong"] = "落凤坡，果真为我葬身之地……",
 }
 local mou__xuhuang = General:new(extension, "mou__xuhuang", "wei", 4, 4)
 local mou__duanliang = fk.CreateActiveSkill{
