@@ -4,8 +4,7 @@ extension.extensionName = "mougong"
 Fk:loadTranslationTable{
   ["mou_yu"] = "谋攻篇-虞包",
 }
-local mouhuanggai = General(extension, "mou__huanggai", "wu", 2, 4)
-mouhuanggai.shield = 2
+local mouhuanggai = General(extension, "mou__huanggai", "wu", 4)
 local mou__kurou = fk.CreateTriggerSkill{
   name = "mou__kurou",
   anim_type = "control",
