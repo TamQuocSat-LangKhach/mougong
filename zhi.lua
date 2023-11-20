@@ -638,8 +638,7 @@ local mou__luoshen = fk.CreateTriggerSkill{
     local x = (#room.alive_players + 1) // 2
     local to = room:getPlayerById(self.cost_data)
     local targets = {to}
-    for _=2, x do
-      player:drawCards(1)
+    for _ = 2, x do
       to = to:getNextAlive(true)
       if to == player then
         to = to:getNextAlive(true)
