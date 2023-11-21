@@ -1,6 +1,8 @@
 local extension = Package("mou_zhi")
 extension.extensionName = "mougong"
 
+local U = require "packages/utility/utility"
+
 Fk:loadTranslationTable{
   ["mou_zhi"] = "谋攻篇-知包",
 }
@@ -253,9 +255,9 @@ local mou__qingzheng = fk.CreateTriggerSkill{
            end
          end
       end
-      
+
       if #cards > 0 then
-           room:throwCard(cards, self.name, player)
+        room:throwCard(cards, self.name, player)
       end
       if player.dead then return end
       local cids = to.player_cards[Player.Hand]
@@ -270,20 +272,20 @@ local mou__qingzheng = fk.CreateTriggerSkill{
       end
     end
      room:throwCard(cards1, self.name, to, player)
-     
+
      if #cards > # cards1 and not player.dead and not to.dead then
-       room:damage{
-         from = player,
-         to = to,
-         damage = 1,
-          skillName = self.name,
-       }
-       if player:hasSkill("mou__jianxiong") and player:getMark("@mou__jianxiong") < 2 then
-          if room:askForSkillInvoke(player, self.name, nil, "#mou__qingzheng-addmark") then
-             room:addPlayerMark(player, "@mou__jianxiong", 1)
-          end
-       end
-     end
+      room:damage{
+        from = player,
+        to = to,
+        damage = 1,
+        skillName = self.name,
+      }
+      if player:hasSkill("mou__jianxiong") and player:getMark("@mou__jianxiong") < 2 then
+        if room:askForSkillInvoke(player, self.name, nil, "#mou__qingzheng-addmark") then
+            room:addPlayerMark(player, "@mou__jianxiong", 1)
+        end
+      end
+    end
   end,
 }
 
@@ -292,7 +294,7 @@ local mou__hujia = fk.CreateTriggerSkill{
   anim_type = "defensive",
   events = {fk.DamageInflicted},
   can_trigger = function(self, event, target, player, data)
-     return player:hasSkill(self) and target == player and player:usedSkillTimes(self.name, Player.HistoryRound) == 0
+    return player:hasSkill(self) and target == player and player:usedSkillTimes(self.name, Player.HistoryRound) == 0
   end,
   on_cost = function(self, event, target, player, data)
     local targets = table.map(table.filter(player.room:getOtherPlayers(player), function(p) return p.kingdom == "wei" end), function(p) return p.id end)
@@ -326,17 +328,20 @@ Fk:loadTranslationTable{
   ["mou__caocao"] = "谋曹操",
   ["mou__jianxiong"] = "奸雄",
   ["#mou__jianxiong_gamestart"] = "奸雄",
-  [":mou__jianxiong"] = "①游戏开始时，你可以获得至多两枚【治世】标记;②当你受到伤害后，你可以获得对你造成伤害的牌并摸2-X张牌，然后你可以移除1枚【治世】。（X为【治世】的数量且至多为2）。",
+  [":mou__jianxiong"] = "游戏开始时，你可以获得至多两枚“治世”标记。当你受到伤害后，你可以获得对你造成伤害的牌并摸2-X张牌，然后你可以移除1枚“治世”。"..
+  "（X为“治世”的数量且至多为2）。",
   ["mou__qingzheng"] = "清正",
-  [":mou__qingzheng"] = "出牌阶段开始时，你可以选择一名有手牌的其他角色，你弃置3-X(X为你的【治世】标记数)种花色的所有手牌，然后观看其手牌并选择一种花色的牌，其弃置所有该花色的手牌。若如此做，你以此法弃置的牌＞其弃置的手牌，你对其造成一点伤害，然后若你拥有【奸雄】且【治世】标记＜2，你可以获得一枚【治世】。",
+  [":mou__qingzheng"] = "出牌阶段开始时，你可以选择一名有手牌的其他角色，你弃置3-X（X为你的“治世”标记数）种花色的所有手牌，然后观看其手牌并选择一种"..
+  "花色的牌，其弃置所有该花色的手牌。若如此做且你以此法弃置的牌数大于其弃置的手牌，你对其造成1点伤害，然后若你拥有〖奸雄〗且“治世”标记小于2，你可以"..
+  "获得一枚“治世”。",
   ["mou__hujia"] = "护驾",
-  [":mou__hujia"] = "主公技，每轮限一次，当你即将受到伤害时，你可以将此伤害转移给一名其他“魏”势力角色。",
-  ["#mou__jianxiong-dismark"] = "奸雄:是否弃置一枚【治世】标记?。",
-  ["#mou__jianxiong-choice"] = "奸雄:请选择要获得的【治世】标记数量。",
-  ["#mou__qingzheng-addmark"] = "清正:是否获得一个【治世】标记?",
-  ["#mou__qingzheng-choose"] = "清正:是否发动【清正】?选择一名有手牌的其他角色?",
-  ["#mou__qingzheng-discard"] = "清正:请选择一种花色的所有牌弃置，总共%arg 次 现在是第%arg2 次",
-  ["#mou__hujia-choose"] = "护驾:是否发动【护驾】，防止此次伤害?选择一名其他角色“魏”势力角色将此伤害转移给其?",
+  [":mou__hujia"] = "主公技，每轮限一次，当你即将受到伤害时，你可以将此伤害转移给一名其他魏势力角色。",
+  ["#mou__jianxiong-dismark"] = "奸雄：是否弃置一枚“治世”标记？。",
+  ["#mou__jianxiong-choice"] = "奸雄：请选择要获得的“治世”标记数量。",
+  ["#mou__qingzheng-addmark"] = "清正：是否获得一个“治世”标记？",
+  ["#mou__qingzheng-choose"] = "清正：你可以发动“清正”选择一名有手牌的其他角色",
+  ["#mou__qingzheng-discard"] = "清正：请选择一种花色的所有牌弃置，总共%arg 次 现在是第%arg2 次",
+  ["#mou__hujia-choose"] = "护驾：你可以将伤害转移给一名魏势力角色",
   ["@mou__jianxiong"] = "治世",
 
   ["$mou__jianxiong1"] = "古今英雄盛世，尽赴沧海东流。",
@@ -463,7 +468,7 @@ sunquan:addSkill(mou__jiuyuan)
 Fk:loadTranslationTable{
   ["mou__sunquan"] = "谋孙权",
   ["mou__zhiheng"] = "制衡",
-  [":mou__zhiheng"] = "出牌阶段限一次，你可以弃置任意张牌并摸等量的牌。若你以此法弃置了所有的手牌，你多摸1+X张牌(X为你的“业”数)，然后你弃置一枚“业”。",
+  [":mou__zhiheng"] = "出牌阶段限一次，你可以弃置任意张牌并摸等量的牌。若你以此法弃置了所有的手牌，你多摸1+X张牌（X为你的“业”数），然后你弃置一枚“业”。",
   ["mou__tongye"] = "统业",
   [":mou__tongye"] = "锁定技，结束阶段，你可以猜测场上的装备数量于你的下个准备阶段开始时有无变化。若你猜对，你获得一枚“业”，猜错，你弃置一枚“业”。",
   ["mou__jiuyuan"] = "救援",
@@ -491,16 +496,16 @@ local mou__yingzi = fk.CreateTriggerSkill{
   frequency = Skill.Compulsory,
   events = {fk.DrawNCards},
   can_trigger = function(self, event, target, player, data)
-     return target == player and player:hasSkill(self) and (#player.player_cards[Player.Hand] > 1 or #player.player_cards[Player.Equip] > 0 or player.hp > 1)
+     return target == player and player:hasSkill(self) and (player:getHandcardNum() > 1 or #player:getCardIds("e") > 0 or player.hp > 1)
   end,
   on_use = function(self, event, target, player, data)
      if player.hp > 1 then
        player.room:addPlayerMark(player, "mou__yingzi-turn", 1)
      end
-     if #player.player_cards[Player.Hand] > 1 then
+     if player:getHandcardNum() > 1 then
        player.room:addPlayerMark(player, "mou__yingzi-turn", 1)
      end
-     if #player.player_cards[Player.Equip] > 0 then
+     if #player:getCardIds("e") > 0 then
        player.room:addPlayerMark(player, "mou__yingzi-turn", 1)
      end
      data.n = data.n+player:getMark("mou__yingzi-turn")
@@ -601,7 +606,8 @@ Fk:loadTranslationTable{
   ["#mou__yingzi_maxcards"] = "英姿",
   [":mou__yingzi"] = "锁定技，摸牌阶段开始时，你每满足以下一项条件此摸牌阶段摸牌基数和本回合手牌上限便+1，你的手牌数不少于2，你的装备区内牌数不少于1，你的体力值不少于2。",
   ["mou__fanjian"] = "反间",
-  [":mou__fanjian"] = "出牌阶段，你可以选择一名其他角色和一张牌(每种花色每回合限一次)并声明一个花色，其须选择一项:①猜测此牌花色是否与你声明的花色相同;②翻面。;然后其正面向上获得此牌。若其选择猜测且猜测错误，其失去1点体力，否则其令你〖反间〗于本回合失效。",
+  [":mou__fanjian"] = "出牌阶段，你可以选择一名其他角色和一张牌（每种花色每回合限一次）并声明一个花色，其须选择一项：1.猜测此牌花色是否与你声明的"..
+  "花色相同；2.翻面。然后其正面向上获得此牌。若其选择猜测且猜测错误，其失去1点体力，否则其令你〖反间〗于本回合失效。",
   ["mou__fanjian_true"] = "花色相同",
   ["mou__fanjian_false"] = "花色不相同",
   ["mou__fanjian_fanmian"] = "你翻面",
@@ -822,11 +828,12 @@ Fk:loadTranslationTable{
   ["mou__guidao"] = "鬼道",
   [":mou__guidao"] = "①游戏开始时，你获得4个“道兵”标记（你至多拥有8个“道兵”标记）；<br>"..
   "②当一名角色受到属性伤害后，你获得2个“道兵”标记；<br>"..
-  "③当你受到伤害时，你可以移去2个“道兵”标记，防止此伤害，若此时为你回合外，鬼道②失效直到你下回合开始。",
+  "③当你受到伤害时，你可以移去2个“道兵”标记，防止此伤害，若此时为你回合外，〖鬼道〗②失效直到你下回合开始。",
   ["#mou__guidao-invoke"] = "鬼道:你可以移去2个“道兵”标记，防止此次受到的伤害",
-  ["#mou__guidao_invalidity-invoke"] = "鬼道:可移去2个“道兵”标记，防止此伤害，且鬼道②失效直到你下回合开始",
+  ["#mou__guidao_invalidity-invoke"] = "鬼道:可移去2个“道兵”标记，防止此伤害，且〖鬼道〗②失效直到你下回合开始",
   ["mou__huangtian"] = "黄天",
-  [":mou__huangtian"] = "主公技，锁定技，①第一轮的你的回合开始时，你将游戏外的【太平要术】置入装备区；<br>②当其他群势力角色造成伤害后，若你拥有技能“鬼道”，你获得2个“道兵”标记（每轮你至多以此法获得4个标记）。",
+  [":mou__huangtian"] = "主公技，锁定技，①第一轮的你的回合开始时，你将游戏外的【太平要术】置入装备区；<br>②当其他群势力角色造成伤害后，"..
+  "若你拥有技能〖鬼道〗，你获得2个“道兵”标记（每轮你至多以此法获得4个标记）。",
 
   ["$mou__leiji1"] = "云涌风起，雷电聚集！",
   ["$mou__leiji2"] = "乾坤无极，风雷受命！",
@@ -835,6 +842,271 @@ Fk:loadTranslationTable{
   ["$mou__huangtian1"] = "汝等既顺黄天，当应天公之命！",
   ["$mou__huangtian2"] = "黄天佑我，道兵显威！",
   ["~mou__zhangjiao"] = "只叹未能覆汉，徒失天时。",
+}
+
+local mou__zhugeliang = General(extension, "mou__zhugeliang", "shu", 3)
+local mou__huoji = fk.CreateActiveSkill{
+  name = "mou__huoji",
+  anim_type = "offensive",
+  prompt = "#mou__huoji",
+  frequency = Skill.Quest,
+  card_num = 0,
+  target_num = 1,
+  can_use = function(self, player)
+    return player:usedSkillTimes(self.name, Player.HistoryPhase) == 0
+  end,
+  card_filter = Util.FalseFunc,
+  target_filter = function(self, to_select, selected, selected_cards)
+    return #selected == 0 and to_select ~= Self.id
+  end,
+  on_use = function(self, room, effect)
+    local player = room:getPlayerById(effect.from)
+    local target = room:getPlayerById(effect.tos[1])
+    local kingdom = target.kingdom
+    for _, p in ipairs(room:getOtherPlayers(player)) do
+      if p.kingdom == kingdom and not p.dead then
+        room:damage{
+          from = player,
+          to = p,
+          damage = 1,
+          damageType = fk.FireDamage,
+          skillName = self.name,
+        }
+      end
+    end
+  end,
+}
+local mou__huoji_trigger = fk.CreateTriggerSkill{
+  name = "#mou__huoji_trigger",
+  main_skill = mou__huoji,
+  mute = true,
+  events = {fk.EventPhaseStart, fk.EnterDying},
+  can_trigger = function(self, event, target, player, data)
+    if target == player and player:hasSkill("mou__huoji", true) and not player:getQuestSkillState("mou__huoji") then
+      if event == fk.EventPhaseStart then
+        if player.phase == Player.Start then
+          local n = 0
+          player.room.logic:getEventsOfScope(GameEvent.Damage, 999, function(e)
+            local damage = e.data[1]
+            if damage and damage.from and damage.from == player and damage.damageType == fk.FireDamage then
+              n = n + damage.damage
+            end
+          end, Player.HistoryGame)
+          return n >= #player.room.players
+        end
+      else
+        return true
+      end
+    end
+  end,
+  on_cost = Util.TrueFunc,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    player:broadcastSkillInvoke("mou__huoji")
+    if event == fk.EventPhaseStart then
+      room:notifySkillInvoked(player, "mou__huoji", "special")
+      room:handleAddLoseSkills(player, "-mou__huoji|-mou__kanpo|mou__guanxing|mou__kongcheng", nil, true, false)
+      room:updateQuestSkillState(player, "mou__huoji", false)
+    else
+      room:notifySkillInvoked(player, "mou__huoji", "negative")
+      room:updateQuestSkillState(player, "mou__huoji", true)
+    end
+  end,
+}
+local mou__kanpo = fk.CreateTriggerSkill{
+  name = "mou__kanpo",
+  anim_type = "control",
+  events ={fk.RoundStart, fk.CardUsing},
+  can_trigger = function(self, event, target, player, data)
+    if player:hasSkill(self) then
+      if event == fk.RoundStart then
+        return true
+      else
+        return target ~= player and player:getMark(self.name) ~= 0 and table.contains(player:getMark(self.name), data.card.trueName)
+      end
+    end
+  end,
+  on_cost = function(self, event, target, player, data)
+    if event == fk.RoundStart then
+      return true
+    else
+      return player.room:askForSkillInvoke(player, self.name, nil, "#mou__kanpo-invoke::"..target.id..":"..data.card:toLogString())
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    if event == fk.RoundStart then
+      local mark = player:getMark(self.name)
+      if mark == 0 then mark = {} end
+      local all_choices = {}
+      for _, id in ipairs(Fk:getAllCardIds()) do
+        local card = Fk:getCardById(id)
+        if card.type ~= Card.TypeEquip and not card.is_derived then
+          table.insertIfNeed(all_choices, card.trueName)
+        end
+      end
+      table.insert(all_choices, "Cancel")
+      local choices = table.simpleClone(all_choices)
+      if #mark > 0 then
+        for _, name in ipairs(mark) do
+          table.removeOne(choices, name)
+        end
+      end
+      mark = {}
+      for i = 1, 3, 1 do
+        local choice = room:askForChoice(player, choices, self.name,
+          "#mou__kanpo-choice:::"..(4-i)..":"..table.concat(table.map(mark, function(name)
+            return "【"..Fk:translate(name).."】" end), "、"), nil, all_choices)
+        if choice == "Cancel" then
+          room:setPlayerMark(player, self.name, {})
+          return
+        else
+          table.insert(mark, choice)
+        end
+      end
+      room:setPlayerMark(player, self.name, mark)
+    else
+      room:doIndicate(player.id, {target.id})
+      local mark = player:getMark(self.name)
+      table.removeOne(mark, data.card.trueName)
+      room:setPlayerMark(player, self.name, mark)
+      room.logic:getCurrentEvent().parent:shutdown()
+    end
+  end,
+}
+local mou__guanxing = fk.CreateTriggerSkill{
+  name = "mou__guanxing",
+  events = {fk.EventPhaseStart},
+  can_trigger = function(self, event, target, player, data)
+    if target == player and player:hasSkill(self) then
+      return player.phase == Player.Start or
+        (player.phase == Player.Finish and #player:getPile("mou__guanxing&") > 0 and player:getMark("mou__guanxing-turn") > 0)
+    end
+  end,
+  on_cost = function(self, event, target, player, data)
+    if player.phase == Player.Start then
+      return true
+    else
+      return player.room:askForSkillInvoke(player, self.name, nil, "#mou__guanxing-invoke")
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    if player.phase == Player.Start then
+      local n = player:usedSkillTimes(self.name, Player.HistoryGame) > 1 and (#player:getPile("mou__guanxing&") + 1) or 7
+      if #player:getPile("mou__guanxing&") > 0 then
+        room:moveCards({
+          from = player.id,
+          ids = player:getPile("mou__guanxing&"),
+          toArea = Card.DiscardPile,
+          moveReason = fk.ReasonPutIntoDiscardPile,
+          skillName = self.name,
+          fromSpecialName = "mou__guanxing&",
+        })
+      end
+      if player.dead then return end
+      local dummy = Fk:cloneCard("dilu")
+      dummy:addSubcards(room:getNCards(n))
+      player:addToPile("mou__guanxing&", dummy, false, self.name)
+      if player.dead or #player:getPile("mou__guanxing&") == 0 then return end
+    end
+    local result = room:askForGuanxing(player, player:getPile("mou__guanxing&"), nil, nil, self.name, true, {"mou__guanxing&", "Top"})
+    if #result.bottom > 0 then
+      room:moveCards({
+        ids = table.reverse(result.bottom),
+        from = player.id,
+        fromArea = Card.PlayerSpecial,
+        toArea = Card.DrawPile,
+        moveReason = fk.ReasonJustMove,
+        skillName = self.name,
+        fromSpecialName = "mou__guanxing&",
+      })
+      room:sendLog{
+        type = "#GuanxingResult",
+        from = player.id,
+        arg = #result.bottom,
+        arg2 = 0,
+      }
+    elseif player.phase == Player.Start then
+      room:setPlayerMark(player, "mou__guanxing-turn", 1)
+    end
+  end,
+}
+local mou__kongcheng = fk.CreateTriggerSkill{
+  name = "mou__kongcheng",
+  mute = true,
+  frequency = Skill.Compulsory,
+  events = {fk.DamageInflicted},
+  can_trigger = function(self, event, target, player, data)
+    return target == player and player:hasSkill(self) and player:hasSkill("mou__guanxing", true)
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    player:broadcastSkillInvoke(self.name)
+    if #player:getPile("mou__guanxing&") > 0 then
+      room:notifySkillInvoked(player, self.name, "defensive")
+      local pattern = ".|1~"..(#player:getPile("mou__guanxing&") - 1)
+      if #player:getPile("mou__guanxing&") < 2 then
+        pattern = "FuckYoka"
+      end
+      local judge = {
+        who = player,
+        reason = self.name,
+        pattern = pattern,
+      }
+      room:judge(judge)
+      if judge.card.number < #player:getPile("mou__guanxing&") then
+        data.damage = data.damage - 1
+      end
+    else
+      room:notifySkillInvoked(player, self.name, "negative")
+      data.damage = data.damage + 1
+    end
+  end,
+}
+mou__huoji:addRelatedSkill(mou__huoji_trigger)
+mou__zhugeliang:addSkill(mou__huoji)
+mou__zhugeliang:addSkill(mou__kanpo)
+mou__zhugeliang:addRelatedSkill(mou__guanxing)
+mou__zhugeliang:addRelatedSkill(mou__kongcheng)
+Fk:loadTranslationTable{
+  ["mou__zhugeliang"] = "谋诸葛亮",
+  ["mou__huoji"] = "火计",
+  [":mou__huoji"] = "使命技，出牌阶段限一次，你可以选择一名其他角色，对其及其同势力的其他角色各造成1点火焰伤害。<br>\
+  <strong>成功</strong>：准备阶段，若你本局游戏对其他角色造成过至少X点火焰伤害（X为本局游戏人数），你失去〖火计〗〖看破〗，获得〖观星〗〖空城〗。<br>\
+  <strong>失败</strong>：当你进入濒死状态时，使命失败。",
+  ["mou__kanpo"] = "看破",
+  [":mou__kanpo"] = "每轮开始时，你可以记录三次与本轮清除牌名均不相同的牌名。其他角色使用你记录牌名的牌时，你可以移除一个对应记录，令此牌无效。",
+  ["mou__guanxing"] = "观星",
+  [":mou__guanxing"] = "准备阶段，你移去所有“星”，将牌堆顶X张牌置为“星”（X为移去“星”数+1，至多为7；首次发动时X为7），然后你可以将任意张“星”"..
+  "置于牌堆顶。结束阶段，若你本回合准备阶段未将“星”置于牌堆顶，则你可以将任意张“星”置于牌堆顶。你可以将“星”如手牌般使用或打出。",
+  ["mou__kongcheng"] = "空城",
+  [":mou__kongcheng"] = "锁定技，当你受到伤害时，若你有〖观星〗且：有“星”，你进行一次判定，若判定结果点数小于“星”数，则此伤害-1；没有“星”，"..
+  "你受到的伤害+1。",
+  ["#mou__huoji"] = "火计：选择一名角色，对所有与其势力相同的其他角色造成1点火焰伤害",
+  ["#mou__kanpo-choice"] = "看破：你可以选择3次牌名（还剩%arg次），其他角色使用同名牌时，你可令其无效<br>已记录：%arg2",
+  ["#mou__kanpo-invoke"] = "看破：是否令 %dest 使用的%arg无效？",
+  ["mou__guanxing&"] = "星",
+  ["#mou__guanxing-invoke"] = "观星：你可以将任意张“星”置于牌堆顶",
+
+  ["$mou__huoji1"] = "风起之日，火攻之时！",
+  ["$mou__huoji2"] = "发火有时，起火有日！",
+  ["$mou__kanpo1"] = "呵！不过尔尔。",
+  ["$mou__kanpo2"] = "哼！班门弄斧。",
+  ["$mou__guanxing1"] = "冷夜孤星，正如时局啊。",
+  ["$mou__guanxing2"] = "明星皓月，前路通达。",
+  ["$mou__kongcheng1"] = "仲达可愿与我城中一叙？",
+  ["$mou__kongcheng2"] = "城下千军万马，我亦谈笑自若。",
+  ["~mou__zhugeliang"] = "纵具地利，不得天时亦难胜也……",
+}
+
+Fk:loadTranslationTable{
+  ["mou__huangyueying"] = "谋黄月英",
+  ["mou__qicai"] = "奇才",
+  [":mou__qicai"] = "你使用锦囊牌无距离限制。出牌阶段限一次，你可以选择一名其他角色，将手牌或弃牌堆中一张防具牌置入其装备区（每局游戏每种牌名限一次），"..
+  "然后其获得“奇”标记。有“奇”标记的角色接下来获得的三张普通锦囊牌须交给你。",
+  ["mou__jizhi"] = "集智",
+  [":mou__jizhi"] = "锁定技，当你使用普通锦囊牌时，你摸一张牌，以此法获得的牌本回合不计入手牌上限。",
 }
 
 return extension
