@@ -276,7 +276,7 @@ local mouliegong = fk.CreateTriggerSkill{
   can_trigger = function(self, event, target, player, data)
     return target == player and player:hasSkill(self) and
       data.card.trueName == "slash" and
-      #TargetGroup:getRealTargets(data.tos) == 1 and
+      #AimGroup:getAllTargets(data.tos) == 1 and
       player:getMark("@mouliegongRecord") ~= 0
   end,
   on_use = function(self, event, target, player, data)
