@@ -4,6 +4,7 @@ extension.extensionName = "mougong"
 Fk:loadTranslationTable{
   ["mou_shi"] = "谋攻篇-识包",
 }
+local U = require "packages/utility/utility"
 local mou__tieji = fk.CreateTriggerSkill{
   name = "mou__tieji",
   anim_type = "offensive",
@@ -63,6 +64,122 @@ Fk:loadTranslationTable{
   ["$mou__tieji3"] = "敌军早有防备，先行扰阵疲敌！",
   ["$mou__tieji4"] = "全军速撤回营，以期再觅良机！",
   ["~mou__machao"] = "父兄妻儿具丧，吾有何面目活于世间……",
+}
+
+local mou__fazheng = General(extension, "mou__fazheng", "shu", 3)
+local mou__xuanhuo = fk.CreateActiveSkill{
+  name = "mou__xuanhuo",
+  anim_type = "control",
+  can_use = function(self, player)
+    return player:usedSkillTimes(self.name, Player.HistoryPhase) < 1
+  end,
+  card_num = 1,
+  card_filter = function (self, to_select, selected)
+    return #selected == 0
+  end,
+  target_num = 1,
+  target_filter = function(self, to_select, selected)
+    return #selected == 0 and to_select ~= Self.id and Fk:currentRoom():getPlayerById(to_select):getMark("@@mou__xuanhuo") == 0
+  end,
+  on_use = function(self, room, effect)
+    local to = room:getPlayerById(effect.tos[1])
+    room:obtainCard(to, effect.cards[1], false, fk.ReasonGive)
+    room:setPlayerMark(to, "@@mou__xuanhuo", 1)
+  end,
+}
+local mou__xuanhuo_delay = fk.CreateTriggerSkill{
+  name = "#mou__xuanhuo_delay",
+  mute = true,
+  events = {fk.AfterCardsMove},
+  can_trigger = function(self, event, target, player, data)
+    if player:hasSkill(self) then
+      local tos = {}
+      local mark = U.getMark(player, "mou__xuanhuo_count")
+      for _, move in ipairs(data) do
+        if move.to and move.toArea == Card.PlayerHand and move.to ~= player.id then
+          local to = player.room:getPlayerById(move.to)
+          if to.phase ~= Player.Draw and not to:isKongcheng() and to:getMark("@@mou__xuanhuo") > 0
+          and (mark[tostring(move.to)] or 0) < 5 then
+            table.insertIfNeed(tos, move.to)
+          end
+        end
+      end
+      if #tos > 0 then
+        self.cost_data = tos
+        return true
+      end
+    end
+  end,
+  on_cost = Util.TrueFunc,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    for _, pid in ipairs(self.cost_data) do
+      if player.dead then return end
+      local to = room:getPlayerById(pid)
+      local mark = U.getMark(player, "mou__xuanhuo_count")
+      local count = mark[tostring(to.id)] or 0
+      if not to:isKongcheng() and count < 5 then
+        mark[tostring(to.id)] = count + 1
+        room:setPlayerMark(player, "mou__xuanhuo_count", mark)
+        room:obtainCard(player, table.random(to:getCardIds("h")), false, fk.ReasonPrey)
+      end
+    end
+  end,
+}
+mou__xuanhuo:addRelatedSkill(mou__xuanhuo_delay)
+mou__fazheng:addSkill(mou__xuanhuo)
+local mou__enyuan = fk.CreateTriggerSkill{
+  name = "mou__enyuan",
+  mute = true,
+  frequency = Skill.Compulsory,
+  events = {fk.EventPhaseStart},
+  can_trigger = function(self, event, target, player, data)
+    return player:hasSkill(self) and target == player and player.phase == Player.Start
+    and table.find(player.room:getOtherPlayers(player), function(p) return p:getMark("@@mou__xuanhuo") > 0 end)
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    room:notifySkillInvoked(player, self.name)
+    for _, p in ipairs(room:getOtherPlayers(player)) do
+      if p:getMark("@@mou__xuanhuo") > 0 then
+        room:setPlayerMark(p, "@@mou__xuanhuo", 0)
+        local mark = U.getMark(player, "mou__xuanhuo_count")
+        local count = mark[tostring(p.id)] or 0
+        if count >= 3 then
+          player:broadcastSkillInvoke(self.name, 1)
+          if not player:isNude() then
+            local cards = room:askForCard(player, 3, 3, true, self.name, false, ".", "#mou__enyuan-give:"..p.id)
+            local dummy = Fk:cloneCard("dilu")
+            dummy:addSubcards(cards)
+            room:obtainCard(p, dummy, false, fk.ReasonGive)
+          end
+        else
+          player:broadcastSkillInvoke(self.name, 2)
+          room:loseHp(p, 1, self.name)
+          if not player.dead and player:isWounded() then
+            room:recover { num = 1, skillName = self.name, who = player , recoverBy = player}
+          end
+        end
+      end
+    end
+    room:setPlayerMark(player, "mou__xuanhuo_count", 0)
+  end,
+}
+mou__fazheng:addSkill(mou__enyuan)
+Fk:loadTranslationTable{
+  ["mou__fazheng"] = "谋法正",
+  ["mou__xuanhuo"] = "眩惑",
+  [":mou__xuanhuo"] = "出牌阶段限一次，你可以交给一名没有“眩”标记的其他角色一张牌并令其获得“眩”标记。有“眩”标记的角色于摸牌阶段外获得牌时，你随机获得其一张手牌（每个“眩”标记最多令你获得五张牌）。",
+  ["@@mou__xuanhuo"] = "眩",
+  ["mou__enyuan"] = "恩怨",
+  [":mou__enyuan"] = "锁定技，准备阶段，若有“眩”标记的角色自其获得“眩”标记开始你获得其的牌数：不小于3，你移除其“眩”标记，然后交给其三张牌；小于3，其移除“眩”标记并失去1点体力，然后你回复1点体力。",
+  ["#mou__enyuan-give"] = "恩怨：交给 %src 三张牌",
+  
+  ["$mou__xuanhuo1"] = "虚名虽然无用，可沽万人之心。",
+  ["$mou__xuanhuo2"] = "效金台碣馆之事，布礼贤仁德之名。",
+  ["$mou__enyuan1"] = "恩如泰山，当还以东海。",
+  ["$mou__enyuan2"] = "汝既负我，哼哼，休怪军法无情！",
+  ["~mou__fazheng"] = "蜀翼双折，吾主王业，就靠孔明了……",
 }
 
 local mou__lijian = fk.CreateActiveSkill{
@@ -140,6 +257,107 @@ Fk:loadTranslationTable{
   ["$mou__biyue1"] = "薄酒醉红颜，广袂羞掩面。",
   ["$mou__biyue2"] = "芳草更芊芊，荷池映玉颜。",
   ["~mou__diaochan"] = "终不负阿父之托……",
+}
+
+local mou__chengong = General(extension, "mou__chengong", "qun", 3)
+local mou__mingce = fk.CreateActiveSkill{
+  name = "mou__mingce",
+  anim_type = "support",
+  card_num = 1,
+  target_num = 1,
+  can_use = function(self, player)
+    return player:usedSkillTimes(self.name, Player.HistoryPhase) == 0 and not player:isNude()
+  end,
+  card_filter = function(self, to_select, selected)
+    return #selected == 0
+  end,
+  target_filter = function(self, to_select, selected)
+    return #selected == 0 and to_select ~= Self.id
+  end,
+  on_use = function(self, room, effect)
+    local player = room:getPlayerById(effect.from)
+    local target = room:getPlayerById(effect.tos[1])
+    room:obtainCard(target, effect.cards[1], false, fk.ReasonGive)
+    if player.dead or target.dead then return end
+    if room:askForChoice(target, {"mou__mingce_losehp:"..player.id, "draw1"}, self.name) == "draw1" then
+      target:drawCards(1, self.name)
+    else
+      room:loseHp(target, 1, self.name)
+      if not player.dead then
+        player:drawCards(2, self.name)
+        room:addPlayerMark(player, "@mou__mingce")
+      end
+    end
+  end,
+}
+local mou__mingce_trigger = fk.CreateTriggerSkill{
+  name = "#mou__mingce_trigger",
+  events = {fk.EventPhaseStart},
+  main_skill = mou__mingce,
+  can_trigger = function(self, event, target, player, data)
+    return target == player and player:hasSkill(self) and player.phase == Player.Play and player:getMark("@mou__mingce") > 0
+  end,
+  on_cost = function(self, event, target, player, data)
+    local room = player.room
+    local tos = room:askForChoosePlayers(player, table.map(room:getOtherPlayers(player), Util.IdMapper), 1, 1, "#mou__mingce-choose:::"..player:getMark("@mou__mingce"), self.name, true)
+    if #tos > 0 then
+      self.cost_data = tos[1]
+      return true
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    player:broadcastSkillInvoke(mou__mingce.name)
+    local to = room:getPlayerById(self.cost_data)
+    room:damage { from = player, to = to, damage = player:getMark("@mou__mingce"), skillName = self.name }
+    room:setPlayerMark(player, "@mou__mingce", 0)
+  end,
+}
+mou__mingce:addRelatedSkill(mou__mingce_trigger)
+mou__chengong:addSkill(mou__mingce)
+local mou__zhichi = fk.CreateTriggerSkill{
+  name = "mou__zhichi",
+  anim_type = "defensive",
+  frequency = Skill.Compulsory,
+  events = {fk.Damaged},
+  on_use = function(self, event, target, player, data)
+    player.room:setPlayerMark(player, "@@mou__zhichi-turn", 1)
+  end,
+}
+local mou__zhichi_delay = fk.CreateTriggerSkill{
+  name = "#mou__zhichi_delay",
+  mute = true,
+  frequency = Skill.Compulsory,
+  events = {fk.DamageInflicted},
+  can_trigger = function(self, event, target, player, data)
+    return target == player and player:getMark("@@mou__zhichi-turn") > 0
+  end,
+  on_use = function(self, event, target, player, data)
+    player:broadcastSkillInvoke(mou__zhichi.name)
+    player.room:sendLog{ type = "#PreventDamageBySkill", from = player.id, arg = mou__zhichi.name }
+    return true
+  end,
+}
+mou__zhichi:addRelatedSkill(mou__zhichi_delay)
+mou__chengong:addSkill(mou__zhichi)
+Fk:loadTranslationTable{
+  ["mou__chengong"] = "陈宫",
+  ["mou__mingce"] = "明策",
+  [":mou__mingce"] = "①出牌阶段限一次，你可以交给一名其他角色一张牌，令其选择一项：1.失去1点体力，令你摸两张牌并获得1个“策”标记；2.摸一张牌。<br>②出牌阶段开始时，若你拥有“策”标记，你可以选择一名其他角色，对其造成X点伤害并移去所有“策”标记（X为你的“策”标记数）。",
+  ["mou__mingce_losehp"] = "你失去1点体力，令%src摸两张牌并获得“策”标记",
+  ["#mou__mingce-choose"] = "明策：移去所有“策”标记，对一名其他角色造成 %arg 点伤害",
+  ["@mou__mingce"] = "策",
+  ["#mou__mingce_trigger"] = "明策",
+  ["mou__zhichi"] = "智迟",
+  [":mou__zhichi"] = "锁定技，当你受到伤害后，防止本回合你受到的伤害。",
+  ["@@mou__zhichi-turn"] = "智迟",
+  ["#PreventDamageBySkill"] = "由于 %arg 的效果，%from 受到的伤害被防止",
+
+  ["$mou__mingce1"] = "行吾此计，可使将军化险为夷。",
+  ["$mou__mingce2"] = "分兵驻扎，可互为掎角之势。",
+  ["$mou__zhichi1"] = "哎！怪我智迟，竟少算一步。",
+  ["$mou__zhichi2"] = "将军勿急，我等可如此行事。",
+  ["~mou__chengong"] = "何必多言！宫唯求一死……",
 }
 
 local mou__lianhuan = fk.CreateActiveSkill{

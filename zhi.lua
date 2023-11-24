@@ -844,6 +844,65 @@ Fk:loadTranslationTable{
   ["~mou__zhangjiao"] = "只叹未能覆汉，徒失天时。",
 }
 
+local mou__liubiao = General(extension, "mou__liubiao", "qun", 3)
+local mou__zishou = fk.CreateTriggerSkill{
+  name = "mou__zishou",
+  anim_type = "control",
+  frequency = Skill.Compulsory,
+  events = {fk.EventPhaseStart},
+  can_trigger = function(self, event, target, player, data)
+    if player:hasSkill(self) and player ~= target and target.phase == Player.Finish and not target:isNude() then
+      local events = player.room.logic:getEventsOfScope(GameEvent.Damage, 1, function(e)
+        local damage = e.data[1]
+        if damage and damage.from then
+          return (damage.from == player and damage.to == target) or (damage.from == target and damage.to == player)
+        end
+      end, Player.HistoryGame)
+      return #events == 0
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    local cards = room:askForCard(target, 1, 1, true, self.name, false, ".", "#mou__zishou-give::"..player.id)
+    room:obtainCard(player, cards[1], false, fk.ReasonGive)
+  end,
+}
+mou__liubiao:addSkill(mou__zishou)
+local mou__zongshi = fk.CreateTriggerSkill{
+  name = "mou__zongshi",
+  anim_type = "control",
+  frequency = Skill.Compulsory,
+  events = {fk.Damaged},
+  can_trigger = function(self, event, target, player, data)
+    if player:hasSkill(self) and player == target and data.from and not data.from:isKongcheng() then
+      local mark = U.getMark(player, self.name)
+      return not table.contains(mark, data.from.id)
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    local mark = U.getMark(player, self.name)
+    table.insert(mark, data.from.id)
+    room:setPlayerMark(player, self.name, mark)
+    data.from:throwAllCards("h")
+  end,
+}
+mou__liubiao:addSkill(mou__zongshi)
+Fk:loadTranslationTable{
+  ["mou__liubiao"] = "谋刘表",
+  ["mou__zishou"] = "自守",
+  [":mou__zishou"] = "锁定技，其他角色的结束阶段，若本局游戏你与其均未对另一方造成过伤害，其交给你一张牌。",
+  ["mou__zongshi"] = "宗室",
+  [":mou__zongshi"] = "锁定技，当你受到伤害后，伤害来源弃置所有手牌（每名角色限一次）。",
+  ["#mou__zishou-give"] = "自守：你须交给 %dest 一张牌 ",
+  
+  ["$mou__zishou1"] = "荆襄通连天下，我有何惧？",
+  ["$mou__zishou2"] = "据此人杰地灵之地，何必再行征战？",
+  ["$mou__zongshi1"] = "是时候讨伐悖逆之人了。",
+  ["$mou__zongshi2"] = "强汉之威，贼寇岂有不败之理？",
+  ["~mou__liubiao"] = "我死之后，只望荆州仍然安定。",
+}
+
 local mou__zhugeliang = General(extension, "mou__zhugeliang", "shu", 3)
 local mou__huoji = fk.CreateActiveSkill{
   name = "mou__huoji",
