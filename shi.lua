@@ -341,7 +341,7 @@ local mou__zhichi_delay = fk.CreateTriggerSkill{
 mou__zhichi:addRelatedSkill(mou__zhichi_delay)
 mou__chengong:addSkill(mou__zhichi)
 Fk:loadTranslationTable{
-  ["mou__chengong"] = "陈宫",
+  ["mou__chengong"] = "谋陈宫",
   ["mou__mingce"] = "明策",
   [":mou__mingce"] = "①出牌阶段限一次，你可以交给一名其他角色一张牌，令其选择一项：1.失去1点体力，令你摸两张牌并获得1个“策”标记；2.摸一张牌。<br>②出牌阶段开始时，若你拥有“策”标记，你可以选择一名其他角色，对其造成X点伤害并移去所有“策”标记（X为你的“策”标记数）。",
   ["mou__mingce_losehp"] = "你失去1点体力，令%src摸两张牌并获得“策”标记",
@@ -617,6 +617,112 @@ Fk:loadTranslationTable{
   ["$mou__shipo1"] = "已向尔等陈明利害，奉劝尔等早日归降！",
   ["$mou__shipo2"] = "此时归降或可封赏，即至城破必斩无赦！",
   ["~mou__xuhuang"] = "为主效劳，何畏生死……",
+}
+
+local mou__zhanghe = General(extension, "mou__zhanghe", "wei", 4)
+local mou__qiaobian = fk.CreateTriggerSkill{
+  name = "mou__qiaobian",
+  anim_type = "control",
+  events = {fk.EventPhaseChanging},
+  can_trigger = function(self, event, target, player, data)
+    return target == player and player:hasSkill(self) and player:usedSkillTimes(self.name, Player.HistoryTurn) == 0 and
+    data.to > Player.Start and data.to < Player.Discard
+  end,
+  on_cost = function(self, event, target, player, data)
+    local phase_name_table = { [3] = "phase_judge", [4] = "phase_draw", [5] = "phase_play", }
+    return player.room:askForSkillInvoke(player, self.name, nil, "#mou__qiaobian-invoke:::" .. phase_name_table[data.to])
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    player:skip(data.to)
+    if data.to == Player.Judge then
+      room:loseHp(player, 1, self.name)
+      if #player:getCardIds("j") > 0 then
+        local tos = room:askForChoosePlayers(player, table.map(room:getOtherPlayers(player), Util.IdMapper), 1, 1, "#mou__qiaobian-choose", self.name, false)
+        if #tos > 0 then
+          local to = room:getPlayerById(tos[1])
+          local moveInfos = {}
+          for _, id in ipairs(player:getCardIds("j")) do
+            local vcard = player:getVirualEquip(id)
+            local card = vcard or Fk:getCardById(id)
+            if to:hasDelayedTrick(card.name) then
+              table.insert(moveInfos, {
+                ids = {id},
+                from = player.id,
+                toArea = Card.DiscardPile,
+                moveReason = fk.ReasonPutIntoDiscardPile,
+                proposer = player.id,
+                skillName = self.name,
+              })
+            else
+              table.insert(moveInfos, {
+                ids = {id},
+                from = player.id,
+                to = to.id,
+                toArea = Card.PlayerJudge,
+                moveReason = fk.ReasonPut,
+                proposer = player.id,
+                skillName = self.name,
+              })
+            end
+          end
+          room:moveCards(table.unpack(moveInfos))
+        end
+      end
+    elseif data.to == Player.Draw then
+      room:setPlayerMark(player, "@@mou__qiaobian_delay", 1)
+    else
+      player:skip(Player.Discard)
+      if player:getHandcardNum() > 6 then
+        room:askForDiscard(player, player:getHandcardNum()-6, player:getHandcardNum()-6, false, self.name, false)
+        if player.dead then return end
+      end
+      if #room:canMoveCardInBoard() > 0 then
+        local targets = room:askForChooseToMoveCardInBoard(player, "#mou__qiaobian-move", self.name, false)
+        if #targets == 2 then
+          targets = table.map(targets, Util.Id2PlayerMapper)
+          room:askForMoveCardInBoard(player, targets[1], targets[2], self.name)
+        end
+      end
+    end
+    return true
+  end,
+}
+local mou__qiaobian_delay = fk.CreateTriggerSkill{
+  name = "#mou__qiaobian_delay",
+  events = {fk.EventPhaseStart},
+  mute = true,
+  can_trigger = function(self, event, target, player, data)
+    return target == player and player:getMark("@@mou__qiaobian_delay") > 0 and player.phase == Player.Start
+  end,
+  on_cost = Util.TrueFunc,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    player:broadcastSkillInvoke(mou__qiaobian.name)
+    room:setPlayerMark(player, "@@mou__qiaobian_delay", 0)
+    player:drawCards(5, mou__qiaobian.name)
+    if not player.dead and player:isWounded() then
+      room:recover { num = 1, skillName = mou__qiaobian.name, who = player , recoverBy = player}
+    end
+  end,
+}
+mou__qiaobian:addRelatedSkill(mou__qiaobian_delay)
+mou__zhanghe:addSkill(mou__qiaobian)
+Fk:loadTranslationTable{
+  ["mou__zhanghe"] = "谋张郃",
+  ["mou__qiaobian"] = "巧变",
+  [":mou__qiaobian"] = "每回合限一次，判定阶段、摸牌阶段、出牌阶段开始前，你可以跳过此阶段并执行对应跳过阶段的效果："..
+  "<br>判定阶段：失去1点体力并选择一名其他角色，然后你将判定区里所有的牌置入该角色的判定区（无法置入的判定牌改为置入弃牌堆）；"..
+  "<br>摸牌阶段：下个准备阶段开始时，你摸五张牌并回复1点体力；"..
+  "<br>出牌阶段：将手牌数弃置至6张并跳过弃牌阶段，然后你移动场上的一张牌。",
+  ["#mou__qiaobian-invoke"] = "巧变：你可以跳过 %arg",
+  ["#mou__qiaobian-choose"] = "巧变：将你判定区里所有的牌置入一名其他角色的判定区",
+  ["#mou__qiaobian-move"] = "巧变：请选择两名角色，移动场上的一张牌",
+  ["@@mou__qiaobian_delay"] = "巧变",
+
+  ["$mou__qiaobian1"] = "因势而变，则可引势而为",
+  ["$mou__qiaobian2"] = "将计就计，变夺胜机。",
+  ["~mou__zhanghe"] = "未料竟中孔明之计……",
 }
 
 local mou__ganning = General(extension, "mou__ganning", "wu", 4)
