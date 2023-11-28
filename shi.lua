@@ -5,13 +5,15 @@ Fk:loadTranslationTable{
   ["mou_shi"] = "谋攻篇-识包",
 }
 local U = require "packages/utility/utility"
+
+local machao = General:new(extension, "mou__machao", "shu", 4)
 local mou__tieji = fk.CreateTriggerSkill{
   name = "mou__tieji",
   anim_type = "offensive",
   events = {fk.TargetSpecified},
   mute = true,
   can_trigger = function(self, event, target, player, data)
-    return target == player and player:hasSkill(self) and
+    return target == player and player:hasSkill(self) and data.to ~= player.id and
       data.card.trueName == "slash"
   end,
   on_use = function(self, event, target, player, data)
@@ -22,22 +24,14 @@ local mou__tieji = fk.CreateTriggerSkill{
     data.disresponsive = true
     room:addPlayerMark(to, "@@tieji-turn")
     room:addPlayerMark(to, MarkEnum.UncompulsoryInvalidity .. "-turn")
-    local choice = room:askForChoice(player, {"tieji-zhiqu" ,"tieji-raozheng"}, self.name,"#mou__tieji-active")
-    local choice1 = room:askForChoice(to, {"tieji-chuzheng" ,"tieji-huwei"} , self.name,"#mou__tieji-active")
-    local jieguo
-    if (choice == "tieji-zhiqu" and choice1 ~= "tieji-chuzheng") or (choice == "tieji-raozheng" and choice1 ~= "tieji-huwei") then
-      jieguo = "谋奕成功"
-    else
-      jieguo = "谋奕失败"
-    end
-    room:doBroadcastNotify("ShowToast", Fk:translate(jieguo))
-    if choice == "tieji-zhiqu" and choice1 ~= "tieji-chuzheng" then
+    local choices = U.doStrategy(room, player, to, {"tieji-zhiqu","tieji-raozheng"}, {"tieji-chuzheng","tieji-huwei"}, self.name, 1)
+    if choices[1] == "tieji-zhiqu" and choices[2] ~= "tieji-chuzheng" then
       player:broadcastSkillInvoke(self.name, 2)
       if not to:isNude() then
         local card = room:askForCardChosen(player, to, "he", self.name)
         room:obtainCard(player, card, false, fk.ReasonPrey)
       end
-    elseif choice == "tieji-raozheng" and choice1 ~= "tieji-huwei" then
+    elseif choices[1] == "tieji-raozheng" and choices[2] ~= "tieji-huwei" then
       player:broadcastSkillInvoke(self.name, 3)
       player:drawCards(2, self.name)
     else
@@ -45,19 +39,20 @@ local mou__tieji = fk.CreateTriggerSkill{
     end
   end,
 }
-local machao = General:new(extension, "mou__machao", "shu", 4)
 machao:addSkill("mashu")
 machao:addSkill(mou__tieji)
 Fk:loadTranslationTable{
   ["mou__machao"] = "谋马超",
   ["mou__tieji"] = "铁骑",
   [":mou__tieji"] = "每当你使用【杀】指定其他角色为目标后，你可令其不能响应此【杀】，且所有非锁定技失效直到回合结束。然后你与其进行谋弈。若你赢，且你选择的选项为：“直取敌营”，则你获得其一张牌；“扰阵疲敌”，你摸两张牌。",
-  ["tieji-zhiqu"] = "直取敌营: 谋奕成功后获得对方一张牌",
-  ["tieji-raozheng"] = "扰阵疲敌:谋奕成功后你摸两张牌",
-  ["tieji-chuzheng"] = "出阵迎敌:用于防御直取敌营(获得你牌)",
-  ["tieji-huwei"] = "拱卫中军:用于防御扰阵疲敌(摸两张牌)",
-  ["#mou__tieji-active"] = "铁骑:请选择你需要进行谋奕的选项",
-  ["#tieji_log"] = "%from 发动了“%arg2”谋奕结果为【%arg】。",
+  ["tieji-zhiqu"] = "直取敌营",
+  ["tieji-raozheng"] = "扰阵疲敌",
+  ["tieji-chuzheng"] = "出阵迎敌",
+  ["tieji-huwei"] = "拱卫中军",
+  [":tieji-zhiqu"] = "谋奕成功后，获得对方一张牌",
+  [":tieji-raozheng"] = "谋奕成功后，你摸两张牌",
+  [":tieji-chuzheng"] = "用于防御“直取敌营”(防止其获得你牌)",
+  [":tieji-huwei"] = "用于防“御扰阵疲敌”(防止其摸两张牌)",
 
   ["$mou__tieji1"] = "厉马秣兵，只待今日！",
   ["$mou__tieji2"] = "敌军防备空虚，出击直取敌营！",
@@ -509,41 +504,29 @@ local mou__duanliang = fk.CreateActiveSkill{
     local to = room:getPlayerById(effect.tos[1])
     room:notifySkillInvoked(player, self.name)
     player:broadcastSkillInvoke(self.name, 1)
-    local choice = room:askForChoice(player, {"mou__duanliang-weicheng" ,"mou__duanliang-jinjun"}, self.name,"#mou__duanliang-active")
-    local choice1 = room:askForChoice(to, {"mou__duanliang-tuji" ,"mou__duanliang-shoucheng"} , self.name,"#mou__duanliang-active")
-    local jieguo
-    if (choice == "mou__duanliang-weicheng" and choice1 ~= "mou__duanliang-tuji") or (choice == "mou__duanliang-jinjun" and choice1 ~= "mou__duanliang-shoucheng") then
-      jieguo = "谋奕成功"
+    local choices = U.doStrategy(room, player, to, {"mou__duanliang-weicheng","mou__duanliang-jinjun"}, {"mou__duanliang-tuji","mou__duanliang-shoucheng"}, self.name, 1)
+    if choices[1] == "mou__duanliang-weicheng" and choices[2] ~= "mou__duanliang-tuji" then
+      player:broadcastSkillInvoke(self.name, 2)
+      local use
+      if #room.draw_pile > 0 then
+        local id = room.draw_pile[1]
+        local card = Fk:cloneCard("supply_shortage")
+        card.skillName = self.name
+        card:addSubcard(id)
+        if U.canUseCardTo(room, player, to, card, false) then
+          room:useVirtualCard("supply_shortage", {id}, player, to, self.name, true)
+          use = true
+        end
+      end
+      if not use and not to:isNude() then
+        local id = room:askForCardChosen(player, to, "he", self.name)
+        room:obtainCard(player, id, false, fk.ReasonPrey)
+      end
+    elseif choices[1] == "mou__duanliang-jinjun" and choices[2] ~= "mou__duanliang-shoucheng" then
+      player:broadcastSkillInvoke(self.name, 3)
+      room:useVirtualCard("duel", nil, player, to, self.name)
     else
-      jieguo = "谋奕失败"
       player:broadcastSkillInvoke(self.name, 4)
-    end
-    room:doBroadcastNotify("ShowToast", Fk:translate(jieguo))
-    if choice == "mou__duanliang-weicheng" then
-      if choice1 ~= "mou__duanliang-tuji" then
-        player:broadcastSkillInvoke(self.name, 2)
-        local use
-        if #room.draw_pile > 0 then
-          local id = room.draw_pile[1]
-          local card = Fk:cloneCard("supply_shortage")
-          card:addSubcard(id)
-          if not to:hasDelayedTrick("supply_shortage") and not player:isProhibited(to, card) then
-            room:useVirtualCard("supply_shortage", {id}, player, to, self.name)
-            use = true
-          end
-        end
-        if not use and not to:isNude() then
-          local id = room:askForCardChosen(player, to, "he", self.name)
-          room:obtainCard(player, id, false, fk.ReasonPrey)
-        end
-      end
-    else
-      if choice1 ~= "mou__duanliang-shoucheng" then
-        player:broadcastSkillInvoke(self.name, 3)
-        if not player:isProhibited(to, Fk:cloneCard("duel")) then
-          room:useVirtualCard("duel", nil, player, to, self.name)
-        end
-      end
     end
   end,
 }
@@ -593,14 +576,16 @@ local mou__shipo = fk.CreateTriggerSkill{
 mou__xuhuang:addSkill(mou__shipo)
 Fk:loadTranslationTable{
   ["mou__xuhuang"] = "谋徐晃",
-  
   ["mou__duanliang"] = "断粮",
   [":mou__duanliang"] = "出牌阶段限一次，你可以与一名其他角色进行一次“谋弈”：<br>围城断粮，你将牌堆顶的一张牌当无距离限制的【兵粮寸断】对其使用，若无法使用改为你获得其一张牌；<br>擂鼓进军，你视为对其使用一张【决斗】。",
-  ["mou__duanliang-weicheng"] = "围城断粮: 谋奕成功后视为使用【兵粮寸断】",
-  ["mou__duanliang-jinjun"] = "擂鼓进军:谋奕成功后视为使用【决斗】",
-  ["mou__duanliang-tuji"] = "全军突击:用于防御围城断粮(兵粮寸断)",
-  ["mou__duanliang-shoucheng"] = "闭门守城:用于防御擂鼓进军(决斗)",
-  ["#mou__duanliang-active"] = "断粮：请选择你需要进行谋奕的选项",
+  ["mou__duanliang-weicheng"] = "围城断粮",
+  ["mou__duanliang-jinjun"] = "擂鼓进军",
+  ["mou__duanliang-tuji"] = "全军突击",
+  ["mou__duanliang-shoucheng"] = "闭门守城",
+  [":mou__duanliang-weicheng"] = "谋奕成功后，视为使用【兵粮寸断】，若无法使用改为获得其一张牌",
+  [":mou__duanliang-jinjun"] = "谋奕成功后，视为使用【决斗】",
+  [":mou__duanliang-tuji"] = "用于防御围城断粮：防止其对你使用【兵粮寸断】或获得你一张牌",
+  [":mou__duanliang-shoucheng"] = "用于防御擂鼓进军：防止其对你使用【决斗】",
 
   ["mou__shipo"] = "势迫",
   [":mou__shipo"] = "结束阶段，你可以令一名体力值小于你的角色或所有判定区里有【兵粮寸断】的其他角色选择一项：1.交给你一张手牌，且你可以将此牌交给一名其他角色；2.受到1点伤害。",
@@ -741,18 +726,20 @@ local mou__qixi = fk.CreateActiveSkill{
   on_use = function(self, room, effect)
     local player = room:getPlayerById(effect.from)
     local to = room:getPlayerById(effect.tos[1])
-    local suits = {"spade","club","heart","diamond","nosuit"}
-    local num = {0,0,0,0,0}
-    local max_num = 0
+    local suits = {"spade","club","heart","diamond"}
+    local numMap = {}
     for _, id in ipairs(player:getCardIds("h")) do
-      local card = Fk:getCardById(id)
-      num[card.suit] = num[card.suit] + 1
-      max_num = math.max(max_num, num[card.suit])
+      local str = Fk:getCardById(id):getSubtypeString()
+      numMap[str] = (numMap[str] or 0) + 1
+    end
+    local max_num = 0
+    for _, v in pairs(numMap) do
+      max_num = math.max(max_num, v)
     end
     local max_suit = {}
-    for i = 1, 5 do
-      if num[i] == max_num then
-        table.insert(max_suit, suits[i])
+    for suit, v in pairs(numMap) do
+      if v == max_num then
+        table.insert(max_suit, suit)
       end
     end
     local choice = room:askForChoice(to, suits, self.name, "#mou__qixi-guess::"..player.id)

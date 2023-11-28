@@ -175,7 +175,59 @@ Fk:loadTranslationTable{
   ["$yinghun_mou__sunce2"] = "扫尽门庭之寇，贼自畏我之威！",
   ["~mou__sunce"] = "大志未展，权弟当继……",
 }
-
+--[[
+local mou__xiaoqiao = General(extension, "mou__xiaoqiao", "wu", 3, 3, General.Female)
+local mou__hongyan = fk.CreateFilterSkill{
+  name = "mou__hongyan",
+  card_filter = function(self, to_select, player)
+    return to_select.suit == Card.Spade and player:hasSkill(self)
+  end,
+  view_as = function(self, to_select)
+    return Fk:cloneCard(to_select.name, Card.Heart, to_select.number)
+  end,
+}
+local mou__hongyan_delay = fk.CreateTriggerSkill{
+  name = "#mou__hongyan_delay",
+  anim_type = "control",
+  frequency = Skill.Compulsory,
+  events = {fk.AskForRetrial},
+  can_trigger = function(self, event, target, player, data)
+    return player:hasSkill(self) -- and data.card.suit == Card.Heart
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    local suitStr = room:askForChoice(player, {"spade","club","heart","diamond"}, self.name, "#mou__hongyan-choice::"..target.id..":"..data.reason)
+    local color = (suitStr == "spade" or suitStr == "spade") and Card.Black or Card.Red
+    data.card.suit = Util.getSuitFromString(suitStr)
+    data.color = color
+    room:sendLog{
+      type = "#ChangedJudge",
+      from = player.id,
+      to = { target.id },
+      card = { data.card:getEffectiveId() },
+      arg = self.name,
+    }
+  end,
+}
+mou__hongyan:addRelatedSkill(mou__hongyan_delay)
+mou__xiaoqiao:addSkill(mou__hongyan)
+Fk:loadTranslationTable{
+  ["mou__xiaoqiao"] = "谋小乔",
+  ["mou__tianxiang"] = "天香",
+  [":mou__tianxiang"] = "①出牌阶段限两次，你可将一张红色牌交给一名没有“天香”标记的其他角色，并令其获得对应花色的“天香”标记。"..
+  "<br>②当你受到伤害时，你可以选择一名拥有“天香”标记的其他角色，移除其“天香”标记，并根据移除的“天香”花色发动：红桃，你防止此伤害，然后令其受到防止伤害的来源角色造成的1点伤害；方块，其交给你两张牌。"..
+  "<br>③准备阶段，你移除场上所有“天香”标记，并摸等量的牌。",
+  ["#mou__tianxiang-choose"] = "天香：移除一名角色的“天香”标记并“天香”花色发动效果",
+  ["mou__hongyan"] = "红颜",
+  [":mou__hongyan"] = "锁定技，①你的♠️牌均视为♥️牌；②当一名角色的判定牌生效前，若此牌的花色为♥️，你将此牌的判定结果改为任意一种花色。",
+  ["#mou__hongyan-choice"] = "红颜：修改 %dest 进行 %arg 判定结果的花色",
+  ["#mou__hongyan_delay"] = "红颜",
+  ["$mou__tianxiang1"] = "灿如春华，皎如秋月。",
+  ["$mou__tianxiang2"] = "凤眸流盼，美目含情。",
+  ["$mou__hongyan"] = "（琴声）",
+  ["~mou__xiaoqiao"] = "朱颜易改，初心永在……",
+}
+--]]
 local liucheng = General(extension, "mou__liucheng", "qun", 3, 3, General.Female)
 
 local lveying = fk.CreateTriggerSkill{

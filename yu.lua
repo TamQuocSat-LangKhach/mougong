@@ -241,7 +241,44 @@ Fk:loadTranslationTable{
   ["$mou__jiewei2"] = "贼虽势盛，若吾出马，亦可解之。",
   ["~mou__caoren"] = "吾身可殉，然襄樊之地万不可落于吴蜀之手……",
 }
-
+--[[
+local mou__yujin = General(extension, "mou__yujin", "wei", 4)
+local mou__xiayuan = fk.CreateTriggerSkill{
+  name = "mou__xiayuan",
+  anim_type = "support",
+  events = { fk.Damaged },
+  can_trigger = function(self, event, target, player, data)
+    return target ~= player and player:hasSkill(self) and player:usedSkillTimes(self.name, Player.HistoryRound) == 0 and #player:getCardIds("h") > 1 and target.shield < 5
+  end,
+  on_cost = function(self, event, target, player, data)
+    local cards = player.room:askForDiscard(player, 2, 2, false, self.name, true, ".", "#mou__xiayuan-invoke::"..target.id..":"..data.extra_data.mou__xiayuan, true)
+    if #cards == 2 then
+      self.cost_data = cards
+      return true
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    room:throwCard(self.cost_data, self.name, player, player)
+    if target.dead then return false end
+    room:changeShield(target, 1)
+  end,
+}
+mou__yujin:addSkill(mou__xiayuan)
+Fk:loadTranslationTable{
+  ["mou__yujin"] = "谋于禁",
+  ["mou__xiayuan"] = "狭援",
+  [":mou__xiayuan"] = "每轮限一次，其他角色受到伤害后，若此伤害令其失去全部“护甲”，则你可以弃置两张手牌，令其获得本次伤害结算中期失去的“护甲”。",
+  ["#mou__xiayuan-invoke"] = "狭援：弃置两张手牌，令 %dest 获得 %arg 点护甲",
+  ["mou__jieyue"] = "节钺",
+  [":mou__jieyue"] = "结束阶段，你可以选择一名其他角色并令其获得1点“护甲”，然后其可以交给你一张牌。",
+  ["$mou__xiayuan1"] = "速置粮草，驰援天柱山。",
+  ["$mou__xiayuan2"] = "援军既至，定攻克此地！",
+  ["$mou__jieyue1"] = "尔等小儿，徒费兵力！",
+  ["$mou__jieyue2"] = "雕虫小技，静待则已。",
+  ["~mou__yujin"] = "禁……愧于丞相……",
+}
+--]]
 local mouhuangzhong = General(extension, "mou__huangzhong", "shu", 4)
 local mouliegongFilter = fk.CreateFilterSkill{
   name = "#mou__liegong_filter",
