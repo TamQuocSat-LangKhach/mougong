@@ -4,7 +4,7 @@ extension.extensionName = "mougong"
 Fk:loadTranslationTable{
   ["mou_neng"] = "谋攻篇-能包",
 }
-
+local U = require "packages/utility/utility"
 local mousunshangxiang = General(extension, "mou__sunshangxiang", "shu", 4, 4, General.Female)
 
 local mou__jieyin = fk.CreateTriggerSkill{
@@ -486,4 +486,300 @@ Fk:loadTranslationTable{
   ["$mou__yangwei2"] = "定要关外诸侯，知我威名!",
   ["~mou__huaxiong"] = "小小马弓手，竟然……啊……",
 }
+
+local menghuo = General(extension, "mou__menghuo", "shu", 4)
+
+local mou__huoshou = fk.CreateTriggerSkill{
+  name = "mou__huoshou",
+  anim_type = "defensive",
+  frequency = Skill.Compulsory,
+  events = {fk.PreCardEffect, fk.TargetSpecified, fk.EventPhaseStart},
+  can_trigger = function(self, event, target, player, data)
+    if event == fk.PreCardEffect then
+      return player.id == data.to and player:hasSkill(self) and data.card.trueName == "savage_assault"
+    elseif event == fk.TargetSpecified then
+      return target ~= player and data.firstTarget and player:hasSkill(self) and data.card.trueName == "savage_assault"
+    else
+      if player == target and player:hasSkill(self) and player.phase == Player.Play then
+        local ids = player.room:getCardsFromPileByRule("savage_assault", 1, "discardPile")
+        if #ids > 0 then
+          self.cost_data = ids[1]
+          return true
+        end
+      end
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    if event == fk.PreCardEffect then
+      return true
+    elseif event == fk.TargetSpecified then
+      data.extra_data = data.extra_data or {}
+      data.extra_data.mou__huoshou = player.id
+    else
+      player.room:obtainCard(player, self.cost_data, true, fk.ReasonPrey)
+    end
+  end,
+
+  refresh_events = {fk.PreDamage, fk.AfterCardUseDeclared},
+  can_refresh = function(self, event, target, player, data)
+    if event == fk.PreDamage then
+      if data.card and data.card.trueName == "savage_assault" then
+        local e = player.room.logic:getCurrentEvent():findParent(GameEvent.UseCard)
+        if e then
+          local use = e.data[1]
+          return use.extra_data and use.extra_data.mou__huoshou
+        end
+      end
+    else
+      return player == target and player.phase == Player.Play and data.card.trueName == "savage_assault"
+    end
+  end,
+  on_refresh = function(self, event, target, player, data)
+    local room = player.room
+    if event == fk.PreDamage then
+      local e = room.logic:getCurrentEvent():findParent(GameEvent.UseCard)
+      if e then
+        local use = e.data[1]
+        data.from = room:getPlayerById(use.extra_data.mou__huoshou)
+      end
+    else
+      room:setPlayerMark(player, "mou__huoshou-phase", 1)
+    end
+  end,
+}
+local mou__huoshou_prohibit = fk.CreateProhibitSkill{
+  name = "#mou__huoshou_prohibit",
+  prohibit_use = function(self, player, card)
+    return player:getMark("mou__huoshou-phase") > 0 and card.trueName == "savage_assault"
+  end,
+}
+mou__huoshou:addRelatedSkill(mou__huoshou_prohibit)
+menghuo:addSkill(mou__huoshou)
+local mou__zaiqi = fk.CreateTriggerSkill{
+  name = "mou__zaiqi",
+  events = {fk.EventPhaseEnd, fk.Damage},
+  can_trigger = function(self, event, target, player, data)
+    if event == fk.EventPhaseEnd then
+      return target == player and player:hasSkill(self) and player.phase == Player.Discard and player:getMark("skill_charge") > 0
+    else
+      return target == player and player:hasSkill(self) and player:getMark("mou__zaiqi-turn") == 0 and player:getMark("skill_charge") < player:getMark("skill_charge_max")
+    end
+  end,
+  on_cost = function(self, event, target, player, data)
+    local room = player.room
+    if event == fk.EventPhaseEnd then
+      local x = player:getMark("skill_charge")
+      local tos = room:askForChoosePlayers(player, table.map(room.alive_players, Util.IdMapper), 1, x, "#mou__zaiqi-choose:::"..x, self.name, true)
+      if #tos > 0 then
+        self.cost_data = tos
+        return true
+      end
+    else
+      return true
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    if event == fk.EventPhaseEnd then
+      local tos = self.cost_data
+      U.skillCharged(player, -#tos)
+      room:sortPlayersByAction(tos)
+      for _, pid in ipairs(tos) do
+        if player.dead then break end
+        local p = room:getPlayerById(pid)
+        if not p.dead then
+          if not p:isNude() and #room:askForDiscard(p, 1, 1, true, self.name, true, ".", "#mou__zaiqi-discard:"..player.id) > 0 then
+            if not player.dead and player:isWounded() then
+              room:recover({ who = player, num = 1, recoverBy = player, skillName = self.name })
+            end
+          else
+            player:drawCards(1, self.name)
+          end
+        end
+      end
+    else
+      room:setPlayerMark(player, "mou__zaiqi-turn", 1)
+      U.skillCharged(player, 1)
+    end
+  end,
+  refresh_events = {fk.EventAcquireSkill, fk.EventLoseSkill},
+  can_refresh = function(self, event, target, player, data)
+    return data == self and target == player
+  end,
+  on_refresh = function(self, event, target, player, data)
+    if event == fk.EventAcquireSkill then
+      U.skillCharged(player, 3, 7)
+    else
+      U.skillCharged(player, -3, -7)
+    end
+  end,
+}
+menghuo:addSkill(mou__zaiqi)
+Fk:loadTranslationTable{
+  ["mou__menghuo"] = "谋孟获",
+  ["mou__huoshou"] = "祸首",
+  [":mou__huoshou"] = "锁定技，①【南蛮入侵】对你无效；"..
+  "<br>②当其他角色使用【南蛮入侵】指定目标后，你代替其成为此牌造成的伤害的来源；"..
+  "<br>③出牌阶段开始时，你随机获得弃牌堆中的一张【南蛮入侵】；"..
+  "<br>④当你于出牌阶段使用【南蛮入侵】后，此阶段内你不能再使用【南蛮入侵】。",
+  ["mou__zaiqi"] = "再起",
+  [":mou__zaiqi"] = "蓄力技（3/7），"..
+  "<br>①弃牌阶段结束时，你可以消耗任意“蓄力”值并选择等量的角色，令这些角色依次选择一项：1.令你摸一张牌；2.弃置一张牌，然后你回复1点体力。"..
+  "<br>②每回合一次，当你造成伤害后，获得1点“蓄力”值。",
+  ["#mou__zaiqi-choose"] = "再起：选择至多%arg名角色，这些角色须选择:1.弃牌且你回复体力；2.令你摸牌",
+  ["#mou__zaiqi-discard"] = "再起：弃置一张牌且 %src 回复1点体力，点“取消”：令 %src 摸一张牌",
+
+  ["$mou__huoshou1"] = "整个南中都要听我的！",
+  ["$mou__huoshou2"] = "我才是南中之主！",
+  ["$mou__zaiqi1"] = "若有来日，必将汝等拿下！",
+  ["$mou__zaiqi2"] = "且败且战，愈战愈勇！",
+  ["~mou__menghuo"] = "吾等谨遵丞相教诲，永不复叛……",
+}
+
+local jiangwei = General(extension, "mou__jiangwei", "shu", 4)
+local mou__tiaoxin = fk.CreateActiveSkill{
+  name = "mou__tiaoxin",
+  anim_type = "control",
+  card_num = 0,
+  min_target_num = 1,
+  can_use = function(self, player)
+    return player:usedSkillTimes(self.name, Player.HistoryPhase) == 0 and player:getMark("skill_charge") > 0
+  end,
+  card_filter = Util.FalseFunc,
+  target_filter = function(self, to_select, selected)
+    return to_select ~= Self.id and #selected < Self:getMark("skill_charge")
+  end,
+  on_use = function(self, room, effect)
+    local player = room:getPlayerById(effect.from)
+    room:sortPlayersByAction(effect.tos)
+    room:addPlayerMark(player, "mou__zhiji_count", #effect.tos)
+    U.skillCharged(player, -#effect.tos)
+    for _, pid in ipairs(effect.tos) do
+      if player.dead then break end
+      local target = room:getPlayerById(pid)
+      local use = room:askForUseCard(target, "slash", "slash", "#mou__tiaoxin-slash:"..player.id, true,
+       {exclusive_targets = {player.id} , bypass_distances = true})
+      if use then
+        room:useCard(use)
+      elseif not target:isNude() then
+        local cards = room:askForCard(target, 1, 1, true, self.name, false, ".", "#mou__tiaoxin-give:"..player.id)
+        if #cards > 0 then
+          room:obtainCard(player, cards[1], false, fk.ReasonGive)
+        end
+      end
+    end
+  end
+}
+local mou__tiaoxin_trigger = fk.CreateTriggerSkill{
+  name = "#mou__tiaoxin_trigger",
+  mute = true,
+  main_skill = mou__tiaoxin,
+  events = {fk.AfterCardsMove},
+  can_trigger = function(self, event, target, player, data)
+    if player:hasSkill(self) and player.phase == Player.Discard 
+    and player:getMark("skill_charge") < player:getMark("skill_charge_max") then
+      local n = 0
+      for _, move in ipairs(data) do
+        if move.from == player.id and move.moveReason == fk.ReasonDiscard then
+          for _, info in ipairs(move.moveInfo) do
+            if info.fromArea == Card.PlayerHand or info.fromArea == Card.PlayerEquip then
+              n = n + 1
+            end
+          end
+        end
+      end
+      if n > 0 then
+        self.cost_data = n
+        return true
+      end
+    end
+  end,
+  on_cost = Util.TrueFunc,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    U.skillCharged(player, self.cost_data)
+  end,
+  refresh_events = {fk.EventAcquireSkill, fk.EventLoseSkill},
+  can_refresh = function(self, event, target, player, data)
+    return data == self and target == player
+  end,
+  on_refresh = function(self, event, target, player, data)
+    if event == fk.EventAcquireSkill then
+      U.skillCharged(player, 4, 4)
+    else
+      U.skillCharged(player, -4, -4)
+    end
+  end,
+}
+mou__tiaoxin:addRelatedSkill(mou__tiaoxin_trigger)
+jiangwei:addSkill(mou__tiaoxin)
+local mou__zhiji = fk.CreateTriggerSkill{
+  name = "mou__zhiji",
+  frequency = Skill.Wake,
+  events = {fk.EventPhaseStart},
+  can_trigger = function(self, event, target, player, data)
+    return target == player and player:hasSkill(self) and player.phase == Player.Start and
+      player:usedSkillTimes(self.name, Player.HistoryGame) == 0
+  end,
+  can_wake = function(self, event, target, player, data)
+    return player:getMark("mou__zhiji_count") > 3
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    room:changeMaxHp(player, -1)
+    if player.dead then return end
+    local tos = room:askForChoosePlayers(player, table.map(room.alive_players, Util.IdMapper), 1, 999, "#mou__zhiji-choose", self.name, true)
+    for _, pid in ipairs(tos) do
+      local p = room:getPlayerById(pid)
+      local mark = U.getMark(p, "@@mou__zhiji")
+      table.insertIfNeed(mark, player.id)
+      room:setPlayerMark(p, "@@mou__zhiji", mark)
+    end
+  end,
+  refresh_events = {fk.TurnStart, fk.Death},
+  can_refresh = function(self, event, target, player, data)
+    return target == player
+  end,
+  on_refresh = function(self, event, target, player, data)
+    local room = player.room
+    for _, p in ipairs(room.alive_players) do
+      local mark = U.getMark(p, "@@mou__zhiji")
+      if table.contains(mark, player.id) then
+        table.removeOne(mark, player.id)
+        room:setPlayerMark(p, "@@mou__zhiji", #mark > 0 and mark or 0)
+      end
+    end
+  end,
+}
+local mou__zhiji_prohibit = fk.CreateProhibitSkill{
+  name = "#mou__zhiji_prohibit",
+  is_prohibited = function(self, from, to)
+    local mark = U.getMark(from, "@@mou__zhiji")
+    return #mark > 0 and from ~= to and not table.contains(mark, to.id)
+  end,
+}
+mou__zhiji:addRelatedSkill(mou__zhiji_prohibit)
+jiangwei:addSkill(mou__zhiji)
+Fk:loadTranslationTable{
+  ["mou__jiangwei"] = "谋姜维",
+  ["mou__tiaoxin"] = "挑衅",
+  [":mou__tiaoxin"] = "蓄力技（4/4），"..
+  "<br>①出牌阶段限一次，你可以消耗任意“蓄力”值并选择等量的其他角色，令这些角色依次选择一项：1.对你使用一张无距离限制的【杀】；2.交给你一张牌。"..
+  "<br>②当你于弃牌阶段弃置牌后，你的“蓄力”值+X（X为你此次弃置的牌数）。",
+  ["mou__zhiji"] = "志继",
+  [":mou__zhiji"] = "觉醒技，准备阶段，若你因发动〖挑衅〗累计消耗的“蓄力”值大于3，你减1点体力上限，令任意名角色获得“北伐”标记直到你的下回合开始或死亡；拥有“北伐”标记的角色使用牌只能指定你或其为目标。",
+  ["#mou__tiaoxin-slash"] = "挑衅：你须对 %src 使用【杀】，否则须交给 %src 一张牌",
+  ["#mou__tiaoxin-give"] = "挑衅：请交给 %src 一张牌",
+  ["#mou__zhiji-choose"] = "志继：令任意名角色获得“北伐”标记",
+  ["@@mou__zhiji"] = "北伐",
+
+  ["$mou__tiaoxin1"] = "汝等小儿，还不快跨马来战！",
+  ["$mou__tiaoxin2"] = "哼！既匹夫不战，不如归耕陇亩！",
+  ["$mou__zhiji1"] = "丞相之志，维岂敢忘之！",
+  ["$mou__zhiji2"] = "北定中原终有日！",
+  ["~mou__jiangwei"] = "市井鱼龙易一统，护国麒麟难擎天……",
+}
+
+
+
 return extension
