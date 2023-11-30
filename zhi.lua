@@ -903,6 +903,321 @@ Fk:loadTranslationTable{
   ["~mou__liubiao"] = "我死之后，只望荆州仍然安定。",
 }
 
+local mou__liubei = General(extension, "mou__liubei", "shu", 4)
+local mou__rende = fk.CreateActiveSkill{
+  name = "mou__rende",
+  prompt = "#mou__rende-promot",
+  interaction = function()
+    local choices = {"mou__rende"}
+    if Self:getMark("@mou__renwang") > 1 and Self:getMark("mou__rende_vs-turn") == 0 then
+      for _, id in ipairs(Fk:getAllCardIds()) do
+        local card = Fk:getCardById(id)
+        if card.type == Card.TypeBasic and not card.is_derived and Self:canUse(card) and not Self:prohibitUse(card) then
+          table.insertIfNeed(choices, card.name)
+        end
+      end
+    end
+    return UI.ComboBox {choices = choices}
+  end,
+  card_filter = function(self, to_select, selected)
+    return self.interaction.data == "mou__rende"
+  end,
+  target_filter = function(self, to_select, selected, selected_cards)
+    if self.interaction.data == "mou__rende" then
+      return #selected == 0 and to_select ~= Self.id 
+      and Fk:currentRoom():getPlayerById(to_select):getMark("mou__rende_target-phase") == 0
+    else
+      local to_use = Fk:cloneCard(self.interaction.data)
+      to_use.skillName = self.name
+      if (#selected == 0 or to_use.multiple_targets) and
+      Self:isProhibited(Fk:currentRoom():getPlayerById(to_select), to_use) then return false end
+      return to_use.skill:targetFilter(to_select, selected, selected_cards, to_use)
+    end
+  end,
+  feasible = function(self, selected, selected_cards)
+    if self.interaction.data == "mou__rende" then
+      return #selected_cards > 0 and #selected == 1
+    else
+      local to_use = Fk:cloneCard(self.interaction.data)
+      to_use.skillName = self.name
+      return to_use.skill:feasible(selected, selected_cards, Self, to_use)
+    end
+  end,
+  on_use = function(self, room, effect)
+    local player = room:getPlayerById(effect.from)
+    if self.interaction.data == "mou__rende" then
+      local target = room:getPlayerById(effect.tos[1])
+      room:setPlayerMark(target, "mou__rende_target-phase", 1)
+      room:setPlayerMark(target, "mou__rende_target", 1)
+      room:moveCardTo(effect.cards, Player.Hand, target, fk.ReasonGive, self.name, nil, false, player.id)
+      room:setPlayerMark(player, "@mou__renwang", math.min(8, player:getMark("@mou__renwang") + #effect.cards))
+    else
+      room:removePlayerMark(player, "@mou__renwang", 2)
+      room:setPlayerMark(player, "mou__rende_vs-turn", 1)
+      local use = {
+        from = player.id,
+        tos = table.map(effect.tos, function (id) return {id} end),
+        card = Fk:cloneCard(self.interaction.data),
+      }
+      use.card.skillName = self.name
+      room:useCard(use)
+    end
+  end,
+}
+local mou__rende_trigger = fk.CreateTriggerSkill{
+  name = "#mou__rende_trigger",
+  mute = true,
+  main_skill = mou__rende,
+  events = {fk.EventPhaseStart},
+  can_trigger = function(self, event, target, player, data)
+    return player:hasSkill(mou__rende) and target == player and player.phase == Player.Play and player:getMark("@mou__renwang") < 8
+  end,
+  on_cost = Util.TrueFunc,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    player:broadcastSkillInvoke("mou__rende")
+    room:setPlayerMark(player, "@mou__renwang", math.min(8, player:getMark("@mou__renwang") + 2))
+  end,
+}
+mou__rende:addRelatedSkill(mou__rende_trigger)
+local mou__rende_response = fk.CreateTriggerSkill{
+  name = "#mou__rende_response",
+  mute = true,
+  main_skill = mou__rende,
+  events = {fk.AskForCardUse, fk.AskForCardResponse},
+  can_trigger = function(self, event, target, player, data)
+    return target == player and player:hasSkill(mou__rende)
+    and player:getMark("@mou__renwang") > 1 and player:getMark("mou__rende_vs-turn") == 0 and
+      ((data.cardName and Fk:cloneCard(data.cardName).type == Card.TypeBasic) or
+      (data.pattern and Exppattern:Parse(data.pattern):matchExp(".|.|.|.|.|basic")))
+  end,
+  on_cost = function (self, event, target, player, data)
+    local names = {}
+    for _, id in ipairs(Fk:getAllCardIds()) do
+      local card = Fk:getCardById(id)
+      if card.type == Card.TypeBasic and not card.is_derived and Exppattern:Parse(data.pattern):match(card) then
+        table.insertIfNeed(names, card.name)
+      end
+    end
+    if #names > 0 then
+      local name = names[1]
+      if #names > 1 then
+        name = table.every(names, function(str) return string.sub(str, -5) == "slash" end) and "slash" or "basic"
+      end
+      if player.room:askForSkillInvoke(player, self.name, nil, "#mou__rende-invoke:::"..name) then
+        self.cost_data = names
+        return true
+      end
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    local names = self.cost_data
+    if event == fk.AskForCardUse then
+      local extra_data = data.extraData
+      local isAvailableTarget = function(card, p)
+        if extra_data then
+          if type(extra_data.must_targets) == "table" and #extra_data.must_targets > 0 and
+              not table.contains(extra_data.must_targets, p.id) then
+            return false
+          end
+          if type(extra_data.exclusive_targets) == "table" and #extra_data.exclusive_targets > 0 and
+              not table.contains(extra_data.exclusive_targets, p.id) then
+            return false
+          end
+        end
+        return not player:isProhibited(p, card) and card.skill:modTargetFilter(p.id, {}, player.id, card, true)
+      end
+      local findCardTarget = function(card)
+        local tos = {}
+        for _, p in ipairs(room.alive_players) do
+          if isAvailableTarget(card, p) then
+            table.insert(tos, p.id)
+          end
+        end
+        return tos
+      end
+      names = table.filter(names, function (c_name)
+        local card = Fk:cloneCard(c_name)
+        return not player:prohibitUse(card) and (card.skill:getMinTargetNum() == 0 or #findCardTarget(card) > 0)
+      end)
+      if #names == 0 then return false end
+      local name = room:askForChoice(player, names, self.name, "#mou__rende-name")
+      player:broadcastSkillInvoke("mou__rende")
+      room:removePlayerMark(player, "@mou__renwang", 2)
+      room:setPlayerMark(player, "mou__rende_vs-turn", 1)
+      local card = Fk:cloneCard(name)
+      card.skillName = mou__rende.name
+      data.result = {
+        from = player.id,
+        card = card,
+      }
+      if card.skill:getMinTargetNum() == 1 then
+        local tos = findCardTarget(card)
+        if #tos == 1 then
+          data.result.tos = {{tos[1]}}
+        elseif #tos > 1 then
+          data.result.tos = {room:askForChoosePlayers(player, tos, 1, 1, "#mou__rende-target:::" .. name, self.name, false, true)}
+        else
+          return false
+        end
+      end
+      if data.eventData then
+        data.result.toCard = data.eventData.toCard
+        data.result.responseToEvent = data.eventData.responseToEvent
+      end
+      return true
+    else
+      names = table.filter(names, function (c_name)
+        return not player:prohibitResponse(Fk:cloneCard(c_name))
+      end)
+      if #names == 0 then return false end
+      local name = room:askForChoice(player, names, self.name, "#mou__rende-name")
+      player:broadcastSkillInvoke("mou__rende")
+      room:removePlayerMark(player, "@mou__renwang", 2)
+      room:setPlayerMark(player, "mou__rende_vs-turn", 1)
+      local card = Fk:cloneCard(name)
+      card.skillName = mou__rende.name
+      data.result = card
+      return true
+    end
+  end
+}
+mou__rende:addRelatedSkill(mou__rende_response)
+mou__liubei:addSkill(mou__rende)
+local mou__zhangwu = fk.CreateActiveSkill{
+  name = "mou__zhangwu",
+  anim_type = "control",
+  frequency = Skill.Limited,
+  can_use = function(self, player)
+    return player:usedSkillTimes(self.name, Player.HistoryGame) == 0
+  end,
+  card_num = 0,
+  card_filter = function() return false end,
+  target_num = 0,
+  on_use = function(self, room, effect)
+    local player = room:getPlayerById(effect.from)
+    local x = math.min(3, (room:getTag("RoundCount") - 1))
+    if x > 0 then
+      for _, p in ipairs(room:getOtherPlayers(player)) do
+        if player.dead then break end
+        if not p.dead and p:getMark("mou__rende_target") > 0 and not p:isNude() then
+          local cards = (#p:getCardIds("he") < x) and p:getCardIds("he") or
+          room:askForCard(p, x, x, true, self.name, false, ".", "#mou__zhangwu-give::"..player.id..":"..x)
+          if #cards > 0 then
+            local dummy = Fk:cloneCard("dilu")
+            dummy:addSubcards(cards)
+            room:obtainCard(player, dummy, false, fk.ReasonGive)
+          end
+        end
+      end
+    end
+    if not player.dead and player:isWounded() then
+      room:recover { num = 3, skillName = self.name, who = player, recoverBy = player}
+    end
+    room:handleAddLoseSkills(player, "-mou__rende")
+  end,
+}
+mou__liubei:addSkill(mou__zhangwu)
+local mou__jijiang = fk.CreateTriggerSkill{
+  name = "mou__jijiang$",
+  anim_type = "offensive",
+  events = {fk.EventPhaseEnd},
+  can_trigger = function(self, event, target, player, data)
+    if target == player and player:hasSkill(self) and player.phase == Player.Play then
+      local players = player.room.alive_players
+      return #players > 2 and table.find(players, function(p) return p ~= player and p.kingdom == "shu" and p.hp >= player.hp end)
+    end
+  end,
+  on_cost = function (self, event, target, player, data)
+    local room = player.room
+    local success, dat = room:askForUseActiveSkill(player, "mou__jijiang_choose", "#mou__jijiang-promot", true, nil, true)
+    if success and dat then
+      self.cost_data = dat.targets
+      return true
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    local victim = room:getPlayerById(self.cost_data[1])
+    local bro = room:getPlayerById(self.cost_data[2])
+    room:doIndicate(player.id, {bro.id})
+    local choices = {"mou__jijiang_skip"}
+    if not bro:prohibitUse(Fk:cloneCard("slash")) and not bro:isProhibited(victim, Fk:cloneCard("slash")) then
+      table.insert(choices, 1, "mou__jijiang_slash:"..victim.id)
+    end
+    if room:askForChoice(bro, choices, self.name) == "mou__jijiang_skip" then
+      room:setPlayerMark(bro, "@@mou__jijiang_skip", 1)
+    else
+      room:useVirtualCard("slash", nil, bro, victim, self.name, true)
+    end
+  end,
+}
+local mou__jijiang_choose = fk.CreateActiveSkill{
+  name = "mou__jijiang_choose",
+  card_num = 0,
+  target_num = 2,
+  card_filter = Util.FalseFunc,
+  target_filter = function(self, to_select, selected)
+    if  #selected > 1 or to_select == Self.id then return false end
+    if #selected == 0 then
+      return true
+    else
+      local victim = Fk:currentRoom():getPlayerById(selected[1])
+      local bro = Fk:currentRoom():getPlayerById(to_select)
+      return bro.kingdom == "shu" and bro.hp >= Self.hp and bro:inMyAttackRange(victim)
+    end
+  end,
+}
+Fk:addSkill(mou__jijiang_choose)
+local mou__jijiang_delay = fk.CreateTriggerSkill{
+  name = "#mou__jijiang_delay",
+  events = {fk.EventPhaseChanging},
+  priority = 10,
+  mute = true,
+  can_trigger = function(self, event, target, player, data)
+    return target:getMark("@@mou__jijiang_skip") > 0 and data.to == Player.Play
+  end,
+  on_cost = Util.TrueFunc,
+  on_use = function(self, event, target, player, data)
+    player.room:setPlayerMark(target, "@@mou__jijiang_skip", 0)
+    target:skip(Player.Play)
+    return true
+  end,
+}
+mou__jijiang:addRelatedSkill(mou__jijiang_delay)
+mou__liubei:addSkill(mou__jijiang)
+Fk:loadTranslationTable{
+  ["mou__liubei"] = "谋刘备",
+  ["mou__rende"] = "仁德",
+  [":mou__rende"] = "①出牌阶段开始时，你获得2枚“仁望”标记（至多拥有8枚）；"..
+  "<br>②出牌阶段，你可以选择一名本阶段未选择过的其他角色，交给其任意张牌，然后你获得等量枚“仁望”标记；"..
+  "<br>③每回合限一次，当你需要使用或打出基本牌时，你可以移去2枚“仁望”标记，视为使用或打出之。",
+  ["@mou__renwang"] = "仁望",
+  ["#mou__rende-invoke"] = "仁德：可以移去2枚“仁望”标记，视为使用或打出 %arg",
+  ["#mou__rende-name"] = "仁德：选择视为使用或打出的所需的基本牌的牌名",
+  ["#mou__rende-target"] = "仁德：选择使用【%arg】的目标角色",
+  ["#mou__rende_response"] = "仁望",
+  ["#mou__rende-promot"] = "仁望：将牌交给其他角色获得“仁望”标记，或移去标记视为使用基本牌",
+  ["mou__zhangwu"] = "章武",
+  [":mou__zhangwu"] = "限定技，出牌阶段，你可以令〖仁德〗选择过的所有角色依次交给你X张牌（X为游戏轮数-1，且至多为3），然后你回复3点体力，失去技能“仁德”。",
+  ["#mou__zhangwu-give"] = "章武：请交给 %dest %arg 张牌",
+  ["mou__jijiang"] = "激将",
+  [":mou__jijiang"] = "主公技，出牌阶段结束时，你可以选择一名其他角色，令一名攻击范围内含有其且体力值不小于你的其他蜀势力角色选择一项：1.视为对其使用一张【杀】；2.跳过下一个出牌阶段。",
+  ["@@mou__jijiang_skip"] = "激将",
+  ["#mou__jijiang-promot"] = "激将：先选择【杀】的目标，再选需要响应“激将”的蜀势力角色",
+  ["mou__jijiang_slash"] = "视为对 %src 使用一张【杀】",
+  ["mou__jijiang_skip"] = "跳过下一个出牌阶段",
+  ["mou__jijiang_choose"] = "激将",
+  ["$mou__rende1"] = "仁德为政，自得民心！",
+  ["$mou__rende2"] = "民心所望，乃吾政所向！",
+  ["$mou__zhangwu1"] = "众将皆言君恩，今当献身以报！",
+  ["$mou__zhangwu2"] = "汉贼不两立，王业不偏安！",
+  ["$mou__jijiang1"] = "匡扶汉室，岂能无诸将之助！",
+  ["$mou__jijiang2"] = "大汉将士，何人敢战？",
+  ["~mou__liubei"] = "汉室之兴，皆仰望丞相了……",
+}
+
 local mou__zhugeliang = General(extension, "mou__zhugeliang", "shu", 3)
 local mou__huoji = fk.CreateActiveSkill{
   name = "mou__huoji",
