@@ -372,7 +372,7 @@ local mou__lianhuan = fk.CreateActiveSkill{
     local card = Fk:cloneCard("iron_chain")
     card:addSubcard(selected_cards[1])
     return card.skill:canUse(Self, card) and card.skill:targetFilter(to_select, selected, selected_cards, card) and
-      not Self:isProhibited(Fk:currentRoom():getPlayerById(to_select), card)
+    not Self:prohibitUse(card) and not Self:isProhibited(Fk:currentRoom():getPlayerById(to_select), card)
   end,
   on_use = function(self, room, effect)
     local player = room:getPlayerById(effect.from)
@@ -384,8 +384,7 @@ local mou__lianhuan = fk.CreateActiveSkill{
       room:notifySkillInvoked(player, self.name, "control")
       room:sortPlayersByAction(effect.tos)
       room:addPlayerMark(player, "mou__lianhuan_used-phase")
-      room:useVirtualCard("iron_chain", effect.cards, player, table.map(effect.tos, function(id)
-        return room:getPlayerById(id) end), self.name)
+      room:useVirtualCard("iron_chain", effect.cards, player, table.map(effect.tos, Util.Id2PlayerMapper), self.name)
     end
   end,
 }
