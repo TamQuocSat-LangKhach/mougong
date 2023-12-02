@@ -1227,7 +1227,7 @@ local mou__huoji = fk.CreateActiveSkill{
   card_num = 0,
   target_num = 1,
   can_use = function(self, player)
-    return player:usedSkillTimes(self.name, Player.HistoryPhase) == 0 and player:getQuestSkillState(self.name) ~= "failed"
+    return player:usedSkillTimes(self.name, Player.HistoryPhase) == 0 and not player:getQuestSkillState(self.name)
   end,
   card_filter = Util.FalseFunc,
   target_filter = function(self, to_select, selected, selected_cards)
@@ -1367,7 +1367,7 @@ local mou__guanxing = fk.CreateTriggerSkill{
   on_use = function(self, event, target, player, data)
     local room = player.room
     if player.phase == Player.Start then
-      local n = player:usedSkillTimes(self.name, Player.HistoryGame) > 1 and (#player:getPile("mou__guanxing&") + 1) or 7
+      local n = player:usedSkillTimes(self.name, Player.HistoryGame) > 1 and math.min(7, (#player:getPile("mou__guanxing&")+1)) or 7
       if #player:getPile("mou__guanxing&") > 0 then
         room:moveCards({
           from = player.id,
