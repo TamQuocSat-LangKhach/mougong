@@ -177,6 +177,86 @@ Fk:loadTranslationTable{
 }
 --[[
 local mou__xiaoqiao = General(extension, "mou__xiaoqiao", "wu", 3, 3, General.Female)
+local mou__tianxiang = fk.CreateActiveSkill{
+  name = "mou__tianxiang",
+  anim_type = "control",
+  card_num = 1,
+  target_num = 1,
+  card_filter = function(self, to_select, selected)
+    return #selected == 0 and Fk:getCardById(to_select).color == Card.Red and Fk:currentRoom():getCardArea(to_select) ~= Player.Equip
+  end,
+  target_filter = function(self, to_select, selected, selected_cards)
+    return #selected == 0 and Self.id ~= to_select and Fk:currentRoom():getPlayerById(to_select):getMark("@mou__tianxiang") == 0
+  end,
+  can_use = function(self, player)
+    return player:usedSkillTimes(self.name, Player.HistoryPhase) < 3 and not player:isKongcheng()
+  end,
+  on_use = function(self, room, effect)
+    local player = room:getPlayerById(effect.from)
+    local to = room:getPlayerById(effect.tos[1])
+    local card = Fk:getCardById(effect.cards[1])
+    local suit = card:getSuitString(true)
+    room:obtainCard(to, card, false, fk.ReasonGive)
+    if not to.dead then
+      room:setPlayerMark(to, "@mou__tianxiang", suit)
+    end
+  end,
+}
+local mou__tianxiang_trigger = fk.CreateTriggerSkill{
+  name = "#mou__tianxiang_trigger",
+  events = {fk.DamageInflicted, fk.EventPhaseStart},
+  mute = true,
+  main_skill = mou__tianxiang,
+  can_trigger = function(self, event, target, player, data)
+    if player:hasSkill(self) and target == player 
+    and table.find(player.room.alive_players, function(p) return p :getMark("@mou__tianxiang") ~= 0 end) then
+      return event == fk.DamageInflicted or player.phase == Player.Start
+    end
+  end,
+  on_cost = function (self, event, target, player, data)
+    local room = player.room
+    if event == fk.DamageInflicted then
+      local targets = table.filter(room.alive_players, function(p) return p :getMark("@mou__tianxiang") ~= 0 end)
+      if #targets == 0 then return false end
+      local tos = player.room:askForChoosePlayers(player, table.map(targets, Util.IdMapper), 1, 1, "#mou__tianxiang-choose", "mou__tianxiang", true)
+      if #tos > 0 then
+        self.cost_data = tos[1]
+        return true
+      end
+    else
+      return true
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    if event == fk.DamageInflicted then
+      local to = room:getPlayerById(self.cost_data)
+      local suit = to:getMark("@mou__tianxiang")
+      room:setPlayerMark(to, "@mou__tianxiang", 0)
+      if suit == "log_heart" then
+        room:damage { from = data.from, to = to, damage = 1, skillName = "mou__tianxiang"}
+        return true
+      elseif not to:isNude() then
+        local cards = #to:getCardIds("he") == 1 and to:getCardIds("he") or
+        room:askForCard(to, 2, 2, true, "mou__tianxiang", false, ".", "#mou__tianxiang-give::"..player.id)
+        local dummy = Fk:cloneCard("dilu")
+        dummy:addSubcards(cards)
+        room:obtainCard(player, dummy, false, fk.ReasonGive)
+      end
+    else
+      local n = 0
+      for _, p in ipairs(room.alive_players) do
+        if p:getMark("@mou__tianxiang") ~= 0 then
+          room:setPlayerMark(p, "@mou__tianxiang", 0)
+          n = n + 1
+        end
+      end
+      player:drawCards(n, "mou__tianxiang")
+    end
+  end,
+}
+mou__tianxiang:addRelatedSkill(mou__tianxiang_trigger)
+mou__xiaoqiao:addSkill(mou__tianxiang)
 local mou__hongyan = fk.CreateFilterSkill{
   name = "mou__hongyan",
   card_filter = function(self, to_select, player)
@@ -186,38 +266,16 @@ local mou__hongyan = fk.CreateFilterSkill{
     return Fk:cloneCard(to_select.name, Card.Heart, to_select.number)
   end,
 }
-local mou__hongyan_delay = fk.CreateTriggerSkill{
-  name = "#mou__hongyan_delay",
-  anim_type = "control",
-  frequency = Skill.Compulsory,
-  events = {fk.AskForRetrial},
-  can_trigger = function(self, event, target, player, data)
-    return player:hasSkill(self) -- and data.card.suit == Card.Heart
-  end,
-  on_use = function(self, event, target, player, data)
-    local room = player.room
-    local suitStr = room:askForChoice(player, {"spade","club","heart","diamond"}, self.name, "#mou__hongyan-choice::"..target.id..":"..data.reason)
-    local color = (suitStr == "spade" or suitStr == "spade") and Card.Black or Card.Red
-    data.card.suit = Util.getSuitFromString(suitStr)
-    data.color = color
-    room:sendLog{
-      type = "#ChangedJudge",
-      from = player.id,
-      to = { target.id },
-      card = { data.card:getEffectiveId() },
-      arg = self.name,
-    }
-  end,
-}
-mou__hongyan:addRelatedSkill(mou__hongyan_delay)
 mou__xiaoqiao:addSkill(mou__hongyan)
 Fk:loadTranslationTable{
   ["mou__xiaoqiao"] = "谋小乔",
   ["mou__tianxiang"] = "天香",
-  [":mou__tianxiang"] = "①出牌阶段限两次，你可将一张红色牌交给一名没有“天香”标记的其他角色，并令其获得对应花色的“天香”标记。"..
+  [":mou__tianxiang"] = "①出牌阶段限三次，你可将一张红色手牌交给一名没有“天香”标记的其他角色，并令其获得对应花色的“天香”标记。"..
   "<br>②当你受到伤害时，你可以选择一名拥有“天香”标记的其他角色，移除其“天香”标记，并根据移除的“天香”花色发动：红桃，你防止此伤害，然后令其受到防止伤害的来源角色造成的1点伤害；方块，其交给你两张牌。"..
   "<br>③准备阶段，你移除场上所有“天香”标记，并摸等量的牌。",
-  ["#mou__tianxiang-choose"] = "天香：移除一名角色的“天香”标记并“天香”花色发动效果",
+  ["#mou__tianxiang-choose"] = "天香：移除一名角色的“天香”标记，并按“天香”花色发动效果",
+  ["#mou__tianxiang-give:"] = "天香：请交给 %dest 两张牌",
+  ["@mou__tianxiang"] = "天香",
   ["mou__hongyan"] = "红颜",
   [":mou__hongyan"] = "锁定技，①你的♠️牌均视为♥️牌；②当一名角色的判定牌生效前，若此牌的花色为♥️，你将此牌的判定结果改为任意一种花色。",
   ["#mou__hongyan-choice"] = "红颜：修改 %dest 进行 %arg 判定结果的花色",
