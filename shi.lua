@@ -143,7 +143,8 @@ local mou__enyuan = fk.CreateTriggerSkill{
         if count >= 3 then
           player:broadcastSkillInvoke(self.name, 1)
           if not player:isNude() then
-            local cards = room:askForCard(player, 3, 3, true, self.name, false, ".", "#mou__enyuan-give:"..p.id)
+            local cards = #player:getCardIds("he") < 3 and player:getCardIds("he") or
+            room:askForCard(player, 3, 3, true, self.name, false, ".", "#mou__enyuan-give:"..p.id)
             local dummy = Fk:cloneCard("dilu")
             dummy:addSubcards(cards)
             room:obtainCard(p, dummy, false, fk.ReasonGive)
@@ -188,7 +189,7 @@ local mou__lijian = fk.CreateActiveSkill{
       not Self:prohibitDiscard(Fk:getCardById(to_select))
   end,
   target_filter = function(self, to_select, selected, selected_cards)
-    return #selected < #selected_cards + 1 and to_select ~= Self.id 
+    return #selected < #selected_cards + 1 and to_select ~= Self.id
   end,
   min_card_num = 1,
   min_target_num = 2,
