@@ -1,6 +1,8 @@
 local extension = Package("mou_tong")
 extension.extensionName = "mougong"
 
+local U = require "packages/utility/utility"
+
 Fk:loadTranslationTable{
   ["mou_tong"] = "谋攻篇-同包",
 }
@@ -175,7 +177,7 @@ Fk:loadTranslationTable{
   ["$yinghun_mou__sunce2"] = "扫尽门庭之寇，贼自畏我之威！",
   ["~mou__sunce"] = "大志未展，权弟当继……",
 }
---[[
+
 local mou__xiaoqiao = General(extension, "mou__xiaoqiao", "wu", 3, 3, General.Female)
 local mou__tianxiang = fk.CreateActiveSkill{
   name = "mou__tianxiang",
@@ -259,13 +261,36 @@ mou__tianxiang:addRelatedSkill(mou__tianxiang_trigger)
 mou__xiaoqiao:addSkill(mou__tianxiang)
 local mou__hongyan = fk.CreateFilterSkill{
   name = "mou__hongyan",
-  card_filter = function(self, to_select, player)
-    return to_select.suit == Card.Spade and player:hasSkill(self)
+  card_filter = function(self, to_select, player, isJudgeEvent)
+    return to_select.suit == Card.Spade and player:hasSkill(self) and
+    (table.contains(player:getCardIds("he"), to_select.id) or isJudgeEvent)
   end,
   view_as = function(self, to_select)
     return Fk:cloneCard(to_select.name, Card.Heart, to_select.number)
   end,
 }
+
+local mou__hongyan_trigger = fk.CreateTriggerSkill {
+  name = "#mou__hongyan_trigger",
+  events = {fk.AskForRetrial},
+  mute = true,
+  can_trigger = function(self, event, target, player, data)
+    return player:hasSkill(mou__hongyan) and data.card.suit == Card.Heart
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    player:broadcastSkillInvoke(mou__hongyan.name)
+    room:notifySkillInvoked(player, mou__hongyan.name, "control")
+    local suits = {"spade", "club", "heart", "diamond"}
+    local choice = room:askForChoice(player, suits, mou__hongyan.name)
+    local new_card = Fk:cloneCard(data.card.name, table.indexOf(suits, choice), data.number)
+    new_card.skillName = mou__hongyan.name
+    new_card.id = data.card.id
+    data.card = new_card
+  end,
+}
+
+mou__hongyan:addRelatedSkill(mou__hongyan_trigger)
 mou__xiaoqiao:addSkill(mou__hongyan)
 Fk:loadTranslationTable{
   ["mou__xiaoqiao"] = "谋小乔",
@@ -278,6 +303,7 @@ Fk:loadTranslationTable{
   ["@mou__tianxiang"] = "天香",
   ["mou__hongyan"] = "红颜",
   [":mou__hongyan"] = "锁定技，①你的♠️牌均视为♥️牌；②当一名角色的判定牌生效前，若此牌的花色为♥️，你将此牌的判定结果改为任意一种花色。",
+  ["#mou__hongyan_trigger"] = "红颜",
   ["#mou__hongyan-choice"] = "红颜：修改 %dest 进行 %arg 判定结果的花色",
   ["#mou__hongyan_delay"] = "红颜",
   ["$mou__tianxiang1"] = "灿如春华，皎如秋月。",
@@ -285,7 +311,7 @@ Fk:loadTranslationTable{
   ["$mou__hongyan"] = "（琴声）",
   ["~mou__xiaoqiao"] = "朱颜易改，初心永在……",
 }
---]]
+
 local liucheng = General(extension, "mou__liucheng", "qun", 3, 3, General.Female)
 
 local lveying = fk.CreateTriggerSkill{

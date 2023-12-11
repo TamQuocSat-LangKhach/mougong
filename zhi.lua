@@ -1446,14 +1446,14 @@ Fk:loadTranslationTable{
   ["mou__guanxing&"] = "星",
   ["#mou__guanxing-invoke"] = "观星：你可以将任意张“星”置于牌堆顶",
 
-  ["$mou__huoji1"] = "风起之日，火攻之时！",
-  ["$mou__huoji2"] = "发火有时，起火有日！",
-  ["$mou__kanpo1"] = "呵！不过尔尔。",
-  ["$mou__kanpo2"] = "哼！班门弄斧。",
-  ["$mou__guanxing1"] = "冷夜孤星，正如时局啊。",
-  ["$mou__guanxing2"] = "明星皓月，前路通达。",
-  ["$mou__kongcheng1"] = "仲达可愿与我城中一叙？",
-  ["$mou__kongcheng2"] = "城下千军万马，我亦谈笑自若。",
+  ["$mou__huoji1"] = "发火有时，起火有日！",
+  ["$mou__huoji2"] = "风起之日，火攻之时！",
+  ["$mou__kanpo1"] = "哼！班门弄斧。",
+  ["$mou__kanpo2"] = "呵！不过尔尔。",
+  ["$mou__guanxing1"] = "明星皓月，前路通达。",
+  ["$mou__guanxing2"] = "冷夜孤星，正如时局啊。",
+  ["$mou__kongcheng1"] = "城下千军万马，我亦谈笑自若。",
+  ["$mou__kongcheng2"] = "仲达可愿与我城中一叙？",
   ["~mou__zhugeliang"] = "纵具地利，不得天时亦难胜也……",
 }
 

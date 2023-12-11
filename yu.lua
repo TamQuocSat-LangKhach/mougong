@@ -286,7 +286,8 @@ local mouliegongFilter = fk.CreateFilterSkill{
     return card.trueName == "slash" and
       card.name ~= "slash" and
       not player:getEquipment(Card.SubtypeWeapon) and
-      player:hasSkill(self)
+      player:hasSkill(self) and
+      table.contains(player.player_cards[Player.Hand], card.id)
   end,
   view_as = function(self, card, player)
     local c = Fk:cloneCard("slash", card.suit, card.number)

@@ -483,7 +483,7 @@ Fk:loadTranslationTable{
   ["$mou__yaowu1"] = "俞涉小儿，岂是我的对手！",
   ["$mou__yaowu2"] = "上将潘凤？哼！还不是死在我刀下！",
   ["$mou__yangwei1"] = "哈哈哈哈！现在谁不知我华雄？",
-  ["$mou__yangwei2"] = "定要关外诸侯，知我威名!",
+  ["$mou__yangwei2"] = "定要关外诸侯，知我威名！",
   ["~mou__huaxiong"] = "小小马弓手，竟然……啊……",
 }
 
@@ -629,10 +629,10 @@ Fk:loadTranslationTable{
   ["#mou__zaiqi-choose"] = "再起：选择至多%arg名角色，这些角色须选择:1.弃牌且你回复体力；2.令你摸牌",
   ["#mou__zaiqi-discard"] = "再起：弃置一张牌且 %src 回复1点体力，点“取消”：令 %src 摸一张牌",
 
-  ["$mou__huoshou1"] = "整个南中都要听我的！",
-  ["$mou__huoshou2"] = "我才是南中之主！",
-  ["$mou__zaiqi1"] = "若有来日，必将汝等拿下！",
-  ["$mou__zaiqi2"] = "且败且战，愈战愈勇！",
+  ["$mou__huoshou1"] = "我才是南中之主！",
+  ["$mou__huoshou2"] = "整个南中都要听我的！",
+  ["$mou__zaiqi1"] = "且败且战，愈战愈勇！",
+  ["$mou__zaiqi2"] = "若有来日，必将汝等拿下！",
   ["~mou__menghuo"] = "吾等谨遵丞相教诲，永不复叛……",
 }
 
