@@ -771,14 +771,18 @@ local mou__guidao = fk.CreateTriggerSkill{
   end,
 }
 mou__zhangjiao:addSkill(mou__guidao)
+local peace_spell = {{"js__peace_spell", Card.Heart, 3}}
 local mou__huangtian = fk.CreateTriggerSkill{
   name = "mou__huangtian$",
   anim_type = "support",
   frequency = Skill.Compulsory,
   events = {fk.TurnStart , fk.Damage},
   can_trigger = function(self, event, target, player, data)
+    local room = player.room
     if event == fk.TurnStart then
-      return player:hasSkill(self) and target == player and player.room:getTag("RoundCount") == 1 and  #player:getAvailableEquipSlots(Card.SubtypeTreasure) > 0 and table.find(player.room.void, function(id) return Fk:getCardById(id).name == "mougong__peace_spell" end)
+      return player:hasSkill(self) and target == player and player.room:getTag("RoundCount") == 1
+      and player:hasEmptyEquipSlot(Card.SubtypeTreasure)
+      and room:getCardArea(U.prepareDeriveCards(room, peace_spell, "huangtian_spell")[1]) == Card.Void
     else
       return player:hasSkill(self) and target and target ~= player and target.kingdom == "qun" and player:hasSkill("mou__guidao",true) and player:getMark("@daobing") < 8 and player:getMark("mou__huangtian-round") < 4
     end
@@ -786,15 +790,8 @@ local mou__huangtian = fk.CreateTriggerSkill{
   on_use = function(self, event, target, player, data)
     local room = player.room
     if event == fk.TurnStart then
-      local spell = table.find(room.void, function(id) return Fk:getCardById(id).name == "mougong__peace_spell" end)
-      if not spell then return end
-      local existingEquip = player:getEquipments(Card.SubtypeTreasure)
-      if #existingEquip > 0 then
-        room:moveCards({ ids = existingEquip, toArea = Card.DiscardPile, moveReason = fk.ReasonPutIntoDiscardPile, },
-        {ids = {spell}, to = player.id, toArea = Card.PlayerEquip, moveReason = fk.ReasonPut, })
-      else
-        room:moveCards({ids = {spell}, to = player.id, toArea = Card.PlayerEquip, moveReason = fk.ReasonPut, })
-      end
+      local spell = U.prepareDeriveCards(room, peace_spell, "huangtian_spell")[1]
+      U.moveCardIntoEquip(room, player, spell, self.name, true, player)
     else
       local n = math.min(2, 8-player:getMark("@daobing"), 4-player:getMark("mou__huangtian-round"))
       room:addPlayerMark(player, "@daobing", n)
