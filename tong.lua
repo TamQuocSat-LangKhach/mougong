@@ -7,44 +7,6 @@ Fk:loadTranslationTable{
   ["mou_tong"] = "谋攻篇-同包",
 }
 local sunce = General(extension, "mou__sunce", "wu", 2 , 4)
-local mou__jiang_draw = fk.CreateTriggerSkill{
-  name = "#mou__jiang_draw",
-  anim_type = "drawcard",
-  events ={fk.TargetSpecified, fk.TargetConfirmed},
-  can_trigger = function(self, event, target, player, data)
-    return target == player and player:hasSkill("mou__jiang") and
-      ((data.card.trueName == "slash" and data.card.color == Card.Red) or data.card.name == "duel")
-  end,
-  on_use = function(self, event, target, player, data)
-    player:drawCards(1, self.name)
-  end,
-}
-local mou__jiang_target = fk.CreateTriggerSkill{
-  name = "#mou__jiang_target",
-  anim_type = "offensive",
-  events = {fk.TargetSpecifying},
-  can_trigger = function(self, event, target, player, data)
-    return target == player and player:hasSkill("mou__jiang") and #player.room.alive_players > 2 and data.card.trueName == "duel"
-  end,
-  on_cost = function(self, event, target, player, data)
-    local room = player.room
-    local targets = {}
-    for _, p in ipairs(room:getOtherPlayers(player)) do
-      if not table.contains(data.tos[1], p.id) and not player:isProhibited(p, data.card) then
-        table.insertIfNeed(targets, p.id)
-      end
-    end
-    local to = room:askForChoosePlayers(player, targets, 1, 1, "#mou__jiang-choose:::"..data.card:toLogString(), "mou__jiang", true)
-    if #to > 0 then
-      self.cost_data = to[1]
-      return true
-    end
-  end,
-  on_use = function(self, event, target, player, data)
-    player.room:loseHp(player, 1)
-    TargetGroup:pushTargets(data.targetGroup, self.cost_data)
-  end,
-}
 local mou__jiang = fk.CreateViewAsSkill{
   name = "mou__jiang",
   anim_type = "offensive",
@@ -71,6 +33,43 @@ local mou__jiang = fk.CreateViewAsSkill{
     return player:usedSkillTimes(self.name, Player.HistoryPhase) < X and not player:isKongcheng()
   end,
 }
+local mou__jiang_draw = fk.CreateTriggerSkill{
+  name = "#mou__jiang_draw",
+  anim_type = "drawcard",
+  events ={fk.TargetSpecified, fk.TargetConfirmed},
+  main_skill = mou__jiang,
+  can_trigger = function(self, event, target, player, data)
+    return target == player and player:hasSkill(mou__jiang) and
+      ((data.card.trueName == "slash" and data.card.color == Card.Red) or data.card.name == "duel")
+  end,
+  on_use = function(self, event, target, player, data)
+    player:broadcastSkillInvoke(mou__jiang.name)
+    player:drawCards(1, self.name)
+  end,
+}
+local mou__jiang_target = fk.CreateTriggerSkill{
+  name = "#mou__jiang_target",
+  anim_type = "offensive",
+  main_skill = mou__jiang,
+  events = {fk.AfterCardTargetDeclared},
+  can_trigger = function(self, event, target, player, data)
+    return target == player and player:hasSkill(mou__jiang) and data.card.trueName == "duel" and
+    #U.getUseExtraTargets(player.room, data) > 0
+  end,
+  on_cost = function(self, event, target, player, data)
+    local to = player.room:askForChoosePlayers(player, U.getUseExtraTargets(player.room, data),
+    1, 1, "#mou__jiang-choose:::"..data.card:toLogString(), "mou__jiang", true)
+    if #to > 0 then
+      self.cost_data = to[1]
+      return true
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    player:broadcastSkillInvoke(mou__jiang.name)
+    player.room:loseHp(player, 1)
+    TargetGroup:pushTargets(data.tos, self.cost_data)
+  end,
+}
 local mou__hunzi = fk.CreateTriggerSkill{
   name ="mou__hunzi",
   frequency = Skill.Wake,
@@ -88,19 +87,6 @@ local mou__hunzi = fk.CreateTriggerSkill{
     room:changeShield(player, 2)
     player:drawCards(3, self.name)
     room:handleAddLoseSkills(player, "mou__yingzi|yinghun", nil, true, false)
-  end,
-}
-local mou__zhiba_draw = fk.CreateTriggerSkill{
-  name = "#mou__zhiba_draw",
-  anim_type = "control",
-  mute = true,
-  frequency = Skill.Compulsory,
-  events = {fk.Death},
-  can_trigger = function(self, event, target, player, data)
-    return target ~= player and player:hasSkill("mou__zhiba", false, true) and data.damage and data.damage.skillName == "mou__zhiba"
-  end,
-  on_use = function(self, event, target, player, data)
-    player:drawCards(3, self.name)
   end,
 }
 local mou__zhiba = fk.CreateTriggerSkill{
@@ -143,6 +129,19 @@ local mou__zhiba = fk.CreateTriggerSkill{
         end
       end
     end
+  end,
+}
+local mou__zhiba_draw = fk.CreateTriggerSkill{
+  name = "#mou__zhiba_draw",
+  anim_type = "control",
+  mute = true,
+  frequency = Skill.Compulsory,
+  events = {fk.Death},
+  can_trigger = function(self, event, target, player, data)
+    return target ~= player and player:hasSkill("mou__zhiba", false, true) and data.damage and data.damage.skillName == "mou__zhiba"
+  end,
+  on_use = function(self, event, target, player, data)
+    player:drawCards(3, self.name)
   end,
 }
 mou__jiang:addRelatedSkill(mou__jiang_draw)
@@ -663,9 +662,7 @@ local mou__yanyu = fk.CreateActiveSkill{
     return #selected == 0 and Fk:getCardById(to_select).trueName == "slash" and not Self:prohibitDiscard(Fk:getCardById(to_select))
   end,
   on_use = function(self, room, effect)
-    local player = room:getPlayerById(effect.from)
-    room:throwCard(effect.cards, self.name, player)
-    player:drawCards(1, self.name)
+    room:recastCard(effect.cards, room:getPlayerById(effect.from), self.name)
   end,
 }
 

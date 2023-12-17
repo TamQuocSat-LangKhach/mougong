@@ -100,12 +100,12 @@ local mou__liuli = fk.CreateTriggerSkill{
     local to = self.cost_data[1]
     room:doIndicate(player.id, { to })
     room:throwCard(self.cost_data[2], self.name, player, player)
-    TargetGroup:removeTarget(data.targetGroup, player.id)
-    TargetGroup:pushTargets(data.targetGroup, to)
-    
+
+    AimGroup:cancelTarget(data, player.id)
+    AimGroup:addTargets(room, data, to)
+
     if Fk:getCardById(self.cost_data[2]).suit == Card.Heart and player:getMark("mou__liuli-turn") == 0 then
-        local targets = {}
-      local from = room:getPlayerById(data.from)
+      local targets = {}
       for _, p in ipairs(room.alive_players) do
         if p ~= player and p.id ~= data.from and p:getMark("@@liuli_dangxian") == 0 then
            table.insert(targets, p.id)
@@ -122,6 +122,7 @@ local mou__liuli = fk.CreateTriggerSkill{
          room:addPlayerMark(room:getPlayerById(tar[1]), "@@liuli_dangxian", 1)
       end
     end
+    return true
   end,
 }
 

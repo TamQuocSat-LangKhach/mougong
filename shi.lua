@@ -818,6 +818,7 @@ local mou__fenwei_trigger = fk.CreateTriggerSkill{
         moveReason = fk.ReasonPutIntoDiscardPile,
       })
       AimGroup:cancelTarget(data, target.id)
+      return true
     end
   end,
 }
