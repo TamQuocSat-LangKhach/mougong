@@ -305,8 +305,8 @@ Fk:loadTranslationTable{
   ["#mou__hongyan_trigger"] = "红颜",
   ["#mou__hongyan-choice"] = "红颜：修改 %dest 进行 %arg 判定结果的花色",
   ["#mou__hongyan_delay"] = "红颜",
-  ["$mou__tianxiang1"] = "灿如春华，皎如秋月。",
-  ["$mou__tianxiang2"] = "凤眸流盼，美目含情。",
+  ["$mou__tianxiang1"] = "凤眸流盼，美目含情。",
+  ["$mou__tianxiang2"] = "灿如春华，皎如秋月。",
   ["$mou__hongyan"] = "（琴声）",
   ["~mou__xiaoqiao"] = "朱颜易改，初心永在……",
 }

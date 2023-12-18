@@ -1361,6 +1361,7 @@ Fk:loadTranslationTable{
   ["$mou__huoji2"] = "风起之日，火攻之时！",
   ["$mou__kanpo1"] = "哼！班门弄斧。",
   ["$mou__kanpo2"] = "呵！不过尔尔。",
+  ["~mou__wolong"] = "纵具地利，不得天时亦难胜也……",
 }
 
 local mou__zhugeliang = General(extension, "mou__zhugeliang", "shu", 3)
@@ -1472,7 +1473,7 @@ Fk:loadTranslationTable{
   ["$mou__guanxing2"] = "冷夜孤星，正如时局啊。",
   ["$mou__kongcheng1"] = "城下千军万马，我亦谈笑自若。",
   ["$mou__kongcheng2"] = "仲达可愿与我城中一叙？",
-  ["~mou__zhugeliang"] = "纵具地利，不得天时亦难胜也……",
+  ["~mou__zhugeliang"] = "琴焚身陨，功败垂成啊……",
 }
 
 return extension
