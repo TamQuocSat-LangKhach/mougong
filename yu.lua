@@ -535,4 +535,13 @@ Fk:loadTranslationTable{
   ["~mou__lvmeng"] = "义封胆略过人，主公可任之……",
 }
 
+Fk:loadTranslationTable{
+  ["mou__huangyueying"] = "谋黄月英",
+  ["mou__qicai"] = "奇才",
+  [":mou__qicai"] = "你使用锦囊牌无距离限制。出牌阶段限一次，你可以选择一名其他角色，将手牌或弃牌堆中一张防具牌置入其装备区（每局游戏每种牌名限一次），"..
+  "然后其获得“奇”标记。有“奇”标记的角色接下来获得的三张普通锦囊牌须交给你。",
+  ["mou__jizhi"] = "集智",
+  [":mou__jizhi"] = "锁定技，当你使用普通锦囊牌时，你摸一张牌，以此法获得的牌本回合不计入手牌上限。",
+}
+
 return extension

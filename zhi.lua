@@ -151,7 +151,9 @@ Fk:loadTranslationTable{
   ["mou__guose_throw"] = "弃置乐不思蜀",
   ["mou__liuli"] = "流离",
   ["#mou__liuli_dangxian"] = "流离",
-  [":mou__liuli"] = "每当你成为【杀】的目标时，你可以弃置一张牌并选择你攻击范围内为此【杀】合法目标（无距离限制）的一名角色：若如此做，该角色代替你成为此【杀】的目标。若你以此法弃置了<font color='red'>♥️</font>牌，则你可以令一名不为此【杀】使用者的其他角色获得“流离”标记，且移去场上所有其他的“流离”（每回合限一次）。有“流离”的角色回合开始时，其移去其“流离”并执行一个额外的出牌阶段。",
+  [":mou__liuli"] = "每当你成为【杀】的目标时，你可以弃置一张牌并选择你攻击范围内为此【杀】合法目标（无距离限制）的一名角色：若如此做，"..
+  "该角色代替你成为此【杀】的目标。若你以此法弃置了<font color='red'>♥️</font>牌，则你可以令一名不为此【杀】使用者的其他角色获得“流离”标记，"..
+  "且移去场上所有其他的“流离”（每回合限一次）。有“流离”的角色回合开始时，其移去其“流离”并执行一个额外的出牌阶段。",
   ["#mou__liuli-target"] = "流离：你可以弃置一张牌，将【杀】的目标转移给一名其他角色",
   ["#mou__liuli-choose"] = "流离：你可以令一名除此【杀】使用者的其他角色获得“流离”标记并清除场上的其他流离标记。",
   ["@@liuli_dangxian"] = "流离",
@@ -785,7 +787,8 @@ local mou__huangtian = fk.CreateTriggerSkill{
       and player:hasEmptyEquipSlot(Card.SubtypeTreasure)
       and room:getCardArea(U.prepareDeriveCards(room, peace_spell, "huangtian_spell")[1]) == Card.Void
     else
-      return player:hasSkill(self) and target and target ~= player and target.kingdom == "qun" and player:hasSkill("mou__guidao",true) and player:getMark("@daobing") < 8 and player:getMark("mou__huangtian-round") < 4
+      return player:hasSkill(self) and target and target ~= player and target.kingdom == "qun" and player:hasSkill("mou__guidao", true) and
+      player:getMark("@daobing") < 8 and player:getMark("mou__huangtian-round") < 4
     end
   end,
   on_use = function(self, event, target, player, data)
@@ -1181,10 +1184,11 @@ Fk:loadTranslationTable{
   ["#mou__rende_response"] = "仁望",
   ["#mou__rende-promot"] = "仁望：将牌交给其他角色获得“仁望”标记，或移去标记视为使用基本牌",
   ["mou__zhangwu"] = "章武",
-  [":mou__zhangwu"] = "限定技，出牌阶段，你可以令〖仁德〗选择过的所有角色依次交给你X张牌（X为游戏轮数-1，且至多为3），然后你回复3点体力，失去技能“仁德”。",
+  [":mou__zhangwu"] = "限定技，出牌阶段，你可以令〖仁德〗选择过的所有角色依次交给你X张牌（X为游戏轮数-1，至多为3），然后你回复3点体力，失去技能〖仁德〗。",
   ["#mou__zhangwu-give"] = "章武：请交给 %dest %arg 张牌",
   ["mou__jijiang"] = "激将",
-  [":mou__jijiang"] = "主公技，出牌阶段结束时，你可以选择一名其他角色，令一名攻击范围内含有其且体力值不小于你的其他蜀势力角色选择一项：1.视为对其使用一张【杀】；2.跳过下一个出牌阶段。",
+  [":mou__jijiang"] = "主公技，出牌阶段结束时，你可以选择一名其他角色，令一名攻击范围内含有其且体力值不小于你的其他蜀势力角色选择一项："..
+  "1.视为对其使用一张【杀】；2.跳过下一个出牌阶段。",
   ["@@mou__jijiang_skip"] = "激将",
   ["#mou__jijiang-promot"] = "激将：先选择【杀】的目标，再选需要响应“激将”的蜀势力角色",
   ["mou__jijiang_slash"] = "视为对 %src 使用一张【杀】",
@@ -1199,7 +1203,7 @@ Fk:loadTranslationTable{
   ["~mou__liubei"] = "汉室之兴，皆仰望丞相了……",
 }
 
-local mou__zhugeliang = General(extension, "mou__zhugeliang", "shu", 3)
+local mou__wolong = General(extension, "mou__wolong", "shu", 3)
 local mou__huoji = fk.CreateActiveSkill{
   name = "mou__huoji",
   anim_type = "offensive",
@@ -1266,6 +1270,13 @@ local mou__huoji_trigger = fk.CreateTriggerSkill{
       room:notifySkillInvoked(player, "mou__huoji", "negative")
       room:updateQuestSkillState(player, "mou__huoji", true)
     end
+    if player.general == "mou__wolong" then
+      player.general = "mou__zhugeliang"
+      room:broadcastProperty(player, "general")
+    else
+      player.deputyGeneral = "mou__zhugeliang"
+      room:broadcastProperty(player, "deputyGeneral")
+    end
   end,
 }
 local mou__kanpo = fk.CreateTriggerSkill{
@@ -1329,6 +1340,31 @@ local mou__kanpo = fk.CreateTriggerSkill{
     end
   end,
 }
+mou__huoji:addRelatedSkill(mou__huoji_trigger)
+mou__wolong:addSkill(mou__huoji)
+mou__wolong:addSkill(mou__kanpo)
+mou__wolong:addRelatedSkill("mou__guanxing")
+mou__wolong:addRelatedSkill("mou__kongcheng")
+Fk:loadTranslationTable{
+  ["mou__wolong"] = "谋卧龙诸葛亮",
+  ["mou__huoji"] = "火计",
+  [":mou__huoji"] = "使命技，出牌阶段限一次，你可以选择一名其他角色，对其及其同势力的其他角色各造成1点火焰伤害。<br>\
+  <strong>成功</strong>：准备阶段，若你本局游戏对其他角色造成过至少X点火焰伤害（X为本局游戏人数），你失去〖火计〗〖看破〗，获得〖观星〗〖空城〗。<br>\
+  <strong>失败</strong>：当你进入濒死状态时，使命失败。",
+  ["mou__kanpo"] = "看破",
+  [":mou__kanpo"] = "每轮开始时，你可以记录三次与本轮清除牌名均不相同的牌名。其他角色使用你记录牌名的牌时，你可以移除一个对应记录，令此牌无效。",
+  ["#mou__huoji"] = "火计：选择一名角色，对所有与其势力相同的其他角色造成1点火焰伤害",
+  ["#mou__kanpo-choice"] = "看破：你可以选择3次牌名（还剩%arg次），其他角色使用同名牌时，你可令其无效<br>已记录：%arg2",
+  ["#mou__kanpo-invoke"] = "看破：是否令 %dest 使用的%arg无效？",
+
+  ["$mou__huoji1"] = "发火有时，起火有日！",
+  ["$mou__huoji2"] = "风起之日，火攻之时！",
+  ["$mou__kanpo1"] = "哼！班门弄斧。",
+  ["$mou__kanpo2"] = "呵！不过尔尔。",
+}
+
+local mou__zhugeliang = General(extension, "mou__zhugeliang", "shu", 3)
+mou__zhugeliang.hidden = true
 local mou__guanxing = fk.CreateTriggerSkill{
   name = "mou__guanxing",
   events = {fk.EventPhaseStart},
@@ -1419,49 +1455,24 @@ local mou__kongcheng = fk.CreateTriggerSkill{
     end
   end,
 }
-mou__huoji:addRelatedSkill(mou__huoji_trigger)
-mou__zhugeliang:addSkill(mou__huoji)
-mou__zhugeliang:addSkill(mou__kanpo)
-mou__zhugeliang:addRelatedSkill(mou__guanxing)
-mou__zhugeliang:addRelatedSkill(mou__kongcheng)
+mou__zhugeliang:addSkill(mou__guanxing)
+mou__zhugeliang:addSkill(mou__kongcheng)
 Fk:loadTranslationTable{
   ["mou__zhugeliang"] = "谋诸葛亮",
-  ["mou__huoji"] = "火计",
-  [":mou__huoji"] = "使命技，出牌阶段限一次，你可以选择一名其他角色，对其及其同势力的其他角色各造成1点火焰伤害。<br>\
-  <strong>成功</strong>：准备阶段，若你本局游戏对其他角色造成过至少X点火焰伤害（X为本局游戏人数），你失去〖火计〗〖看破〗，获得〖观星〗〖空城〗。<br>\
-  <strong>失败</strong>：当你进入濒死状态时，使命失败。",
-  ["mou__kanpo"] = "看破",
-  [":mou__kanpo"] = "每轮开始时，你可以记录三次与本轮清除牌名均不相同的牌名。其他角色使用你记录牌名的牌时，你可以移除一个对应记录，令此牌无效。",
   ["mou__guanxing"] = "观星",
   [":mou__guanxing"] = "准备阶段，你移去所有“星”，将牌堆顶X张牌置为“星”（X为移去“星”数+1，至多为7；首次发动时X为7），然后你可以将任意张“星”"..
   "置于牌堆顶。结束阶段，若你本回合准备阶段未将“星”置于牌堆顶，则你可以将任意张“星”置于牌堆顶。你可以将“星”如手牌般使用或打出。",
   ["mou__kongcheng"] = "空城",
   [":mou__kongcheng"] = "锁定技，当你受到伤害时，若你有〖观星〗且：有“星”，你进行一次判定，若判定结果点数小于“星”数，则此伤害-1；没有“星”，"..
   "你受到的伤害+1。",
-  ["#mou__huoji"] = "火计：选择一名角色，对所有与其势力相同的其他角色造成1点火焰伤害",
-  ["#mou__kanpo-choice"] = "看破：你可以选择3次牌名（还剩%arg次），其他角色使用同名牌时，你可令其无效<br>已记录：%arg2",
-  ["#mou__kanpo-invoke"] = "看破：是否令 %dest 使用的%arg无效？",
   ["mou__guanxing&"] = "星",
   ["#mou__guanxing-invoke"] = "观星：你可以将任意张“星”置于牌堆顶",
 
-  ["$mou__huoji1"] = "发火有时，起火有日！",
-  ["$mou__huoji2"] = "风起之日，火攻之时！",
-  ["$mou__kanpo1"] = "哼！班门弄斧。",
-  ["$mou__kanpo2"] = "呵！不过尔尔。",
   ["$mou__guanxing1"] = "明星皓月，前路通达。",
   ["$mou__guanxing2"] = "冷夜孤星，正如时局啊。",
   ["$mou__kongcheng1"] = "城下千军万马，我亦谈笑自若。",
   ["$mou__kongcheng2"] = "仲达可愿与我城中一叙？",
   ["~mou__zhugeliang"] = "纵具地利，不得天时亦难胜也……",
-}
-
-Fk:loadTranslationTable{
-  ["mou__huangyueying"] = "谋黄月英",
-  ["mou__qicai"] = "奇才",
-  [":mou__qicai"] = "你使用锦囊牌无距离限制。出牌阶段限一次，你可以选择一名其他角色，将手牌或弃牌堆中一张防具牌置入其装备区（每局游戏每种牌名限一次），"..
-  "然后其获得“奇”标记。有“奇”标记的角色接下来获得的三张普通锦囊牌须交给你。",
-  ["mou__jizhi"] = "集智",
-  [":mou__jizhi"] = "锁定技，当你使用普通锦囊牌时，你摸一张牌，以此法获得的牌本回合不计入手牌上限。",
 }
 
 return extension
