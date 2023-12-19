@@ -1343,8 +1343,6 @@ local mou__kanpo = fk.CreateTriggerSkill{
 mou__huoji:addRelatedSkill(mou__huoji_trigger)
 mou__wolong:addSkill(mou__huoji)
 mou__wolong:addSkill(mou__kanpo)
-mou__wolong:addRelatedSkill("mou__guanxing")
-mou__wolong:addRelatedSkill("mou__kongcheng")
 Fk:loadTranslationTable{
   ["mou__wolong"] = "谋卧龙诸葛亮",
   ["mou__huoji"] = "火计",
