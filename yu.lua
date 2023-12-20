@@ -589,7 +589,8 @@ local mou__qicai_select = fk.CreateActiveSkill{
     if #selected ~= 0 then return false end
     local card = Fk:getCardById(to_select)
     local mark = U.getMark(Self, "@$mou__qicai")
-    return card.sub_type == Card.SubtypeArmor and not table.contains(mark, card.trueName)
+    return card.sub_type == Card.SubtypeArmor and not table.contains(mark, card.trueName) and
+    Fk:currentRoom():getCardArea(to_select) ~= Card.PlayerEquip
   end,
 }
 Fk:addSkill(mou__qicai_select)
@@ -729,6 +730,7 @@ Fk:loadTranslationTable{
   ["@@mou__jizhi-inhand"] = "集智",
   ["#mou__qicai-active"] = "发动 奇才，选择1名角色令其装备防具，然后其获得的锦囊牌须交给你",
   ["#mou__qicai-choose"] = "奇才：令%dest装备你手牌或弃牌堆里的一张防具牌",
+  ["mou__qicai_select"] = "奇才",
   ["mou__qicai_discardpile"] = "弃牌堆",
   ["@mou__qicai_target"] = "奇",
   ["@$mou__qicai"] = "奇才",
