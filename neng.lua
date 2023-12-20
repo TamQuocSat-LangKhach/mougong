@@ -273,26 +273,62 @@ Fk:loadTranslationTable{
   ["~mou__sunshangxiang"] = "此去一别，竟无再见之日……",
 }
 
+local mou__luanji = fk.CreateViewAsSkill{
+  name = "mou__luanji",
+  anim_type = "offensive",
+  pattern = "archery_attack",
+  prompt = "#mou__luanji-viewas",
+  enabled_at_play = function(self, player)
+    return player:usedSkillTimes(self.name, Player.HistoryPhase) == 0
+  end,
+  card_filter = function(self, to_select, selected)
+    return #selected < 2 and Fk:currentRoom():getCardArea(to_select) ~= Player.Equip
+  end,
+  view_as = function(self, cards)
+    if #cards == 2 then
+      local archery_attack = Fk:cloneCard("archery_attack")
+      archery_attack:addSubcards(cards)
+      return archery_attack
+    end
+  end,
+}
+local mou__luanji_trigger = fk.CreateTriggerSkill{
+  name = "#mou__luanji_trigger",
+  anim_type = "drawcard",
+  --main_skill = mou__luanji,
+  events = {fk.CardResponding},
+  can_trigger = function(self, event, target, player, data)
+    if player:hasSkill(mou__luanji) and player:usedSkillTimes(self.name) < 3 and data.card.name == "jink" then
+      return data.responseToEvent and data.responseToEvent.from == player.id and
+      data.responseToEvent.card.name =="archery_attack"
+    end
+  end,
+  on_cost = Util.TrueFunc,
+  on_use = function(self, event, target, player, data)
+    player:broadcastSkillInvoke(mou__luanji.name)
+    player:drawCards(1, self.name)
+  end,
+}
 local mou__xueyi = fk.CreateTriggerSkill{
   name = "mou__xueyi$",
   anim_type = "drawcard",
   events = {fk.TargetSpecified},
+  frequency = Skill.Compulsory,
   can_trigger = function(self, event, target, player, data)
-     local room = player.room
-     local to = room:getPlayerById(data.to)
-     return target == player and player:hasSkill(self) and to.kingdom == "qun" and to ~= player
+    return player:hasSkill(self) and target == player and player:usedSkillTimes(self.name) < 2 and
+    data.to ~= player.id and player.room:getPlayerById(data.to).kingdom == "qun"
   end,
   on_use = function(self, event, target, player, data)
     player:drawCards(1, self.name)
   end,
 }
-local mou__xueyi_Max = fk.CreateMaxCardsSkill{
-  name = "#mou__xueyi_Max",
+local mou__xueyi_maxcards = fk.CreateMaxCardsSkill{
+  name = "#mou__xueyi_maxcards",
   correct_func = function(self, player)
-    if player:hasSkill(self) then
+    if player:hasSkill(mou__xueyi) then
       local hmax = 0
       for _, p in ipairs(Fk:currentRoom().alive_players) do
-        if p ~= player and p.kingdom == "qun" then 
+        if p ~= player and p.kingdom == "qun" then
           hmax = hmax + 1
         end
       end
@@ -302,58 +338,22 @@ local mou__xueyi_Max = fk.CreateMaxCardsSkill{
     end
   end,
 }
-local mou__luanji_Draw = fk.CreateTriggerSkill{
-  name = "#mou__luanji_Draw",
-  anim_type = "offensive",
-  events = {fk.CardUseFinished,fk.CardRespondFinished},
-  can_trigger = function(self, event, target, player, data)
-    if player:hasSkill(self) and data.card.name == "jink" then
-      return data.responseToEvent and data.responseToEvent.from == player.id and data.responseToEvent.card.name =="archery_attack"
-    end 
-  end,
-  on_cost = function() return true end,
-  on_use = function(self, event, target, player, data)
-    player:drawCards(1, self.name)
-  end,
-  }
-local mou__luanji = fk.CreateViewAsSkill{
-  name = "mou__luanji",
-  anim_type = "offensive",
-  pattern = "archery_attack",
-  enabled_at_play = function(self, player)
-        return player:usedSkillTimes(self.name) == 0
-  end,
-  card_filter = function(self, to_select, selected)
-    if #selected == 1 then 
-      return Fk:currentRoom():getCardArea(to_select) ~= Player.Equip 
-    elseif #selected == 2 then
-      return false
-    end
-
-    return Fk:currentRoom():getCardArea(to_select) ~= Player.Equip
-  end,
-  view_as = function(self, cards)
-    if #cards ~= 2 then
-      return nil
-    end
-
-    local c = Fk:cloneCard("archery_attack")
-    c:addSubcards(cards)
-    return c
-  end,
-}
+mou__luanji:addRelatedSkill(mou__luanji_trigger)
+mou__xueyi:addRelatedSkill(mou__xueyi_maxcards)
 local mouyuanshao = General(extension, "mou__yuanshao", "qun", 4)
-mou__xueyi:addRelatedSkill(mou__xueyi_Max)
-mou__luanji:addRelatedSkill(mou__luanji_Draw)
 mouyuanshao:addSkill(mou__luanji)
 mouyuanshao:addSkill(mou__xueyi)
 Fk:loadTranslationTable{
   ["mou__yuanshao"] = "谋袁绍",
   ["mou__luanji"] = "乱击",
-  ["#mou__luanji_Draw"] = "乱击",
-  [":mou__luanji"] = "①出牌阶段限一次，你可以将两张手牌当做【万箭齐发】使用。;②当有角色因响应你的【万箭齐发】打出【闪】时，你摸一张牌。",
+  [":mou__luanji"] = "出牌阶段限一次，你可以将两张手牌当【万箭齐发】使用；"..
+  "当其他角色打出【闪】响应你使用的【万箭齐发】时，你摸一张牌（每回合你以此法至多获得三张牌）。",
   ["mou__xueyi"] = "血裔",
-  [":mou__xueyi"] = "主公技，①锁定技，你的手牌上限+2X(X为场上现存其他群势力角色数)。;②当你使用牌指定其他群雄角色为目标时，你摸一张牌。",
+  [":mou__xueyi"] = "主公技，锁定技，你的手牌上限+2X（X为其他群势力角色数）；"..
+  "当你使用牌指定其他群势力角色为目标后，你摸一张牌（每回合你以此法至多获得两张牌）。",
+
+  ["#mou__luanji-viewas"] = "发动乱击，选择两手牌当【万箭齐发】使用",
+  ["#mou__luanji_trigger"] = "乱击",
 
   ["$mou__luanji1"] = "与我袁本初为敌，下场只有一个！",
   ["$mou__luanji2"] = "弓弩手，乱箭齐下，射杀此贼！",
