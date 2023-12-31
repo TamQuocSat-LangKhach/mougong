@@ -714,8 +714,29 @@ local mou__ganning = General(extension, "mou__ganning", "wu", 4)
 local mou__qixi = fk.CreateActiveSkill{
   name = "mou__qixi",
   anim_type = "control",
+  prompt = function()
+    local numMap = {}
+    for _, id in ipairs(Self:getCardIds("h")) do
+      local str = Fk:getCardById(id):getSuitString(true)
+      if str ~= "log_nosuit" then
+        numMap[str] = (numMap[str] or 0) + 1
+      end
+    end
+    local max_num = 0
+    for _, v in pairs(numMap) do
+      max_num = math.max(max_num, v)
+    end
+    local suits = {}
+    for suit, v in pairs(numMap) do
+      if v == max_num then
+        table.insert(suits, Fk:translate(suit))
+      end
+    end
+    return "#mou__qixi-promot:::"..table.concat(suits, ",")
+  end,
   can_use = function(self, player)
     return not player:isKongcheng() and player:usedSkillTimes(self.name, Player.HistoryPhase) == 0
+    and table.find(player:getCardIds("h"), function (id) return Fk:getCardById(id).suit ~= Card.NoSuit end)
   end,
   card_num = 0,
   card_filter = Util.FalseFunc,
@@ -726,39 +747,34 @@ local mou__qixi = fk.CreateActiveSkill{
   on_use = function(self, room, effect)
     local player = room:getPlayerById(effect.from)
     local to = room:getPlayerById(effect.tos[1])
-    local suits = {"spade","club","heart","diamond"}
+    local suits = {"log_spade","log_club","log_heart","log_diamond"}
     local numMap = {}
+    for _, suit in ipairs(suits) do
+      numMap[suit] = 0
+    end
     for _, id in ipairs(player:getCardIds("h")) do
-      local str = Fk:getCardById(id):getSubtypeString()
-      numMap[str] = (numMap[str] or 0) + 1
+      local str = Fk:getCardById(id):getSuitString(true)
+      if numMap[str] then
+        numMap[str] = numMap[str] + 1
+      end
     end
     local max_num = 0
     for _, v in pairs(numMap) do
       max_num = math.max(max_num, v)
     end
-    local max_suit = {}
-    for suit, v in pairs(numMap) do
-      if v == max_num then
-        table.insert(max_suit, suit)
-      end
-    end
-    local choice = room:askForChoice(to, suits, self.name, "#mou__qixi-guess::"..player.id)
     local wrong_num = 0
-    local right = table.contains(max_suit, choice)
-    if not right then
-      wrong_num = wrong_num + 1
-      if room:askForSkillInvoke(player, self.name, nil, "#mou__qixi-again") then
+    while #suits > 0 do
+      local choice = room:askForChoice(to, suits, self.name, "#mou__qixi-guess::"..player.id)
+      if numMap[choice] ~= max_num then
+        wrong_num = wrong_num + 1
         table.removeOne(suits, choice)
-        choice = room:askForChoice(to, suits, self.name, "#mou__qixi-guess::"..player.id)
-        if table.contains(max_suit, choice) then
-          right = true
-        else
-          wrong_num = wrong_num + 1
+        if #suits == 0 or not room:askForSkillInvoke(player, self.name, nil, "#mou__qixi-again") then break end
+      else
+        if not player:isKongcheng() then
+          player:showCards(player:getCardIds("h"))
         end
+        break
       end
-    end
-    if right and not player:isKongcheng() then
-      player:showCards(player:getCardIds("h"))
     end
     local throw_num = math.min(#to:getCardIds("hej"), wrong_num)
     if player.dead or throw_num == 0 then return end
@@ -789,10 +805,24 @@ local mou__fenwei = fk.CreateActiveSkill{
   end,
   on_use = function(self, room, effect)
     local player = room:getPlayerById(effect.from)
-    for i, to in ipairs(table.map(effect.tos, Util.Id2PlayerMapper)) do
-      to:addToPile("@mou__fenwei", effect.cards[i], true, self.name)
+    local moves = {}
+    for i, to in ipairs(effect.tos) do
+      table.insert(moves, {
+        ids = { effect.cards[i] },
+        from = player.id,
+        to = to,
+        toArea = Card.PlayerSpecial,
+        moveReason = fk.ReasonPut,
+        skillName = self.name,
+        specialName = "@mou__fenwei",
+        moveVisible = true,
+        proposer = player.id,
+      })
     end
-    player:drawCards(#effect.cards, self.name)
+    room:moveCards(table.unpack(moves))
+    if not player.dead then
+      player:drawCards(#effect.cards, self.name)
+    end
   end,
 }
 local mou__fenwei_trigger = fk.CreateTriggerSkill{
@@ -809,7 +839,7 @@ local mou__fenwei_trigger = fk.CreateTriggerSkill{
     if choice == "#mou__fenwei_get" then
       local dummy = Fk:cloneCard("slash")
       dummy:addSubcards(target:getPile("@mou__fenwei"))
-      room:obtainCard(target, dummy, true, fk.ReasonJustMove)
+      room:obtainCard(target, dummy, true, fk.ReasonPrey)
     else
       room:moveCards({
         from = target.id,
@@ -830,6 +860,7 @@ Fk:loadTranslationTable{
   [":mou__qixi"] = "出牌阶段限一次，你可以选择一名其他角色，令其猜测你手牌中最多的花色。若猜错，你可以令该角色从未猜测过的花色中再次猜测；若猜对，你展示所有手牌。然后你弃置其区域内X张牌（X为此阶段该角色猜错的次数，不足则全弃）。",
   ["#mou__qixi-again"] = "奇袭：你可以令其再猜一次",
   ["#mou__qixi-guess"] = "奇袭：猜测%dest手牌中最多的花色",
+  ["#mou__qixi-promot"] = "奇袭：您手牌中最多的花色为：%arg",
   ["mou__fenwei"] = "奋威",
   [":mou__fenwei"] = "限定技，出牌阶段，你可以将至多三张牌分别置于等量名角色的武将牌上，称为“威”，然后你摸等量牌。有“威”的角色成为锦囊牌的目标时，你须选择一项：1. 令其获得“威”；2. 移去其“威”，取消此目标。",
   ["@mou__fenwei"] = "威",
@@ -843,7 +874,5 @@ Fk:loadTranslationTable{
   ["$mou__fenwei2"] = "袭军挫阵，奋江东之威！",
   ["~mou__ganning"] = "蛮将休得猖狂！呃啊！",
 }
-
-
 
 return extension
