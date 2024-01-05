@@ -197,7 +197,7 @@ local mou__jianxiong_gamestart = fk.CreateTriggerSkill{
   on_use = function(self, event, target, player, data)
     local room = player.room
     player:broadcastSkillInvoke("mou__jianxiong")
-    local choice = room:askForChoice(player, {"1", "2"}, "mou__jianxiong", "#mou__jianxiong-choice")
+    local choice = room:askForChoice(player, {"0", "1", "2"}, "mou__jianxiong", "#mou__jianxiong-choice")
     room:addPlayerMark(player,  "@mou__jianxiong", tonumber(choice))
   end,
 }
@@ -836,13 +836,10 @@ local mou__zishou = fk.CreateTriggerSkill{
   events = {fk.EventPhaseStart},
   can_trigger = function(self, event, target, player, data)
     if player:hasSkill(self) and player ~= target and target.phase == Player.Finish and not target:isNude() then
-      local events = player.room.logic:getEventsOfScope(GameEvent.Damage, 1, function(e)
+      return #U.getActualDamageEvents(player.room, 1, function(e)
         local damage = e.data[1]
-        if damage and damage.from then
-          return (damage.from == player and damage.to == target) or (damage.from == target and damage.to == player)
-        end
-      end, Player.HistoryGame)
-      return #events == 0
+        return (damage.from == player and damage.to == target) or (damage.from == target and damage.to == player)
+      end, Player.HistoryGame) == 0
     end
   end,
   on_use = function(self, event, target, player, data)
