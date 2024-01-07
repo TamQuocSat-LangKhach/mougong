@@ -16,22 +16,22 @@ local mou__kurou = fk.CreateTriggerSkill{
   end,
   on_cost = function(self, event, target, player, data)
      local room = player.room
-     local tar, card =room:askForChooseCardAndPlayers(
-      player,
-      table.map(room:getOtherPlayers(player, true), function(p) return p.id end), 1, 1, ".|.|.|hand", "#mou__kurou-give", self.name , true)
+     local tar, card =room:askForChooseCardAndPlayers( player, table.map(room:getOtherPlayers(player), Util.IdMapper), 1, 1,
+     ".|.|.|hand", "#mou__kurou-give", self.name , true)
     if #tar > 0 and card then
-      self.cost_data = tar[1]
-      self.cost_data2 = card
+      self.cost_data = {tar[1], card}
       return true
     end
   end,
   on_use = function(self, event, target, player, data)
     local room = player.room
-     room:obtainCard(self.cost_data, self.cost_data2, false, fk.ReasonGive)
-    if Fk:getCardById(self.cost_data2).trueName == "analeptic" or Fk:getCardById(self.cost_data2).trueName == "peach" then
+    local card = Fk:getCardById(self.cost_data[2])
+    room:obtainCard(self.cost_data[1], card, false, fk.ReasonGive)
+    if player.dead then return end
+    if card.trueName == "analeptic" or card.trueName == "peach" then
       room:loseHp(player, 2, self.name)
     else
-      room:loseHp(player, 1, self.name)  
+      room:loseHp(player, 1, self.name)
     end
   end,
 }
@@ -41,7 +41,7 @@ local mou__kurou_hujia = fk.CreateTriggerSkill{
   events = {fk.HpLost},
   on_trigger = function(self, event, target, player, data)
     for i = 1, data.num do
-      if player.shield >= 5 then break end
+      if player.shield >= 5 or not player:hasSkill(self) then break end
       self:doCost(event, target, player, data)
     end
   end,
@@ -86,16 +86,13 @@ local mou__zhaxiang_trigger = fk.CreateTriggerSkill{
 }
 local mou__zhaxiang_targetmod = fk.CreateTargetModSkill{
   name = "#mou__zhaxiang_targetmod",
-  residue_func = function(self, player, skill, scope, card)
-    if card and player:hasSkill("mou__zhaxiang") and player.phase == Player.Play and player:getMark("mou__zhaxiang-phase") < player:getLostHp() then
-      return 999
-    end
-    return 0
+  bypass_times = function(self, player, skill, scope, card)
+    return card and player:hasSkill("mou__zhaxiang") and player:getMark("mou__zhaxiang-phase") < player:getLostHp()
+    and player.phase == Player.Play
   end,
-  distance_limit_func =  function(self, player, skill, card)
-    if card and player:hasSkill("mou__zhaxiang") and player:getMark("mou__zhaxiang-phase") < player:getLostHp() and player.phase == Player.Play then
-      return 999
-    end
+  bypass_distances = function(self, player, skill, card)
+    return card and player:hasSkill("mou__zhaxiang") and player:getMark("mou__zhaxiang-phase") < player:getLostHp()
+    and player.phase == Player.Play
   end,
 }
 mou__zhaxiang:addRelatedSkill(mou__zhaxiang_targetmod)
@@ -105,9 +102,9 @@ Fk:loadTranslationTable{
   ["mou__huanggai"] = "谋黄盖",
   ["mou__kurou"] = "苦肉",
   ["#mou__kurou_hujia"] = "苦肉",
-  [":mou__kurou"] = "①出牌阶段开始时，你可以将一张手牌交给一名其他角色，若如此做，你失去一点体力，若你交出的牌为【桃】或【酒】则改为两点。;②，当你失去一点体力值时，你获得两点护甲。",
+  [":mou__kurou"] = "①出牌阶段开始时，你可以将一张手牌交给一名其他角色，若如此做，你失去一点体力，若你交出的牌为【桃】或【酒】则改为两点；②当你失去一点体力值时，你获得两点护甲。",
   ["mou__zhaxiang"] = "诈降",
-  [":mou__zhaxiang"] = "锁定技，①摸牌阶段，你的摸牌基数+X；②出牌阶段，你使用的前X张牌无距离和次数限制且无法响应。(X为你已损失的体力值)。",
+  [":mou__zhaxiang"] = "锁定技，①摸牌阶段，你的摸牌基数+X；②出牌阶段，你使用的前X张牌无距离和次数限制且无法响应（X为你已损失的体力值）。",
   ["#mou__kurou-give"] = "苦肉：你可以将一张手牌交给一名其他角色，若如此做，你失去一点体力，若你交出的牌为【桃】或【酒】则改为两点",
 
   ["$mou__kurou1"] = "既不能破，不如依张子布之言，投降便罢！",
@@ -243,17 +240,20 @@ Fk:loadTranslationTable{
   ["$mou__jiewei2"] = "贼虽势盛，若吾出马，亦可解之。",
   ["~mou__caoren"] = "吾身可殉，然襄樊之地万不可落于吴蜀之手……",
 }
---[[
+
 local mou__yujin = General(extension, "mou__yujin", "wei", 4)
 local mou__xiayuan = fk.CreateTriggerSkill{
   name = "mou__xiayuan",
   anim_type = "support",
-  events = { fk.Damaged },
+  events = {fk.Damaged},
   can_trigger = function(self, event, target, player, data)
-    return target ~= player and player:hasSkill(self) and player:usedSkillTimes(self.name, Player.HistoryRound) == 0 and #player:getCardIds("h") > 1 and target.shield < 5
+    return target ~= player and player:hasSkill(self) and player:usedSkillTimes(self.name, Player.HistoryRound) == 0
+    and player:getHandcardNum() > 1 and target.shield < 5
+    and data.extra_data and data.extra_data.mou__xiayuan_num
   end,
   on_cost = function(self, event, target, player, data)
-    local cards = player.room:askForDiscard(player, 2, 2, false, self.name, true, ".", "#mou__xiayuan-invoke::"..target.id..":"..data.extra_data.mou__xiayuan, true)
+    local cards = player.room:askForDiscard(player, 2, 2, false, self.name, true, ".",
+    "#mou__xiayuan-card::"..target.id..":"..data.extra_data.mou__xiayuan_num, true)
     if #cards == 2 then
       self.cost_data = cards
       return true
@@ -262,25 +262,69 @@ local mou__xiayuan = fk.CreateTriggerSkill{
   on_use = function(self, event, target, player, data)
     local room = player.room
     room:throwCard(self.cost_data, self.name, player, player)
-    if target.dead then return false end
-    room:changeShield(target, 1)
+    if not target.dead then
+      room:changeShield(target, data.extra_data.mou__xiayuan_num)
+    end
+  end,
+
+  refresh_events = {fk.HpChanged},
+  can_refresh = function (self, event, target, player, data)
+    return target == player and player.shield == 0 and data.reason == "damage" and data.shield_lost > 0
+  end,
+  on_refresh = function (self, event, target, player, data)
+    local e = player.room.logic:getCurrentEvent():findParent(GameEvent.Damage)
+    if e then
+      local damage = e.data[1]
+      damage.extra_data = damage.extra_data or {}
+      damage.extra_data.mou__xiayuan_num = data.shield_lost
+    end
   end,
 }
 mou__yujin:addSkill(mou__xiayuan)
+local mou__jieyue = fk.CreateTriggerSkill{
+  name = "mou__jieyue",
+  anim_type = "support",
+  events = {fk.EventPhaseStart},
+  can_trigger = function(self, event, target, player, data)
+    return player:hasSkill(self) and player == target and player.phase == Player.Finish
+  end,
+  on_cost = function (self, event, target, player, data)
+    local tos = player.room:askForChoosePlayers(player, table.map(player.room:getOtherPlayers(player), Util.IdMapper), 1, 1, "#mou__jieyue-choose", self.name, true)
+    if #tos > 0 then
+      self.cost_data = tos[1]
+      return true
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    local to = room:getPlayerById(self.cost_data)
+    room:changeShield(to, 1)
+    if not to:isNude() and not player.dead then
+      local card = room:askForCard(to, 1, 1, true, self.name, true, ".", "#mou__jieyue-give:"..player.id)
+      if #card > 0 then
+        room:obtainCard(player, card[1], false, fk.ReasonGive)
+      end
+    end
+  end,
+}
+mou__yujin:addSkill(mou__jieyue)
 Fk:loadTranslationTable{
   ["mou__yujin"] = "谋于禁",
   ["mou__xiayuan"] = "狭援",
   [":mou__xiayuan"] = "每轮限一次，其他角色受到伤害后，若此伤害令其失去全部“护甲”，则你可以弃置两张手牌，令其获得本次伤害结算中期失去的“护甲”。",
-  ["#mou__xiayuan-invoke"] = "狭援：弃置两张手牌，令 %dest 获得 %arg 点护甲",
+  ["#mou__xiayuan-card"] = "狭援：你可以弃置两张手牌，令 %dest 获得 %arg 点护甲",
   ["mou__jieyue"] = "节钺",
-  [":mou__jieyue"] = "结束阶段，你可以选择一名其他角色并令其获得1点“护甲”，然后其可以交给你一张牌。",
+  [":mou__jieyue"] = "结束阶段，你可以令一名其他角色获得1点“护甲”，然后其可以交给你一张牌。",
+  ["#mou__jieyue-choose"] = "节钺：你可以令一名其他角色获得1点“护甲”",
+  ["#mou__jieyue-give"] = "节钺：你可以交给 %src 一张牌",
+
   ["$mou__xiayuan1"] = "速置粮草，驰援天柱山。",
   ["$mou__xiayuan2"] = "援军既至，定攻克此地！",
   ["$mou__jieyue1"] = "尔等小儿，徒费兵力！",
   ["$mou__jieyue2"] = "雕虫小技，静待则已。",
   ["~mou__yujin"] = "禁……愧于丞相……",
 }
---]]
+
 local mouhuangzhong = General(extension, "mou__huangzhong", "shu", 4)
 local mouliegongFilter = fk.CreateFilterSkill{
   name = "#mou__liegong_filter",
