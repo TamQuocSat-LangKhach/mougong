@@ -922,7 +922,7 @@ Fk:addQmlMark{
   how_to_show = function(name, value, p)
     if type(value) == "table" then
       local target = Fk:currentRoom():getPlayerById(value[1])
-      if target then return Fk:translate(target.general) end
+      if target then return Fk:translate("seat#" .. target.seat) end
     end
     return " "
   end,
