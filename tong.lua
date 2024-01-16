@@ -652,6 +652,7 @@ local mou__yanyu = fk.CreateActiveSkill{
   on_use = function(self, room, effect)
     local from = room:getPlayerById(effect.from)
     room:throwCard(effect.cards, self.name, from, from)
+    room:addPlayerMark(from, "mou__yanyu-turn")
     if not from.dead then
       room:drawCards(from, 1, self.name)
     end
@@ -666,12 +667,12 @@ local mou__yanyu_trigger = fk.CreateTriggerSkill{
   mute = true,
   can_trigger = function(self, event, target, player, data)
     return target == player and player:hasSkill(mou__yanyu) and player.phase == player.Play and
-      player:usedSkillTimes(mou__yanyu.name, Player.HistoryTurn) > 0
+      player:getMark("mou__yanyu-turn") > 0
   end,
   on_cost = function(self, event, target, player, data)
     local room = player.room
-    local to = room:askForChoosePlayers(player, table.map(room:getOtherPlayers(player), function(p)
-      return p.id end), 1, 1, "#mou__yanyu-draw:::" ..  3*player:usedSkillTimes(mou__yanyu.name, Player.HistoryTurn), self.name, true)
+    local to = room:askForChoosePlayers(player, table.map(room:getOtherPlayers(player), Util.IdMapper), 1, 1,
+    "#mou__yanyu-draw:::" .. 3*player:getMark("mou__yanyu-turn"), self.name, true)
     if #to > 0 then
       self.cost_data = to[1]
       return true
@@ -681,8 +682,7 @@ local mou__yanyu_trigger = fk.CreateTriggerSkill{
     local room = player.room
     room:notifySkillInvoked(player, mou__yanyu.name, self.anim_type)
     player:broadcastSkillInvoke(mou__yanyu.name)
-    room:drawCards(room:getPlayerById(self.cost_data),
-    3*player:usedSkillTimes(mou__yanyu.name, Player.HistoryTurn), mou__yanyu.name)
+    room:getPlayerById(self.cost_data):drawCards(3*player:getMark("mou__yanyu-turn"), mou__yanyu.name)
   end,
 }
 
