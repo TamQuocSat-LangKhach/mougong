@@ -632,9 +632,9 @@ local mou__qicai_select = fk.CreateActiveSkill{
   card_filter = function(self, to_select, selected)
     if #selected ~= 0 then return false end
     local card = Fk:getCardById(to_select)
-    local mark = U.getMark(Self, "@$mou__qicai")
-    return card.sub_type == Card.SubtypeArmor and not table.contains(mark, card.trueName) and
-    Fk:currentRoom():getCardArea(to_select) ~= Card.PlayerEquip
+    return card.type == Card.TypeEquip and not table.contains(U.getMark(Self, "@$mou__qicai"), card.trueName) and
+    Fk:currentRoom():getCardArea(to_select) ~= Card.PlayerEquip and
+    U.canMoveCardIntoEquip(Fk:currentRoom():getPlayerById(Self:getMark("mou__qicai_target-tmp")), to_select, false)
   end,
 }
 Fk:addSkill(mou__qicai_select)
@@ -647,11 +647,8 @@ local mou__qicai = fk.CreateActiveSkill{
     return player:usedSkillTimes(self.name, Player.HistoryPhase) == 0
   end,
   card_filter = function() return false end,
-  target_filter = function(self, to_select, selected)
-    if #selected == 0 and to_select ~= Self.id then
-      local target = Fk:currentRoom():getPlayerById(to_select)
-      return target:hasEmptyEquipSlot(Card.SubtypeArmor) and target:getMark("@mou__qicai_target") == 0
-    end
+  target_filter = function(self, to_select, selected, selected_cards)
+    return #selected == 0 and to_select ~= Self.id
   end,
   target_num = 1,
   on_use = function(self, room, effect)
@@ -660,7 +657,7 @@ local mou__qicai = fk.CreateActiveSkill{
     local mark = U.getMark(player, "@$mou__qicai")
     local ids = table.filter(room.discard_pile, function (id)
       local card = Fk:getCardById(id)
-      return card.sub_type == Card.SubtypeArmor and not table.contains(mark, card.trueName)
+      return card.type == Card.TypeEquip and not table.contains(mark, card.trueName)
     end)
     player.special_cards["mou__qicai_discardpile"] = table.simpleClone(ids)
     player:doNotify("ChangeSelf", json.encode {
@@ -668,8 +665,10 @@ local mou__qicai = fk.CreateActiveSkill{
       handcards = player:getCardIds("h"),
       special_cards = player.special_cards,
     })
+    room:setPlayerMark(player, "mou__qicai_target-tmp", target.id)
     local success, dat = room:askForUseActiveSkill(player, "mou__qicai_select",
     "#mou__qicai-choose::" .. effect.tos[1], true, Util.DummyTable, true)
+    room:setPlayerMark(player, "qicai_target-tmp", 0)
     player.special_cards["mou__qicai_discardpile"] = {}
     player:doNotify("ChangeSelf", json.encode {
       id = player.id,
@@ -677,8 +676,10 @@ local mou__qicai = fk.CreateActiveSkill{
       special_cards = player.special_cards,
     })
     if success then
-      table.insert(mark, Fk:getCardById(dat.cards[1]).trueName)
-      room:setPlayerMark(player, "@$mou__qicai", mark)
+      if player.room.settings.gameMode == "m_1v2_mode" then
+        table.insert(mark, Fk:getCardById(dat.cards[1]).trueName)
+        room:setPlayerMark(player, "@$mou__qicai", mark)
+      end
       U.moveCardIntoEquip(room, target, dat.cards, self.name)
       room:setPlayerMark(target, "@mou__qicai_target", 3)
       room:setPlayerMark(target, "mou__qicai_source", effect.from)
@@ -690,7 +691,7 @@ local mou__qicai_trigger = fk.CreateTriggerSkill{
   anim_type = "control",
   events = {fk.AfterCardsMove},
   can_trigger = function(self, event, target, player, data)
-    if not player:hasSkill(self) then return false end
+    if not player:hasSkill(mou__qicai) then return false end
     local room = player.room
     local qicai_pairs = {}
     for _, p in ipairs(room.alive_players) do
@@ -723,19 +724,21 @@ local mou__qicai_trigger = fk.CreateTriggerSkill{
     local room = player.room
     local to_get = {}
     for pid, ids in pairs(self.cost_data) do
-      room:doIndicate(player.id, {pid})
-      local to = room:getPlayerById(pid)
-      local x = to:getMark("@mou__qicai_target")
-      if x < #ids then
-        ids = table.random(ids, x)
+      if #ids > 0 then
+        room:doIndicate(player.id, {pid})
+        local to = room:getPlayerById(pid)
+        local x = to:getMark("@mou__qicai_target")
+        if x < #ids then
+          ids = table.random(ids, x)
+        end
+        if #ids == x then
+          room:setPlayerMark(to, "@mou__qicai_target", 0)
+          room:setPlayerMark(to, "mou__qicai_source", 0)
+        else
+          room:removePlayerMark(to, "@mou__qicai_target", #ids)
+        end
+        table.insertTable(to_get, ids)
       end
-      if #ids == x then
-        room:setPlayerMark(to, "@mou__qicai_target", 0)
-        room:setPlayerMark(to, "mou__qicai_source", 0)
-      else
-        room:removePlayerMark(to, "@mou__qicai_target", #ids)
-      end
-      table.insertTable(to_get, ids)
     end
     room:moveCardTo(to_get, Card.PlayerHand, player, fk.ReasonGive, mou__qicai.name, nil, false, player.id)
   end,
@@ -754,7 +757,7 @@ local mou__qicai_trigger = fk.CreateTriggerSkill{
 local mou__qicai_target = fk.CreateTargetModSkill{
   name = "#mou__qicai_target",
   bypass_distances = function(self, player, skill, card)
-    return player:hasSkill(self) and card and card.type == Card.TypeTrick
+    return player:hasSkill(mou__qicai) and card and card.type == Card.TypeTrick
   end,
 }
 mou__jizhi:addRelatedSkill(mou__jizhi_maxcards)
@@ -768,12 +771,13 @@ Fk:loadTranslationTable{
   ["mou__jizhi"] = "集智",
   [":mou__jizhi"] = "锁定技，当你使用普通锦囊牌时，你摸一张牌，以此法获得的牌本回合不计入手牌上限。",
   ["mou__qicai"] = "奇才",
-  [":mou__qicai"] = "你使用锦囊牌无距离限制。出牌阶段限一次，你可以选择一名其他角色，将手牌或弃牌堆中一张防具牌置入其装备区（每局游戏每种牌名限一次），"..
+  [":mou__qicai"] = "你使用锦囊牌无距离限制。出牌阶段限一次，你可以选择一名其他角色，"..
+  "将手牌或弃牌堆中一张装备牌置入其装备区（若为斗地主模式，则每种牌名限一次），"..
   "然后其获得“奇”标记。有“奇”标记的角色接下来获得的三张普通锦囊牌须交给你。",
 
   ["@@mou__jizhi-inhand"] = "集智",
-  ["#mou__qicai-active"] = "发动 奇才，选择1名角色令其装备防具，然后其获得的锦囊牌须交给你",
-  ["#mou__qicai-choose"] = "奇才：令%dest装备你手牌或弃牌堆里的一张防具牌",
+  ["#mou__qicai-active"] = "发动 奇才，选择1名角色令其装装备，然后其获得的锦囊牌须交给你",
+  ["#mou__qicai-choose"] = "奇才：令%dest装备你手牌或弃牌堆里的一张装备牌",
   ["mou__qicai_select"] = "奇才",
   ["mou__qicai_discardpile"] = "弃牌堆",
   ["@mou__qicai_target"] = "奇",
