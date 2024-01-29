@@ -43,6 +43,7 @@ machao:addSkill("mashu")
 machao:addSkill(mou__tieji)
 Fk:loadTranslationTable{
   ["mou__machao"] = "谋马超",
+  ["#mou__machao"] = "阻戎负勇",
   ["mou__tieji"] = "铁骑",
   [":mou__tieji"] = "每当你使用【杀】指定其他角色为目标后，你可令其不能响应此【杀】，且所有非锁定技失效直到回合结束。然后你与其进行谋弈。若你赢，且你选择的选项为：“直取敌营”，则你获得其一张牌；“扰阵疲敌”，你摸两张牌。",
   ["tieji-zhiqu"] = "直取敌营",
@@ -164,6 +165,7 @@ local mou__enyuan = fk.CreateTriggerSkill{
 mou__fazheng:addSkill(mou__enyuan)
 Fk:loadTranslationTable{
   ["mou__fazheng"] = "谋法正",
+  ["#mou__fazheng"] = "经学思谋",
   ["mou__xuanhuo"] = "眩惑",
   [":mou__xuanhuo"] = "出牌阶段限一次，你可以交给一名没有“眩”标记的其他角色一张牌并令其获得“眩”标记。有“眩”标记的角色于摸牌阶段外获得牌时，你随机获得其一张手牌（每个“眩”标记最多令你获得五张牌）。",
   ["@@mou__xuanhuo"] = "眩",
@@ -243,6 +245,7 @@ diaochan:addSkill(mou__lijian)
 diaochan:addSkill(mou__biyue)
 Fk:loadTranslationTable{
   ["mou__diaochan"] = "谋貂蝉",
+  ["#mou__diaochan"] = "绝世的舞姬",
   ["mou__lijian"] = "离间",
   [":mou__lijian"] = "出牌阶段限一次，你可以选择至少两名其他角色并弃置X张牌（X为你选择的角色数减一），然后他们依次对逆时针最近座次的你选择的另一名角色视为使用一张【决斗】。",
   ["mou__biyue"] = "闭月",

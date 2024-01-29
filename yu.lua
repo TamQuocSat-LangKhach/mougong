@@ -100,6 +100,8 @@ mou__zhaxiang:addRelatedSkill(mou__zhaxiang_trigger)
 mouhuanggai:addSkill(mou__zhaxiang)
 Fk:loadTranslationTable{
   ["mou__huanggai"] = "谋黄盖",
+  ["#mou__huanggai"] = "轻身为国",
+  ["illustrator:mou__huanggai"] = "错落宇宙",
   ["mou__kurou"] = "苦肉",
   ["#mou__kurou_hujia"] = "苦肉",
   [":mou__kurou"] = "①出牌阶段开始时，你可以将一张手牌交给一名其他角色，若如此做，你失去一点体力，若你交出的牌为【桃】或【酒】则改为两点；②当你失去一点体力值时，你获得两点护甲。",
@@ -219,6 +221,7 @@ local moujiewei = fk.CreateActiveSkill{
 moucaoren:addSkill(moujiewei)
 Fk:loadTranslationTable{
   ["mou__caoren"] = "谋曹仁",
+  ["#mou__caoren"] = "大将军",
   ["mou__jushou"] = "据守",
   ["#mou__jushou_shibei"] = "据守",
   ["#mou__jushou_draw"] = "据守",
@@ -310,6 +313,7 @@ local mou__jieyue = fk.CreateTriggerSkill{
 mou__yujin:addSkill(mou__jieyue)
 Fk:loadTranslationTable{
   ["mou__yujin"] = "谋于禁",
+  ["#mou__yujin"] = "威严毅重",
   ["mou__xiayuan"] = "狭援",
   [":mou__xiayuan"] = "每轮限一次，其他角色受到伤害后，若此伤害令其失去全部“护甲”，则你可以弃置两张手牌，令其获得本次伤害结算中期失去的“护甲”。",
   ["#mou__xiayuan-card"] = "狭援：你可以弃置两张手牌，令 %dest 获得 %arg 点护甲",
@@ -414,6 +418,9 @@ mouliegong:addRelatedSkill(mouliegongProhibit)
 mouhuangzhong:addSkill(mouliegong)
 Fk:loadTranslationTable{
   ["mou__huangzhong"] = "谋黄忠",
+  ["#mou__huangzhong"] = "没金铩羽",
+  ["cv:mou__huangzhong"] = "金垚",
+	["illustrator:mou__huangzhong"] = "漫想族",
   ["~mou__huangzhong"] = "弦断弓藏，将老孤亡…",
   ["mou__liegong"] = "烈弓",
   [":mou__liegong"] = "若你未装备武器，你的【杀】只能当作普通【杀】使用或打出。"
@@ -561,6 +568,8 @@ duojing:addRelatedSkill(duojing_tm)
 mou__lvmeng:addRelatedSkill(duojing)
 Fk:loadTranslationTable{
   ["mou__lvmeng"] = "谋吕蒙",
+  ["#mou__lvmeng"] = "苍江一笠",
+  ["cv:mou__lvmeng"] = "刘强",
   ["mou__keji"] = "克己",
   [":mou__keji"] = "①出牌阶段每个选项各限一次（若你已觉醒“渡江”，改为出牌阶段限一次），你可以选择一项：1.弃置一张手牌，获得1点“护甲”；2.失去1点体力，获得2点“护甲”（“护甲”值至多为5）。②你的手牌上限+X（X为你的“护甲”值）。③若你不处于濒死状态，你不能使用【桃】。",
   ["moukeji_choice1"] = "弃牌加1甲",

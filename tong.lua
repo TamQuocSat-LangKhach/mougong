@@ -137,6 +137,7 @@ sunce:addRelatedSkill("mou__yingzi")
 sunce:addRelatedSkill("yinghun")
 Fk:loadTranslationTable{
   ["mou__sunce"] = "谋孙策",
+  ["#mou__sunce"] = "江东的小霸王",
   ["#mou__jiang_trigger"] = "激昂",
   ["#mou__jiang-viewas"] = "发动 激昂，将所有手牌当【决斗】使用",
   ["#mou__jiang-choose"] = "你可以发动激昂，失去1点体力来为【%arg】额外指定1个目标",
@@ -280,6 +281,7 @@ mou__hongyan:addRelatedSkill(mou__hongyan_trigger)
 mou__xiaoqiao:addSkill(mou__hongyan)
 Fk:loadTranslationTable{
   ["mou__xiaoqiao"] = "谋小乔",
+  ["#mou__xiaoqiao"] = "矫情之花",
   ["mou__tianxiang"] = "天香",
   [":mou__tianxiang"] = "①出牌阶段限三次，你可将一张红色手牌交给一名没有“天香”标记的其他角色，并令其获得对应花色的“天香”标记。"..
   "<br>②当你受到伤害时，你可以选择一名拥有“天香”标记的其他角色，移除其“天香”标记，并根据移除的“天香”花色发动：红桃，你防止此伤害，然后令其受到防止伤害的来源角色造成的1点伤害；方块，其交给你两张牌。"..
@@ -405,6 +407,7 @@ liucheng:addSkill(yingwu)
 
 Fk:loadTranslationTable{
   ["mou__liucheng"] = "谋刘赪",
+  ["#mou__liucheng"] = "泣梧的湘女",
 
   ["lveying"] = "掠影",
   ["#lveying_charge"] = "掠影",
@@ -581,6 +584,8 @@ yangwan:addSkill(xianchou)
 
 Fk:loadTranslationTable{
   ["mou__yangwan"] = "谋杨婉",
+  ["#mou__yangwan"] = "迷计惑心",
+  ["illustrator:mou__yangwan"] = "alien",
 
   ["mingxuan"] = "暝眩",
   ["mingxuan_active"] = "暝眩",
@@ -692,6 +697,8 @@ xiahoushi:addSkill(mou__yanyu)
 
 Fk:loadTranslationTable{
   ["mou__xiahoushi"] = "谋夏侯氏",
+  ["#mou__xiahoushi"] = "燕语呢喃",
+  ["cv:mou__xiahoushi"] = "水原",
   ["mou__qiaoshi"] = "樵拾",
   [":mou__qiaoshi"] = "每回合限一次，你受到其他角色造成的伤害后，伤害来源可以令你回复等同此次伤害值的体力，若如此做，该角色摸两张牌。",
   ["mou__yanyu"] = "燕语",
@@ -832,6 +839,8 @@ mouzhurong:addSkill(mou__lieren)
 
 Fk:loadTranslationTable{
   ["mou__zhurong"] = "谋祝融",
+  ["#mou__zhurong"] = "野性的女王",
+
   ["mou__juxiang"] = "巨象",
   [":mou__juxiang"] = "锁定技，【南蛮入侵】对你无效；当其他角色使用的【南蛮入侵】结算结束后，你获得之。"..
   "结束阶段，若你本回合未使用过【南蛮入侵】，你随机将游戏外一张【南蛮入侵】交给一名角色（游戏外共有8张【南蛮入侵】）。",
@@ -1074,6 +1083,7 @@ mou__zhangfei:addSkill(mou__xieji)
 
 Fk:loadTranslationTable{
   ["mou__zhangfei"] = "谋张飞",
+  ["#mou__zhangfei"] = "义付桃园",
   ["mou__paoxiao"] = "咆哮",
   [":mou__paoxiao"] = "锁定技，①你使用【杀】无次数限制；"..
   "②若你装备了武器牌，你使用【杀】无距离限制；"..
