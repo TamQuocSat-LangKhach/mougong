@@ -1208,6 +1208,7 @@ local mou__huoji = fk.CreateActiveSkill{
   frequency = Skill.Quest,
   card_num = 0,
   target_num = 1,
+  mute = true,
   can_use = function(self, player)
     return player:usedSkillTimes(self.name, Player.HistoryPhase) == 0 and not player:getQuestSkillState(self.name)
   end,
@@ -1218,9 +1219,17 @@ local mou__huoji = fk.CreateActiveSkill{
   on_use = function(self, room, effect)
     local player = room:getPlayerById(effect.from)
     local target = room:getPlayerById(effect.tos[1])
+    room:notifySkillInvoked(player, self.name)
+    player:broadcastSkillInvoke(self.name, math.random(2))
     local kingdom = target.kingdom
+    local targets = {}
     for _, p in ipairs(room:getOtherPlayers(player)) do
-      if p.kingdom == kingdom and not p.dead then
+      if p.kingdom == kingdom then
+        table.insert(targets, p)
+      end
+    end
+    for _, p in ipairs(targets) do
+      if not p.dead then
         room:damage{
           from = player,
           to = p,
@@ -1238,17 +1247,18 @@ local mou__huoji_trigger = fk.CreateTriggerSkill{
   mute = true,
   events = {fk.EventPhaseStart, fk.EnterDying},
   can_trigger = function(self, event, target, player, data)
-    if target == player and player:hasSkill("mou__huoji", true) and not player:getQuestSkillState("mou__huoji") then
+    if target == player and player:hasSkill(mou__huoji) and not player:getQuestSkillState("mou__huoji") then
       if event == fk.EventPhaseStart then
         if player.phase == Player.Start then
+          local room = player.room
           local n = 0
-          player.room.logic:getEventsOfScope(GameEvent.Damage, 999, function(e)
+          U.getActualDamageEvents(room, 1, function(e)
             local damage = e.data[1]
-            if damage and damage.from and damage.from == player and damage.damageType == fk.FireDamage then
+            if damage and damage.from == player and damage.damageType == fk.FireDamage then
               n = n + damage.damage
             end
           end, Player.HistoryGame)
-          return n >= #player.room.players
+          return n >= #room.players
         end
       else
         return true
@@ -1258,21 +1268,22 @@ local mou__huoji_trigger = fk.CreateTriggerSkill{
   on_cost = Util.TrueFunc,
   on_use = function(self, event, target, player, data)
     local room = player.room
-    player:broadcastSkillInvoke("mou__huoji")
     if event == fk.EventPhaseStart then
+      player:broadcastSkillInvoke("mou__huoji", math.random(2))
       room:notifySkillInvoked(player, "mou__huoji", "special")
-      room:handleAddLoseSkills(player, "-mou__huoji|-mou__kanpo|mou__guanxing|mou__kongcheng", nil, true, false)
       room:updateQuestSkillState(player, "mou__huoji", false)
+      room:handleAddLoseSkills(player, "-mou__huoji|-mou__kanpo|mou__guanxing|mou__kongcheng", nil, true, false)
+      if player.general == "mou__wolong" then
+        player.general = "mou__zhugeliang"
+        room:broadcastProperty(player, "general")
+      else
+        player.deputyGeneral = "mou__zhugeliang"
+        room:broadcastProperty(player, "deputyGeneral")
+      end
     else
+      player:broadcastSkillInvoke("mou__huoji", 3)
       room:notifySkillInvoked(player, "mou__huoji", "negative")
       room:updateQuestSkillState(player, "mou__huoji", true)
-    end
-    if player.general == "mou__wolong" then
-      player.general = "mou__zhugeliang"
-      room:broadcastProperty(player, "general")
-    else
-      player.deputyGeneral = "mou__zhugeliang"
-      room:broadcastProperty(player, "deputyGeneral")
     end
   end,
 }
@@ -1283,9 +1294,11 @@ local mou__kanpo = fk.CreateTriggerSkill{
   can_trigger = function(self, event, target, player, data)
     if player:hasSkill(self) then
       if event == fk.RoundStart then
-        return true
+        if player:getMark("@[private]$mou__kanpo") ~= 0 then return true end
+        local max_limit = table.contains({"m_1v2_mode", "m_2v2_mode"}, player.room.settings.gameMode) and 2 or 4
+        return player:getMark("mou__kanpo_times") < max_limit
       else
-        return target ~= player and player:getMark(self.name) ~= 0 and table.contains(player:getMark(self.name), data.card.trueName)
+        return target ~= player and table.contains(U.getPrivateMark(player, "$mou__kanpo"), data.card.trueName)
       end
     end
   end,
@@ -1293,48 +1306,72 @@ local mou__kanpo = fk.CreateTriggerSkill{
     if event == fk.RoundStart then
       return true
     else
-      return player.room:askForSkillInvoke(player, self.name, nil, "#mou__kanpo-invoke::"..target.id..":"..data.card:toLogString())
+      local room = player.room
+      if room:askForSkillInvoke(player, self.name, nil,
+      "#mou__kanpo-invoke::"..target.id..":"..data.card:toLogString()) then
+        room:doIndicate(player.id, {target.id})
+        return true
+      end
     end
   end,
   on_use = function(self, event, target, player, data)
     local room = player.room
     if event == fk.RoundStart then
-      local mark = player:getMark(self.name)
-      if mark == 0 then mark = {} end
-      local all_choices = {}
-      for _, id in ipairs(Fk:getAllCardIds()) do
-        local card = Fk:getCardById(id)
-        if card.type ~= Card.TypeEquip and not card.is_derived then
-          table.insertIfNeed(all_choices, card.trueName)
-        end
+      local all_names = player:getMark("mou__kanpo")
+      if all_names == 0 then
+        all_names = U.getAllCardNames("btd", true)
+        room:setPlayerMark(player, "mou__kanpo", all_names)
       end
-      table.insert(all_choices, "Cancel")
-      local choices = table.simpleClone(all_choices)
-      if #mark > 0 then
-        for _, name in ipairs(mark) do
-          table.removeOne(choices, name)
+      table.insert(all_names, "Cancel")
+      local names = table.simpleClone(all_names)
+
+      if player:getMark("@[private]$mou__kanpo") ~= 0 then
+        for _, name in ipairs(U.getPrivateMark(player, "$mou__kanpo")) do
+          table.removeOne(names, name)
         end
+        room:setPlayerMark(player, "@[private]$mou__kanpo", 0)
       end
-      mark = {}
-      for i = 1, 3, 1 do
-        local choice = room:askForChoice(player, choices, self.name,
-          "#mou__kanpo-choice:::"..(4-i)..":"..table.concat(table.map(mark, function(name)
-            return "【"..Fk:translate(name).."】" end), "、"), nil, all_choices)
+
+      local max_limit = table.contains({"m_1v2_mode", "m_2v2_mode"}, room.settings.gameMode) and 2 or 4
+      max_limit = max_limit - player:getMark("mou__kanpo_times")
+
+      local mark = {}
+      for i = max_limit, 1, -1 do
+        local choice = room:askForChoice(player, names, self.name,
+          "#mou__kanpo-choice:::"..i..":"..table.concat(table.map(mark, function(name)
+            return "【"..Fk:translate(name).."】" end), "、"), nil, all_names)
         if choice == "Cancel" then
-          room:setPlayerMark(player, self.name, {})
-          return
+          break
         else
           table.insert(mark, choice)
         end
       end
-      room:setPlayerMark(player, self.name, mark)
+      if #mark > 0 then
+        room:addPlayerMark(player, "mou__kanpo_times", #mark)
+        U.setPrivateMark(player, "$mou__kanpo", mark)
+      end
     else
-      room:doIndicate(player.id, {target.id})
-      local mark = player:getMark(self.name)
+      local mark = U.getPrivateMark(player, "$mou__kanpo")
       table.removeOne(mark, data.card.trueName)
-      room:setPlayerMark(player, self.name, mark)
-      room.logic:getCurrentEvent().parent:shutdown()
+      if #mark > 0 then
+        U.setPrivateMark(player, "$mou__kanpo", mark)
+      else
+        room:setPlayerMark(player, "@[private]$mou__kanpo", 0)
+      end
+      data.toCard = nil
+      data.tos = {}
+      player:drawCards(1, self.name)
     end
+  end,
+
+  refresh_events = {fk.EventLoseSkill},
+  can_refresh = function(self, event, target, player, data)
+    return player == target and data == self
+  end,
+  on_refresh = function(self, event, target, player, data)
+    local room = player.room
+    room:setPlayerMark(player, "@[private]$mou__kanpo", 0)
+    room:setPlayerMark(player, "mou__kanpo_times", 0)
   end,
 }
 mou__huoji:addRelatedSkill(mou__huoji_trigger)
@@ -1347,15 +1384,19 @@ Fk:loadTranslationTable{
   <strong>成功</strong>：准备阶段，若你本局游戏对其他角色造成过至少X点火焰伤害（X为本局游戏人数），你失去〖火计〗〖看破〗，获得〖观星〗〖空城〗。<br>\
   <strong>失败</strong>：当你进入濒死状态时，使命失败。",
   ["mou__kanpo"] = "看破",
-  [":mou__kanpo"] = "每轮开始时，你可以记录三次与本轮清除牌名均不相同的牌名。其他角色使用你记录牌名的牌时，你可以移除一个对应记录，令此牌无效。",
-  ["#mou__huoji"] = "火计：选择一名角色，对所有与其势力相同的其他角色造成1点火焰伤害",
-  ["#mou__kanpo-choice"] = "看破：你可以选择3次牌名（还剩%arg次），其他角色使用同名牌时，你可令其无效<br>已记录：%arg2",
+  [":mou__kanpo"] = "每轮开始时，你清除〖看破〗记录的牌名，然后你可以选择并记录任意个数与本轮清除牌名均不相同的"..
+  "非装备牌的牌名（每局游戏至多记录四个牌名，若为斗地主或2V2模式则改为两个牌名）。"..
+  "当其他角色使用与你记录牌名相同的牌时，你可以移除一个对应牌名的记录，然后令此牌无效并摸一张牌。",
+  ["#mou__huoji"] = "发动 火计，选择一名角色，对所有与其势力相同的其他角色造成1点火焰伤害",
+  ["#mou__kanpo-choice"] = "看破：你可以选择至多%arg个牌名，其他角色使用同名牌时，你可令其无效<br>已记录：%arg2",
   ["#mou__kanpo-invoke"] = "看破：是否令 %dest 使用的%arg无效？",
+  ["@[private]$mou__kanpo"] = "看破",
 
-  ["$mou__huoji1"] = "发火有时，起火有日！",
-  ["$mou__huoji2"] = "风起之日，火攻之时！",
-  ["$mou__kanpo1"] = "哼！班门弄斧。",
-  ["$mou__kanpo2"] = "呵！不过尔尔。",
+  ["$mou__huoji1"] = "区区汉贼，怎挡天火之威？",
+  ["$mou__huoji2"] = "就让此火，再兴炎汉国祚。",
+  ["$mou__huoji3"] = "吾虽有功，然终逆天命啊。",
+  ["$mou__kanpo1"] = "知汝欲行此计，故已待之久矣。",
+  ["$mou__kanpo2"] = "静思敌谋，以出应对之策。",
   ["~mou__wolong"] = "纵具地利，不得天时亦难胜也……",
 }
 
@@ -1363,24 +1404,21 @@ local mou__zhugeliang = General(extension, "mou__zhugeliang", "shu", 3)
 mou__zhugeliang.hidden = true
 local mou__guanxing = fk.CreateTriggerSkill{
   name = "mou__guanxing",
+  derived_piles = "mou__guanxing&",
   events = {fk.EventPhaseStart},
   can_trigger = function(self, event, target, player, data)
     if target == player and player:hasSkill(self) then
-      return player.phase == Player.Start or
-        (player.phase == Player.Finish and #player:getPile("mou__guanxing&") > 0 and player:getMark("mou__guanxing-turn") > 0)
+      if player.phase == Player.Start then
+        return #player:getPile("mou__guanxing&") > 0 or player:getMark("mou__guanxing_times") < 3
+      elseif player.phase == Player.Finish then
+        return #player:getPile("mou__guanxing&") > 0 and player:getMark("mou__guanxing-turn") > 0
+      end
     end
   end,
-  on_cost = function(self, event, target, player, data)
-    if player.phase == Player.Start then
-      return true
-    else
-      return player.room:askForSkillInvoke(player, self.name, nil, "#mou__guanxing-invoke")
-    end
-  end,
+  on_cost = Util.TrueFunc,
   on_use = function(self, event, target, player, data)
     local room = player.room
     if player.phase == Player.Start then
-      local n = player:usedSkillTimes(self.name, Player.HistoryGame) > 1 and math.min(7, (#player:getPile("mou__guanxing&")+1)) or 7
       if #player:getPile("mou__guanxing&") > 0 then
         room:moveCards({
           from = player.id,
@@ -1390,12 +1428,13 @@ local mou__guanxing = fk.CreateTriggerSkill{
           skillName = self.name,
           fromSpecialName = "mou__guanxing&",
         })
+        if player.dead then return false end
       end
-      if player.dead then return end
-      local dummy = Fk:cloneCard("dilu")
-      dummy:addSubcards(room:getNCards(n))
-      player:addToPile("mou__guanxing&", dummy, false, self.name)
-      if player.dead or #player:getPile("mou__guanxing&") == 0 then return end
+      local n = 7 - 3*player:getMark("mou__guanxing_times")
+      if n < 1 then return false end
+      room:addPlayerMark(player, "mou__guanxing_times")
+      player:addToPile("mou__guanxing&", room:getNCards(n), false, self.name)
+      if player.dead or #player:getPile("mou__guanxing&") == 0 then return false end
     end
     local result = room:askForGuanxing(player, player:getPile("mou__guanxing&"), nil, nil, self.name, true, {"mou__guanxing&", "Top"})
     if #result.bottom > 0 then
@@ -1417,6 +1456,14 @@ local mou__guanxing = fk.CreateTriggerSkill{
     elseif player.phase == Player.Start then
       room:setPlayerMark(player, "mou__guanxing-turn", 1)
     end
+  end,
+
+  refresh_events = {fk.EventLoseSkill},
+  can_refresh = function(self, event, target, player, data)
+    return player == target and data == self
+  end,
+  on_refresh = function(self, event, target, player, data)
+    player.room:setPlayerMark(player, "mou__guanxing_times", 0)
   end,
 }
 local mou__kongcheng = fk.CreateTriggerSkill{
@@ -1456,13 +1503,13 @@ mou__zhugeliang:addSkill(mou__kongcheng)
 Fk:loadTranslationTable{
   ["mou__zhugeliang"] = "谋诸葛亮",
   ["mou__guanxing"] = "观星",
-  [":mou__guanxing"] = "准备阶段，你移去所有“星”，将牌堆顶X张牌置为“星”（X为移去“星”数+1，至多为7；首次发动时X为7），然后你可以将任意张“星”"..
-  "置于牌堆顶。结束阶段，若你本回合准备阶段未将“星”置于牌堆顶，则你可以将任意张“星”置于牌堆顶。你可以将“星”如手牌般使用或打出。",
+  [":mou__guanxing"] = "准备阶段，你移去所有的“星”，并将牌堆顶的X张牌置于武将牌上"..
+  "（X为7-此前此技能准备阶段发动次数的三倍），称为“星”，然后你可以将任意张“星”置于牌堆顶。"..
+  "结束阶段，若你未于准备阶段将“星”置于牌堆顶，则你可以将任意张“星”置于牌堆顶。你可以如手牌般使用或打出“星”。",
   ["mou__kongcheng"] = "空城",
-  [":mou__kongcheng"] = "锁定技，当你受到伤害时，若你有〖观星〗且：有“星”，你进行一次判定，若判定结果点数小于“星”数，则此伤害-1；没有“星”，"..
-  "你受到的伤害+1。",
+  [":mou__kongcheng"] = "锁定技，当你受到伤害时，若你拥有技能〖观星〗且你的武将牌上："..
+  "有“星”，你判定，若结果点数不大于“星”数，则此伤害-1；没有“星”，此伤害+1。",
   ["mou__guanxing&"] = "星",
-  ["#mou__guanxing-invoke"] = "观星：你可以将任意张“星”置于牌堆顶",
 
   ["$mou__guanxing1"] = "明星皓月，前路通达。",
   ["$mou__guanxing2"] = "冷夜孤星，正如时局啊。",

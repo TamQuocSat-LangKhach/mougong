@@ -634,7 +634,9 @@ local mou__jizhi_maxcards = fk.CreateMaxCardsSkill{
 }
 local mou__qicai_select = fk.CreateActiveSkill{
   name = "mou__qicai_select",
-  expand_pile = "mou__qicai_discardpile",
+  expand_pile = function (self)
+    return U.getMark(Self, "mou__qicai_discardpile")
+  end,
   can_use = Util.FalseFunc,
   target_num = 0,
   card_num = 1,
@@ -642,7 +644,7 @@ local mou__qicai_select = fk.CreateActiveSkill{
     if #selected ~= 0 then return false end
     local card = Fk:getCardById(to_select)
     return card.type == Card.TypeEquip and not table.contains(U.getMark(Self, "@$mou__qicai"), card.trueName) and
-    Fk:currentRoom():getCardArea(to_select) ~= Card.PlayerEquip and
+    (table.contains(U.getMark(Self, "mou__qicai_discardpile"), to_select) or Fk:currentRoom():getCardArea(to_select) ~= Card.PlayerEquip) and
     U.canMoveCardIntoEquip(Fk:currentRoom():getPlayerById(Self:getMark("mou__qicai_target-tmp")), to_select, false)
   end,
 }
@@ -668,22 +670,13 @@ local mou__qicai = fk.CreateActiveSkill{
       local card = Fk:getCardById(id)
       return card.type == Card.TypeEquip and not table.contains(mark, card.trueName)
     end)
-    player.special_cards["mou__qicai_discardpile"] = table.simpleClone(ids)
-    player:doNotify("ChangeSelf", json.encode {
-      id = player.id,
-      handcards = player:getCardIds("h"),
-      special_cards = player.special_cards,
-    })
     room:setPlayerMark(player, "mou__qicai_target-tmp", target.id)
+    room:setPlayerMark(player, "mou__qicai_discardpile", ids)
     local success, dat = room:askForUseActiveSkill(player, "mou__qicai_select",
     "#mou__qicai-choose::" .. effect.tos[1], true, Util.DummyTable, true)
     room:setPlayerMark(player, "qicai_target-tmp", 0)
-    player.special_cards["mou__qicai_discardpile"] = {}
-    player:doNotify("ChangeSelf", json.encode {
-      id = player.id,
-      handcards = player:getCardIds("h"),
-      special_cards = player.special_cards,
-    })
+    room:setPlayerMark(player, "mou__qicai_discardpile", 0)
+
     if success then
       if player.room.settings.gameMode == "m_1v2_mode" then
         table.insert(mark, Fk:getCardById(dat.cards[1]).trueName)

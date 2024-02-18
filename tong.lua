@@ -270,10 +270,17 @@ local mou__hongyan_trigger = fk.CreateTriggerSkill {
     room:notifySkillInvoked(player, mou__hongyan.name, "control")
     local suits = {"spade", "club", "heart", "diamond"}
     local choice = room:askForChoice(player, suits, mou__hongyan.name)
-    local new_card = Fk:cloneCard(data.card.name, table.indexOf(suits, choice), data.number)
+    local new_card = Fk:cloneCard(data.card.name, table.indexOf(suits, choice), data.card.number)
     new_card.skillName = mou__hongyan.name
     new_card.id = data.card.id
     data.card = new_card
+    room:sendLog{
+      type = "#ChangedJudge",
+      from = player.id,
+      to = { data.who.id },
+      arg2 = new_card:toLogString(),
+      arg = mou__hongyan.name,
+    }
   end,
 }
 
@@ -290,7 +297,8 @@ Fk:loadTranslationTable{
   ["#mou__tianxiang-give:"] = "天香：请交给 %dest 两张牌",
   ["@mou__tianxiang"] = "天香",
   ["mou__hongyan"] = "红颜",
-  [":mou__hongyan"] = "锁定技，①你的♠️牌均视为♥️牌；②当一名角色的判定牌生效前，若此牌的花色为♥️，你将此牌的判定结果改为任意一种花色。",
+  [":mou__hongyan"] = "锁定技，①你的♠牌或你的♠判定牌的花色视为<font color='red'>♥</font>。"..
+  "②当一名角色的判定结果确定前，若花色为♥️，你将判定结果改为任意一种花色。",
   ["#mou__hongyan_trigger"] = "红颜",
   ["#mou__hongyan-choice"] = "红颜：修改 %dest 进行 %arg 判定结果的花色",
   ["#mou__hongyan_delay"] = "红颜",
@@ -301,18 +309,17 @@ Fk:loadTranslationTable{
 }
 
 local liucheng = General(extension, "mou__liucheng", "qun", 3, 3, General.Female)
-
-local lveying = fk.CreateTriggerSkill{
-  name = "lveying",
+local lueying = fk.CreateTriggerSkill{
+  name = "lueying",
   events = {fk.CardUseFinished},
   anim_type = "control",
   can_trigger = function(self, event, target, player, data)
-    return player:hasSkill(self) and target == player and data.card.trueName == "slash" and player:getMark("@lveying_hit") > 1
+    return player:hasSkill(self) and target == player and data.card.trueName == "slash" and player:getMark("@lueying_hit") > 1
   end,
   on_cost = function() return true end,
   on_use = function(self, event, target, player, data)
     local room = player.room
-    room:removePlayerMark(player, "@lveying_hit", 2)
+    room:removePlayerMark(player, "@lueying_hit", 2)
     room:drawCards(player, 1, self.name)
     local dismantlement = Fk:cloneCard("dismantlement")
     dismantlement.skillName = self.name
@@ -326,7 +333,7 @@ local lveying = fk.CreateTriggerSkill{
       end
     end
     if #targets == 0 then return false end
-    local tos = room:askForChoosePlayers(player, targets, 1, max_num, "#lveying-dismantlement:::" .. max_num, self.name, true, true)
+    local tos = room:askForChoosePlayers(player, targets, 1, max_num, "#lueying-dismantlement:::" .. max_num, self.name, true, true)
     if #tos > 0 then
       room:useCard({
         from = player.id,
@@ -337,16 +344,16 @@ local lveying = fk.CreateTriggerSkill{
   end,
 }
 
-local lveying_charge = fk.CreateTriggerSkill{
-  name = "#lveying_charge",
+local lueying_charge = fk.CreateTriggerSkill{
+  name = "#lueying_charge",
   events = {fk.TargetSpecified},
   mute = true,
   can_trigger = function(self, event, target, player, data)
-    return player:hasSkill(lveying.name) and target == player and data.card.trueName == "slash" and player:usedSkillTimes(self.name) < 2
+    return player:hasSkill(lueying.name) and target == player and data.card.trueName == "slash" and player:usedSkillTimes(self.name) < 2
   end,
   on_cost = function() return true end,
   on_use = function(self, event, target, player, data)
-    player.room:addPlayerMark(player, "@lveying_hit")
+    player.room:addPlayerMark(player, "@lueying_hit")
   end,
 }
 
@@ -356,12 +363,12 @@ local yingwu = fk.CreateTriggerSkill{
   anim_type = "offensive",
   can_trigger = function(self, event, target, player, data)
     return player:hasSkill(self) and target == player and data.card:isCommonTrick() and not data.card.is_damage_card and
-      player:getMark("@lveying_hit") > 1
+      player:getMark("@lueying_hit") > 1
   end,
   on_cost = function() return true end,
   on_use = function(self, event, target, player, data)
     local room = player.room
-    room:removePlayerMark(player, "@lveying_hit", 2)
+    room:removePlayerMark(player, "@lueying_hit", 2)
     room:drawCards(player, 1, self.name)
     local slash = Fk:cloneCard("slash")
     slash.skillName = self.name
@@ -396,22 +403,22 @@ local yingwu_charge = fk.CreateTriggerSkill{
   end,
   on_cost = function() return true end,
   on_use = function(self, event, target, player, data)
-    player.room:addPlayerMark(player, "@lveying_hit")
+    player.room:addPlayerMark(player, "@lueying_hit")
   end,
 }
 
-lveying:addRelatedSkill(lveying_charge)
+lueying:addRelatedSkill(lueying_charge)
 yingwu:addRelatedSkill(yingwu_charge)
-liucheng:addSkill(lveying)
+liucheng:addSkill(lueying)
 liucheng:addSkill(yingwu)
 
 Fk:loadTranslationTable{
   ["mou__liucheng"] = "谋刘赪",
   ["#mou__liucheng"] = "泣梧的湘女",
 
-  ["lveying"] = "掠影",
-  ["#lveying_charge"] = "掠影",
-  [":lveying"] = "你使用【杀】结算结束后，若你拥有至少两个“椎”标记，则你移除两个“椎”标记，然后摸一张牌，"..
+  ["lueying"] = "掠影",
+  ["#lueying_charge"] = "掠影",
+  [":lueying"] = "你使用【杀】结算结束后，若你拥有至少两个“椎”标记，则你移除两个“椎”标记，然后摸一张牌，"..
     "且可以选择一名角色视为对其使用一张【过河拆桥】。出牌阶段限两次，你使用【杀】指定一个目标后，你获得一个“椎”标记。",
   ["yingwu"] = "莺舞",
   ["#yingwu_charge"] = "掠影",
@@ -419,12 +426,12 @@ Fk:loadTranslationTable{
     "且可以选择一名角色视为对其使用一张【杀】（计入次数，无次数限制）。出牌阶段限两次，你使用非伤害类普通锦囊指定一个目标后，"..
     "若你拥有技能“掠影”，则你获得一个“椎”标记。",
 
-  ["@lveying_hit"] = "椎",
-  ["#lveying-dismantlement"] = "掠影：你可以视为使用【过河拆桥】，选择%arg名角色为目标",
+  ["@lueying_hit"] = "椎",
+  ["#lueying-dismantlement"] = "掠影：你可以视为使用【过河拆桥】，选择%arg名角色为目标",
   ["#yingwu-slash"] = "莺舞：你可以视为使用【杀】，选择%arg名角色为目标",
 
-  ["$lveying1"] = "避实击虚，吾可不惮尔等蛮力！",
-  ["$lveying2"] = "疾步如风，谁人可视吾影？",
+  ["$lueying1"] = "避实击虚，吾可不惮尔等蛮力！",
+  ["$lueying2"] = "疾步如风，谁人可视吾影？",
   ["$yingwu1"] = "莺舞曼妙，杀机亦藏其中！",
   ["$yingwu2"] = "莺翼之羽，便是诛汝之锋！",
   ["~mou__liucheng"] = "此番寻药未果，怎医叙儿之疾……",
