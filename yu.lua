@@ -374,18 +374,26 @@ local mouliegong = fk.CreateTriggerSkill{
     cardUseEvent.liegong_used = true
 
     -- 让他不能出闪
-    local target = room:getPlayerById(data.to)
+    local to = room:getPlayerById(data.to)
     local suits = player:getMark("@mouliegongRecord")
-    room:setPlayerMark(target, self.name, suits)
+    room:setPlayerMark(to, self.name, suits)
 
     -- 展示牌堆顶的牌，计算加伤数量
-    local cards = room:getNCards(#suits - 1)
-    room:moveCardTo(cards, Card.DiscardPile) -- FIXME
-    data.additionalDamage = (data.additionalDamage or 0) +
-    #table.filter(cards, function(id)
-      local c = Fk:getCardById(id)
-      return table.contains(suits, c:getSuitString(true))
-    end)
+    if #suits > 1 then
+      local cards = room:getNCards(#suits - 1)
+      room:moveCardTo(cards, Card.Processing)
+      data.additionalDamage = data.additionalDamage or 0
+      for _, id in ipairs(cards) do
+        if table.contains(suits, Fk:getCardById(id):getSuitString(true)) then
+          room:setCardEmotion(id, "judgegood")
+          data.additionalDamage = data.additionalDamage + 1
+        else
+          room:setCardEmotion(id, "judgebad")
+        end
+        room:delay(200)
+      end
+      room:moveCardTo(cards, Card.DiscardPile)
+    end
   end,
 
   refresh_events = {fk.TargetConfirmed, fk.CardUsing, fk.CardUseFinished},
@@ -425,7 +433,7 @@ Fk:loadTranslationTable{
   ["mou__liegong"] = "烈弓",
   [":mou__liegong"] = "若你未装备武器，你的【杀】只能当作普通【杀】使用或打出。"
    .. "你使用牌时或成为其他角色使用牌的目标后，若此牌的花色未被“烈弓”记录，"
-   .. "则记录此种花色。当你使用【杀】指定唯一目标后，你可以展示牌堆顶的X张牌"
+   .. "则记录此种花色。当你使用【杀】指定唯一目标后，你可以亮出牌堆顶的X张牌"
    .. "（X为你记录的花色数-1，且至少为0），然后每有一张牌花色与“烈弓”记录的"
    .. "花色相同，你令此【杀】伤害+1，且其不能使用“烈弓”记录花色的牌响应此"
    .. "【杀】。若如此做，此【杀】结算结束后，清除“烈弓”记录的花色。",

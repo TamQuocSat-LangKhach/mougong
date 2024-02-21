@@ -144,6 +144,7 @@ daqiao:addSkill(mou__guose)
 daqiao:addSkill(mou__liuli)
 Fk:loadTranslationTable{
   ["mou__daqiao"] = "谋大乔",
+  ["#mou__daqiao"] = "矜持之花",
   ["mou__guose"] = "国色",
   [":mou__guose"] = "出牌阶段限四次，你可以选择一项：1.将一张<font color='red'>♦</font>牌当【乐不思蜀】使用；"..
   "2.弃置一张<font color='red'>♦</font>牌并弃置场上的一张【乐不思蜀】。选择完成后，你摸两张牌，然后弃置一张牌。",
@@ -311,6 +312,7 @@ caocao:addSkill(mou__hujia)
 
 Fk:loadTranslationTable{
   ["mou__caocao"] = "谋曹操",
+  ["#mou__caocao"] = "魏武大帝",
   ["mou__jianxiong"] = "奸雄",
   ["#mou__jianxiong_gamestart"] = "奸雄",
   [":mou__jianxiong"] = "游戏开始时，你可以获得至多两枚“治世”标记。当你受到伤害后，你可以获得对你造成伤害的牌并摸2-X张牌，然后你可以移除1枚“治世”。"..
@@ -346,6 +348,9 @@ local mou__zhiheng = fk.CreateActiveSkill{
   target_num = 0,
   can_use = function(self, player)
     return player:usedSkillTimes(self.name) == 0
+  end,
+  card_filter = function(self, to_select, selected)
+    return not Self:prohibitDiscard(Fk:getCardById(to_select))
   end,
   on_use = function(self, room, effect)
     local from = room:getPlayerById(effect.from)
@@ -453,6 +458,7 @@ sunquan:addSkill(mou__tongye)
 sunquan:addSkill(mou__jiuyuan)
 Fk:loadTranslationTable{
   ["mou__sunquan"] = "谋孙权",
+  ["#mou__sunquan"] = "江东大帝",
   ["mou__zhiheng"] = "制衡",
   [":mou__zhiheng"] = "出牌阶段限一次，你可以弃置任意张牌并摸等量的牌。若你以此法弃置了所有的手牌，你多摸1+X张牌（X为你的“业”数），然后你弃置一枚“业”。",
   ["mou__tongye"] = "统业",
@@ -588,6 +594,7 @@ mouzhouyu:addSkill(mou__yingzi)
 mouzhouyu:addSkill(mou__fanjian)
 Fk:loadTranslationTable{
   ["mou__zhouyu"] = "谋周瑜",
+  ["#mou__zhouyu"] = "江淮之杰",
   ["mou__yingzi"] = "英姿",
   ["#mou__yingzi_maxcards"] = "英姿",
   [":mou__yingzi"] = "锁定技，摸牌阶段开始时，你每满足以下一项条件此摸牌阶段摸牌基数和本回合手牌上限便+1，你的手牌数不少于2，你的装备区内牌数不少于1，你的体力值不少于2。",
@@ -645,7 +652,9 @@ local mou__luoshen = fk.CreateTriggerSkill{
         p:showCards(cards)
         local card = Fk:getCardById(cards[1])
         if card.color == Card.Red then
-          room:throwCard(cards, self.name, p, p)
+          if not p:prohibitDiscard(card) then
+            room:throwCard(cards, self.name, p, p)
+          end
         elseif card.color == Card.Black then
           room:moveCards({
             ids = cards,
@@ -696,6 +705,7 @@ mouzhenji:addSkill(mou__luoshen)
 mouzhenji:addSkill("qingguo")
 Fk:loadTranslationTable{
   ["mou__zhenji"] = "谋甄姬",
+  ["#mou__zhenji"] = "薄幸幽兰",
   ["mou__luoshen"] = "洛神",
   [":mou__luoshen"] = "准备阶段，你可以选择一名角色，自其开始的X名其他角色依次展示一张手牌（X为场上存活角色数的一半，向上取整）："..
   "若为黑色，你获得之（这些牌不计入你本回合的手牌上限）；若为红色，其弃置之。",
@@ -806,6 +816,7 @@ local mou__huangtian = fk.CreateTriggerSkill{
 mou__zhangjiao:addSkill(mou__huangtian)
 Fk:loadTranslationTable{
   ["mou__zhangjiao"] = "谋张角",
+  ["#mou__zhangjiao"] = "驱雷掣电",
   ["mou__leiji"] = "雷击",
   [":mou__leiji"] = "出牌阶段，你可以移去4个“道兵”标记，对一名其他角色造成1点雷电伤害。",
   ["@daobing"] = "道兵",
@@ -871,6 +882,7 @@ local mou__zongshi = fk.CreateTriggerSkill{
 mou__liubiao:addSkill(mou__zongshi)
 Fk:loadTranslationTable{
   ["mou__liubiao"] = "谋刘表",
+  ["#mou__liubiao"] = "跨蹈汉南",
   ["mou__zishou"] = "自守",
   [":mou__zishou"] = "锁定技，其他角色的结束阶段，若本局游戏你与其均未对另一方造成过伤害，其交给你一张牌。",
   ["mou__zongshi"] = "宗室",
@@ -1170,6 +1182,7 @@ mou__jijiang:addRelatedSkill(mou__jijiang_delay)
 mou__liubei:addSkill(mou__jijiang)
 Fk:loadTranslationTable{
   ["mou__liubei"] = "谋刘备",
+  ["#mou__liubei"] = "雄才盖世",
   ["mou__rende"] = "仁德",
   [":mou__rende"] = "①出牌阶段开始时，你获得2枚“仁望”标记（至多拥有8枚）；"..
   "<br>②出牌阶段，你可以选择一名本阶段未选择过的其他角色，交给其任意张牌，然后你获得等量枚“仁望”标记；"..
