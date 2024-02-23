@@ -780,6 +780,222 @@ Fk:loadTranslationTable{
   ["~mou__jiangwei"] = "市井鱼龙易一统，护国麒麟难擎天……",
 }
 
+local guanyu = General(extension, "mou__guanyu", "shu", 4)
+Fk:loadTranslationTable{
+  ["mou__guanyu"] = "谋关羽",
+  ["~mou__guanyu"] = "大哥，翼德，来生再于桃园，论豪情壮志……",
+}
+local mouWuSheng = fk.CreateViewAsSkill{
+  name = "mou__wusheng",
+  pattern = "slash",
+  card_num = 1,
+  card_filter = function(self, to_select, selected)
+    if #selected == 1 or Fk:currentRoom():getCardArea(to_select) ~= Player.Hand then return false end
+    local c = Fk:cloneCard("slash")
+    return (Fk.currentResponsePattern == nil and Self:canUse(c)) or
+      (Fk.currentResponsePattern and Exppattern:Parse(Fk.currentResponsePattern):match(c))
+  end,
+  interaction = function(self)
+    local allCardNames = {}
+    for _, id in ipairs(Fk:getAllCardIds()) do
+      local card = Fk:getCardById(id)
+      if
+        not table.contains(allCardNames, card.name) and
+        card.trueName == "slash" and
+        (
+          (Fk.currentResponsePattern == nil and Self:canUse(card)) or
+          (Fk.currentResponsePattern and Exppattern:Parse(Fk.currentResponsePattern):match(card))
+        ) and
+        not Self:prohibitUse(card) then
+        table.insert(allCardNames, card.name)
+      end
+    end
+    return UI.ComboBox { choices = allCardNames }
+  end,
+  view_as = function(self, cards)
+    local choice = self.interaction.data
+    if not choice or #cards ~= 1 then return end
+    local c = Fk:cloneCard(choice)
+    c:addSubcards(cards)
+    c.skillName = self.name
+    return c
+  end,
+  enabled_at_play = function(self, player)
+    return player:canUse(Fk:cloneCard("slash"))
+  end,
+  enabled_at_response = function(self, player)
+    return Fk.currentResponsePattern and Exppattern:Parse(Fk.currentResponsePattern):match(Fk:cloneCard("slash"))
+  end,
+}
+local mouWuShengTrigger = fk.CreateTriggerSkill{
+  name = "#mou__wusheng_trigger",
+  anim_type = "offensive",
+  events = {fk.EventPhaseStart},
+  can_trigger = function(self, event, target, player, data)
+    local room = player.room
 
+    return
+      target == player and
+      player:hasSkill("mou__wusheng") and
+      player.phase == Player.Play and
+      table.find(room:getOtherPlayers(player), function(p)
+        return p.role ~= "lord" or not p.role_shown or table.contains({"m_1v2_mode", "brawl_mode"}, room.settings.gameMode)
+      end)
+  end,
+  on_cost = function(self, event, target, player, data)
+    local room = player.room
+    local targets = table.filter(room:getOtherPlayers(player), function(p)
+      return p.role ~= "lord" or not p.role_shown or table.contains({"m_1v2_mode", "brawl_mode"}, room.settings.gameMode)
+    end)
+
+    if #targets then
+      local tos = room:askForChoosePlayers(player, table.map(targets, Util.IdMapper), 1, 1, "#mou__wusheng-choose", true)
+      if #tos > 0 then
+        self.cost_data = tos[1]
+        player:broadcastSkillInvoke("mou__wusheng")
+        return true
+      end
+    end
+
+    return false
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    if event == fk.EventPhaseStart then
+      room:setPlayerMark(room:getPlayerById(self.cost_data), "@mou__wusheng-phase", "")
+      room:setPlayerMark(player, "mou__wusheng_from-phase", 1)
+    end
+  end,
+}
+local mouWuShengTargetMod = fk.CreateTargetModSkill{
+  name = "#mou__wusheng_targetmod",
+  bypass_times = function(self, player, skill, scope, card, to)
+    return card and card.trueName == "slash" and player:getMark("mou__wusheng_from-phase") > 0 and to and to:getMark("@mou__wusheng-phase") ~= 0
+  end,
+  bypass_distances = function(self, player, skill, card, to)
+    return card and card.trueName == "slash" and player:getMark("mou__wusheng_from-phase") > 0 and to and to:getMark("@mou__wusheng-phase") ~= 0
+  end,
+}
+local mouWuShengBuff = fk.CreateTriggerSkill{
+  name = "#mou__wusheng_buff",
+  mute = true,
+  events = {fk.TargetSpecified},
+  can_trigger = function(self, event, target, player, data)
+    return target == player and data.card.trueName == "slash" and player.room:getPlayerById(data.to):getMark("@mou__wusheng-phase") ~= 0
+  end,
+  on_cost = Util.TrueFunc,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    local to = room:getPlayerById(data.to)
+    if to:isAlive() then
+      local usedTimes = to:getMark("@mou__wusheng-phase")
+      room:setPlayerMark(to, "@mou__wusheng-phase", type(usedTimes) == "string" and 1 or usedTimes + 1)
+    end
+
+    local drawNum = table.contains({"aaa_role_mode", "aab_role_mode", "vanished_dragon"}, room.settings.gameMode) and 2 or 1
+    player:drawCards(drawNum, self.name)
+  end,
+}
+local mouWuShengProhibit = fk.CreateProhibitSkill{
+  name = "#mou__wusheng_prohibit",
+  is_prohibited = function(self, from, to, card)
+    local usedTimes = to:getMark("@mou__wusheng-phase")
+    return
+      from:getMark("mou__wusheng_from-phase") > 0 and
+      card and
+      card.trueName == "slash" and
+      type(usedTimes) == "number" and
+      usedTimes > 2
+  end,
+}
+Fk:loadTranslationTable{
+  ["mou__wusheng"] = "武圣",
+  [":mou__wusheng"] = "你可以将一张手牌当任意【杀】使用或打出；出牌阶段开始时，你可以选择一名不为主公的其他角色，此阶段你拥有以下效果：" ..
+  "你对其使用【杀】无距离和次数限制；当你使用【杀】指定其为目标后，你摸一张牌（若为身份模式则改为摸两张牌）；" ..
+  "当你对其使用三张【杀】后，本阶段不可再使用【杀】指定其为目标。",
+  ["#mou__wusheng_trigger"] = "武圣",
+  ["@mou__wusheng-phase"] = "武圣",
+  ["#mou__wusheng-choose"] = "武圣：你可选择一名非主公角色，此阶段可对其出三张【杀】且对其用【杀】摸一张牌",
+
+  ["$mou__wusheng1"] = "千军斩将而回，于某又有何难？",
+  ["$mou__wusheng2"] = "对敌岂遵一招一式！",
+  ["$mou__wusheng3"] = "关某既出，敌将定皆披靡。",
+}
+
+mouWuSheng:addRelatedSkill(mouWuShengTrigger)
+mouWuSheng:addRelatedSkill(mouWuShengTargetMod)
+mouWuSheng:addRelatedSkill(mouWuShengBuff)
+mouWuSheng:addRelatedSkill(mouWuShengProhibit)
+guanyu:addSkill(mouWuSheng)
+
+Fk:addQmlMark{
+  name = "mou__yijue",
+  qml_path = function(name, value, p)
+    return "packages/mougong/qml/YiJueBox"
+  end,
+  how_to_show = function(name, value, p)
+    if type(value) == "table" then
+      return tostring(#value)
+    end
+    return " "
+  end,
+}
+
+local mouYiJue = fk.CreateTriggerSkill{
+  name = "mou__yijue",
+  anim_type = "negative",
+  frequency = Skill.Compulsory,
+  events = {fk.DamageCaused},
+  can_trigger = function(self, event, target, player, data)
+    return
+      target == player and
+      player:hasSkill(self) and
+      player.phase ~= Player.NotActive and
+      player ~= data.to and
+      data.to:isAlive() and
+      data.damage >= data.to.hp and
+      not table.contains(player.tag["mou__yijue_targets"] or {}, data.to.id)
+  end,
+  on_use = function(self, event, target, player, data)
+    local yijueTargets = player.tag["mou__yijue_targets"] or {}
+    table.insertIfNeed(yijueTargets, data.to.id)
+    player.tag["mou__yijue_targets"] = yijueTargets
+
+    local room = player.room
+    room:setPlayerMark(
+      player,
+      "@[mou__yijue]",
+      table.map(yijueTargets, function(id) return room:getPlayerById(id).seat end)
+    )
+    room:setPlayerMark(data.to, "mou__yijue-turn", player.id)
+
+    return true
+  end,
+}
+local mouYiJueCancel = fk.CreateTriggerSkill{
+  name = "#mou__yijue_cancel",
+  mute = true,
+  events = {fk.TargetSpecifying},
+  can_trigger = function(self, event, target, player, data)
+    return target == player and player.room:getPlayerById(data.to):getMark("mou__yijue-turn") == player.id
+  end,
+  on_cost = Util.TrueFunc,
+  on_use = function(self, event, target, player, data)
+    AimGroup:cancelTarget(data, data.to)
+    return true
+  end,
+}
+Fk:loadTranslationTable{
+  ["mou__yijue"] = "义绝",
+  [":mou__yijue"] = "锁定技，每名角色限一次，当你于回合内对其他角色造成伤害时，若伤害值不小于其体力，则防止此伤害，且直到本回合结束，" ..
+  "当你使用牌指定其为目标时，取消之。",
+  ["@[mou__yijue]"] = "义绝",
+
+  ["$mou__yijue1"] = "承君之恩，今日尽报。",
+  ["$mou__yijue2"] = "下次沙场相见，关某定不留情。",
+}
+
+mouYiJue:addRelatedSkill(mouYiJueCancel)
+guanyu:addSkill(mouYiJue)
 
 return extension
