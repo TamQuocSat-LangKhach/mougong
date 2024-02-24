@@ -849,7 +849,7 @@ local mouWuShengTrigger = fk.CreateTriggerSkill{
     end)
 
     if #targets then
-      local tos = room:askForChoosePlayers(player, table.map(targets, Util.IdMapper), 1, 1, "#mou__wusheng-choose", true)
+      local tos = room:askForChoosePlayers(player, table.map(targets, Util.IdMapper), 1, 1, "#mou__wusheng-choose", self.name)
       if #tos > 0 then
         self.cost_data = tos[1]
         player:broadcastSkillInvoke("mou__wusheng")
