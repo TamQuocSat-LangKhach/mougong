@@ -943,6 +943,85 @@ Fk:addQmlMark{
     return " "
   end,
 }
+local checkXieli = function (player, target)
+  local mark = U.getMark(player, "@[mou__xieli]")
+  if #mark == 0 then return false end
+  local pid = mark[1]
+  if pid == target.id then
+    local choice = mark[2]
+    local event_id = mark[3]
+    if choice == "xieli_tongchou" then
+      local n = 0
+      local events = U.getActualDamageEvents(player.room, 999, function(e) return e.data[1].from == player or e.data[1].from == target end, nil, event_id)
+      for _, e in ipairs(events) do
+        n = n + e.data[1].damage
+      end
+      return n >= 4
+    elseif choice == "xieli_bingjin" then
+      local n = 0
+      U.getEventsByRule (player.room, GameEvent.MoveCards, 999, function(e)
+        for _, move in ipairs(e.data) do
+          if move.moveReason == fk.ReasonDraw and (move.to == player.id or move.to == target.id) then
+            for _, info in ipairs(move.moveInfo) do
+              if info.fromArea == Card.DrawPile then
+                n = n + 1
+              end
+            end
+          end
+        end
+        return false
+      end, event_id)
+      return n >= 8
+    elseif choice == "xieli_shucai" then
+      local suits = {}
+      U.getEventsByRule (player.room, GameEvent.MoveCards, 999, function(e)
+        for _, move in ipairs(e.data) do
+          if move.moveReason == fk.ReasonDiscard and (move.from == player.id or move.from == target.id) then
+            for _, info in ipairs(move.moveInfo) do
+              if info.fromArea == Card.PlayerHand or info.fromArea == Card.PlayerEquip then
+                local suit = Fk:getCardById(info.cardId).suit
+                if suit ~= Card.NoSuit then
+                  table.insertIfNeed(suits, suit)
+                end
+              end
+            end
+          end
+        end
+        return false
+      end, event_id)
+      return #suits == 4
+    elseif choice == "xieli_luli" then
+      local suits = {}
+      U.getEventsByRule (player.room, GameEvent.UseCard, 999, function(e)
+        for _, move in ipairs(e.data) do
+          local use = e.data[1]
+          if use.from == player.id or use.from == target.id then
+            local suit = use.card.suit
+            if suit ~= Card.NoSuit then
+              table.insertIfNeed(suits, suit)
+            end
+          end
+        end
+        return false
+      end, event_id)
+      if #suits == 4 then return true end
+      U.getEventsByRule (player.room, GameEvent.RespondCard, 999, function(e)
+        for _, move in ipairs(e.data) do
+          local resp = e.data[1]
+          if resp.from == player.id or resp.from == target.id then
+            local suit = resp.card.suit
+            if suit ~= Card.NoSuit then
+              table.insertIfNeed(suits, suit)
+            end
+          end
+        end
+        return false
+      end, event_id)
+      return #suits == 4
+    end
+  end
+  return false
+end
 local mou__xieji = fk.CreateTriggerSkill{
   name = "mou__xieji",
   events = {fk.EventPhaseStart},
@@ -985,81 +1064,7 @@ local mou__xieji_delay = fk.CreateTriggerSkill{
   can_trigger = function(self, event, target, player, data)
     if event == fk.TurnEnd then
       if not player.dead and target ~= player and not player:prohibitUse(Fk:cloneCard("slash")) then
-        local mark = U.getMark(player, "@[mou__xieli]")
-        if #mark == 0 then return false end
-        local pid = mark[1]
-        if pid == target.id then
-          local choice = mark[2]
-          local event_id = mark[3]
-          if choice == "xieli_tongchou" then
-            local n = 0
-            local events = U.getActualDamageEvents(player.room, 999, function(e) return e.data[1].from == player or e.data[1].from == target end, nil, event_id)
-            for _, e in ipairs(events) do
-              n = n + e.data[1].damage
-            end
-            return n >= 4
-          elseif choice == "xieli_bingjin" then
-            local n = 0
-            U.getEventsByRule (player.room, GameEvent.MoveCards, 999, function(e)
-              for _, move in ipairs(e.data) do
-                if move.moveReason == fk.ReasonDraw and (move.to == player.id or move.to == target.id) then
-                  for _, info in ipairs(move.moveInfo) do
-                    if info.fromArea == Card.DrawPile then
-                      n = n + 1
-                    end
-                  end
-                end
-              end
-              return false
-            end, event_id)
-            return n >= 8
-          elseif choice == "xieli_shucai" then
-            local suits = {}
-            U.getEventsByRule (player.room, GameEvent.MoveCards, 999, function(e)
-              for _, move in ipairs(e.data) do
-                if move.moveReason == fk.ReasonDiscard and (move.from == player.id or move.from == target.id) then
-                  for _, info in ipairs(move.moveInfo) do
-                    if info.fromArea == Card.PlayerHand or info.fromArea == Card.PlayerEquip then
-                      local suit = Fk:getCardById(info.cardId).suit
-                      if suit ~= Card.NoSuit then
-                        table.insertIfNeed(suits, suit)
-                      end
-                    end
-                  end
-                end
-              end
-              return false
-            end, event_id)
-            return #suits == 4
-          elseif choice == "xieli_luli" then
-            local suits = {}
-            U.getEventsByRule (player.room, GameEvent.UseCard, 999, function(e)
-              for _, move in ipairs(e.data) do
-                local use = e.data[1]
-                if use.from == player.id or use.from == target.id then
-                  local suit = use.card.suit
-                  if suit ~= Card.NoSuit then
-                    table.insertIfNeed(suits, suit)
-                  end
-                end
-              end
-              return false
-            end, event_id)
-            U.getEventsByRule (player.room, GameEvent.RespondCard, 999, function(e)
-              for _, move in ipairs(e.data) do
-                local resp = e.data[1]
-                if resp.from == player.id or resp.from == target.id then
-                  local suit = resp.card.suit
-                  if suit ~= Card.NoSuit then
-                    table.insertIfNeed(suits, suit)
-                  end
-                end
-              end
-              return false
-            end, event_id)
-            return #suits == 4
-          end
-        end
+        return checkXieli (player, target)
       end
     else
       return target == player and not player.dead and data.card and table.contains(data.card.skillNames, "mou__xieji")
@@ -1121,6 +1126,168 @@ Fk:loadTranslationTable{
   ["$mou__xieji2"] = "吴贼害我手足，此仇今日当报！",
   ["$mou__xieji3"] = "二哥，俺来助你！",
   ["~mou__zhangfei"] = "不恤士卒，终为小人所害！",
+}
+
+local mou__zhaoyun = General(extension, "mou__zhaoyun", "shu", 4)
+local mou__longdan = fk.CreateViewAsSkill{
+  name = "mou__longdan",
+  pattern = ".|.|.|.|.|basic",
+  prompt = function ()
+    return "#mou__longdan"..Self:getMark("@@mou__jizhu")
+  end,
+  interaction = function(self)
+    local names = Self:getMark("@@mou__jizhu") == 0 and {"slash","jink"} or U.getAllCardNames("b")
+    names = U.getViewAsCardNames(Self, self.name, names)
+    if #names == 0 then return end
+    return UI.ComboBox {choices = names}
+  end,
+  card_filter = function(self, to_select, selected)
+    if #selected ~= 0 or not self.interaction.data then return false end
+    local card = Fk:getCardById(to_select)
+    if Self:getMark("@@mou__jizhu") == 0 then
+      return card.trueName == (self.interaction.data == "jink" and "slash" or "jink")
+    else
+      return card.type == Card.TypeBasic
+    end
+  end,
+  view_as = function(self, cards)
+    if #cards ~= 1 or not self.interaction.data then return end
+    local card = Fk:cloneCard(self.interaction.data)
+    card:addSubcard(cards[1])
+    card.skillName = self.name
+    return card
+  end,
+  before_use = function(self, player, use)
+    local room = player.room
+    U.skillCharged(player, -1)
+    use.extra_data = use.extra_data or {}
+    use.extra_data.mou__longdan = player.id
+  end,
+  enabled_at_play = function(self, player)
+    return player:getMark("skill_charge") > 0
+  end,
+  enabled_at_response = function (self, player, response)
+    if player:getMark("skill_charge") > 0 and Fk.currentResponsePattern then
+      local names = Self:getMark("@@mou__jizhu") == 0 and {"slash","jink"} or U.getAllCardNames("b")
+      return table.find(names, function (name)
+        local card = Fk:cloneCard(name)
+        card.skillName = self.name
+        return Exppattern:Parse(Fk.currentResponsePattern):match(card)
+      end)
+    end
+  end,
+}
+local mou__longdan_delay = fk.CreateTriggerSkill{
+  name = "#mou__longdan_delay",
+  mute = true,
+  events = {fk.CardUseFinished, fk.TurnEnd},
+  can_trigger = function(self, event, target, player, data)
+    if event == fk.CardUseFinished then
+      return target == player and not player.dead and data.extra_data and data.extra_data.mou__longdan == player.id
+    else
+      return player:hasSkill(mou__longdan) and player:getMark("skill_charge") < player:getMark("skill_charge_max")
+    end
+  end,
+  on_cost = Util.TrueFunc,
+  on_use = function(self, event, target, player, data)
+    if event == fk.CardUseFinished then
+      player:drawCards(1, "mou__longdan")
+    else
+      U.skillCharged(player, 1)
+    end
+  end,
+
+  refresh_events = {fk.EventAcquireSkill, fk.EventLoseSkill},
+  can_refresh = function(self, event, target, player, data)
+    return data == self and target == player
+  end,
+  on_refresh = function(self, event, target, player, data)
+    if event == fk.EventAcquireSkill then
+      U.skillCharged(player, 1, 3)
+    else
+      U.skillCharged(player, -1, -3)
+    end
+  end,
+}
+mou__longdan:addRelatedSkill(mou__longdan_delay)
+mou__zhaoyun:addSkill(mou__longdan)
+
+local mou__jizhu = fk.CreateTriggerSkill{
+  name = "mou__jizhu",
+  events = {fk.EventPhaseStart, fk.TurnEnd},
+  can_trigger = function(self, event, target, player, data)
+    if event == fk.EventPhaseStart then
+      return player:hasSkill(self) and target == player and player.phase == Player.Start and player:getMark("@[mou__xieli]") == 0
+    else
+      if not player.dead and target ~= player then
+        return checkXieli (player, target)
+      end
+    end
+  end,
+  on_cost = function (self, event, target, player, data)
+    if event == fk.TurnEnd then return true end
+    local room = player.room
+    local tos = room:askForChoosePlayers(player, table.map(room:getOtherPlayers(player), Util.IdMapper), 1, 1, "#mou__jizhu-choose", self.name, true)
+    if #tos > 0 then
+      self.cost_data = tos[1]
+      return true
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    if event == fk.EventPhaseStart then
+      local to = room:getPlayerById(self.cost_data)
+      local choices = {"xieli_tongchou", "xieli_bingjin", "xieli_shucai", "xieli_luli"}
+      local choice = room:askForChoice(player, choices, self.name, "#mou__jizhu-choice", true)
+      room:setPlayerMark(player, "@[mou__xieli]", {to.id, choice, room.logic:getCurrentEvent().id})
+    else
+      room:setPlayerMark(player, "@@mou__jizhu", 1)
+    end
+  end,
+
+  refresh_events = {fk.AfterTurnEnd, fk.Death, fk.EventPhaseStart},
+  can_refresh = function (self, event, target, player, data)
+    if event == fk.EventPhaseStart then
+      return target == player and player.phase == Player.Finish and player:getMark("@@mou__jizhu") > 0
+    else
+      local mark = U.getMark(player, "@[mou__xieli]")
+      return #mark > 0 and mark[1] == target.id
+    end
+  end,
+  on_refresh = function (self, event, target, player, data)
+    local room = player.room
+    if event == fk.EventPhaseStart then
+      room:setPlayerMark(player, "@@mou__jizhu", 0)
+    else
+      room:setPlayerMark(player, "@[mou__xieli]", 0)
+    end
+  end,
+}
+mou__zhaoyun:addSkill(mou__jizhu)
+
+Fk:loadTranslationTable{
+  ["mou__zhaoyun"] = "谋赵云",
+  ["#mou__zhaoyun"] = "七进七出",
+  ["mou__longdan"] = "龙胆",
+  [":mou__longdan"] = "蓄力技（1/3），"..
+  "<br>①一名角色的回合结束时，你获得1点“蓄力”值；"..
+  "<br>②当你需要使用或打出【杀】或【闪】时，你可以消耗1点“蓄力”值，将一张【杀】当【闪】、【闪】当【杀】使用或打出。当你以此法使用【杀】或者【闪】结算完毕后，你摸一张牌。",
+  ["#mou__longdan_delay"] = "龙胆",
+  ["#mou__longdan0"] = "龙胆:将一张【杀】当【闪】、【闪】当【杀】使用或打出",
+  ["#mou__longdan1"] = "龙胆:将一张基本牌当任意基本牌使用或打出",
+
+  ["mou__jizhu"] = "积著",
+  [":mou__jizhu"] = "准备阶段，你可以选择一名其他角色，与其进行一次“协力”。<br>该角色的回合结束时，若你与其“协力”成功，直到你的下个结束阶段，你修改〖龙胆〗：将“【杀】当【闪】、【闪】当【杀】”改为“基本牌当任意基本牌”。",
+  ["#mou__jizhu-choose"] = "积著：选择一名其他角色，与其进行“协力”",
+  ["#mou__jizhu-choice"] = "积著：选择“协力”的任务",
+  ["@@mou__jizhu"] = "积著成功",
+
+  ["$mou__longdan1"] = "长坂沥赤胆，佑主成忠名！",
+  ["$mou__longdan2"] = "龙驹染碧血，银枪照丹心！",
+  ["$mou__jizhu1"] = "义贯金石，忠以卫上！",
+  ["$mou__jizhu2"] = "兴汉伟功，从今始成！",
+  ["$mou__jizhu3"] = "遵奉法度，功效可书！",
+  ["~mou__zhaoyun"] = "汉室未兴，功业未成……",
 }
 
 return extension

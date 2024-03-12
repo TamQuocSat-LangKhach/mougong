@@ -493,19 +493,21 @@ local mou__huoshou = fk.CreateTriggerSkill{
   name = "mou__huoshou",
   anim_type = "defensive",
   frequency = Skill.Compulsory,
-  events = {fk.PreCardEffect, fk.TargetSpecified, fk.EventPhaseStart},
+  events = {fk.PreCardEffect, fk.TargetSpecified, fk.EventPhaseStart, fk.AfterCardUseDeclared},
   can_trigger = function(self, event, target, player, data)
     if event == fk.PreCardEffect then
       return player.id == data.to and player:hasSkill(self) and data.card.trueName == "savage_assault"
     elseif event == fk.TargetSpecified then
       return target ~= player and data.firstTarget and player:hasSkill(self) and data.card.trueName == "savage_assault"
-    else
-      if player == target and player:hasSkill(self) and player.phase == Player.Play then
+    elseif player == target and player:hasSkill(self) and player.phase == Player.Play then
+      if event == fk.EventPhaseStart then
         local ids = player.room:getCardsFromPileByRule("savage_assault", 1, "discardPile")
         if #ids > 0 then
           self.cost_data = ids[1]
           return true
         end
+      else
+        return data.card.name == "savage_assault"
       end
     end
   end,
@@ -515,35 +517,29 @@ local mou__huoshou = fk.CreateTriggerSkill{
     elseif event == fk.TargetSpecified then
       data.extra_data = data.extra_data or {}
       data.extra_data.mou__huoshou = player.id
-    else
+    elseif event == fk.EventPhaseStart then
       player.room:obtainCard(player, self.cost_data, true, fk.ReasonPrey)
+    else
+      player.room:setPlayerMark(player, "mou__huoshou-phase", 1)
     end
   end,
 
-  refresh_events = {fk.PreDamage, fk.AfterCardUseDeclared},
+  refresh_events = {fk.PreDamage},
   can_refresh = function(self, event, target, player, data)
-    if event == fk.PreDamage then
-      if data.card and data.card.trueName == "savage_assault" then
-        local e = player.room.logic:getCurrentEvent():findParent(GameEvent.UseCard)
-        if e then
-          local use = e.data[1]
-          return use.extra_data and use.extra_data.mou__huoshou
-        end
+    if data.card and data.card.trueName == "savage_assault" then
+      local e = player.room.logic:getCurrentEvent():findParent(GameEvent.UseCard)
+      if e then
+        local use = e.data[1]
+        return use.extra_data and use.extra_data.mou__huoshou
       end
-    else
-      return player == target and player.phase == Player.Play and data.card.trueName == "savage_assault"
     end
   end,
   on_refresh = function(self, event, target, player, data)
     local room = player.room
-    if event == fk.PreDamage then
-      local e = room.logic:getCurrentEvent():findParent(GameEvent.UseCard)
-      if e then
-        local use = e.data[1]
-        data.from = room:getPlayerById(use.extra_data.mou__huoshou)
-      end
-    else
-      room:setPlayerMark(player, "mou__huoshou-phase", 1)
+    local e = room.logic:getCurrentEvent():findParent(GameEvent.UseCard)
+    if e then
+      local use = e.data[1]
+      data.from = room:getPlayerById(use.extra_data.mou__huoshou)
     end
   end,
 }
