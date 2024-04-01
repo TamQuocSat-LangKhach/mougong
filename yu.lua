@@ -651,9 +651,14 @@ local mou__qicai_select = fk.CreateActiveSkill{
   card_filter = function(self, to_select, selected)
     if #selected ~= 0 then return false end
     local card = Fk:getCardById(to_select)
-    return card.type == Card.TypeEquip and not table.contains(U.getMark(Self, "@$mou__qicai"), card.trueName) and
-    (table.contains(U.getMark(Self, "mou__qicai_discardpile"), to_select) or Fk:currentRoom():getCardArea(to_select) ~= Card.PlayerEquip) and
-    U.canMoveCardIntoEquip(Fk:currentRoom():getPlayerById(Self:getMark("mou__qicai_target-tmp")), to_select, false)
+    if table.contains({"m_1v2_mode", "brawl_mode"}, Fk:currentRoom().room_settings.gameMode) and card.sub_type ~= Card.SubtypeArmor then
+      return false
+    end
+
+    return 
+      card.type == Card.TypeEquip and not table.contains(U.getMark(Self, "@$mou__qicai"), card.trueName) and
+      (table.contains(U.getMark(Self, "mou__qicai_discardpile"), to_select) or Fk:currentRoom():getCardArea(to_select) ~= Card.PlayerEquip) and
+      U.canMoveCardIntoEquip(Fk:currentRoom():getPlayerById(Self:getMark("mou__qicai_target-tmp")), to_select, false)
   end,
 }
 Fk:addSkill(mou__qicai_select)
@@ -676,6 +681,13 @@ local mou__qicai = fk.CreateActiveSkill{
     local mark = U.getMark(player, "@$mou__qicai")
     local ids = table.filter(room.discard_pile, function (id)
       local card = Fk:getCardById(id)
+      if
+        table.contains({"m_1v2_mode", "brawl_mode"}, Fk:currentRoom().settings.gameMode) and
+        card.sub_type ~= Card.SubtypeArmor
+      then
+        return false
+      end
+
       return card.type == Card.TypeEquip and not table.contains(mark, card.trueName)
     end)
     room:setPlayerMark(player, "mou__qicai_target-tmp", target.id)
@@ -686,7 +698,7 @@ local mou__qicai = fk.CreateActiveSkill{
     room:setPlayerMark(player, "mou__qicai_discardpile", 0)
 
     if success then
-      if player.room.settings.gameMode == "m_1v2_mode" then
+      if table.contains({"m_1v2_mode", "brawl_mode"}, room.settings.gameMode) then
         table.insert(mark, Fk:getCardById(dat.cards[1]).trueName)
         room:setPlayerMark(player, "@$mou__qicai", mark)
       end

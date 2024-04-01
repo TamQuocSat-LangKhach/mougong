@@ -941,11 +941,11 @@ local mouxingshang = fk.CreateActiveSkill{
     local choice = self.interaction.data
     if choice == "mou__xingshang_restore" then
       room:removePlayerMark(player, "@mou__xingshang_song", 2)
-      player:reset()
+      target:reset()
     elseif choice:startsWith("mou__xingshang_draw") then
       room:removePlayerMark(player, "@mou__xingshang_song", 2)
       local deadPlayersNum = #table.filter(room.players, function(p) return not p:isAlive() end)
-      player:drawCards(math.min(5, math.max(2, deadPlayersNum)), self.name)
+      target:drawCards(math.min(5, math.max(2, deadPlayersNum)), self.name)
     elseif choice == "mou__xingshang_recover" then
       room:removePlayerMark(player, "@mou__xingshang_song", 5)
       room:recover({
@@ -956,8 +956,8 @@ local mouxingshang = fk.CreateActiveSkill{
       })
       room:changeMaxHp(target, 1)
 
-      if #player.sealedSlots > 0 then
-        room:resumePlayerArea(player, {table.random(player.sealedSlots)})
+      if #target.sealedSlots > 0 then
+        room:resumePlayerArea(target, {table.random(target.sealedSlots)})
       end
     elseif choice == "mou__xingshang_memorialize" then
       room:removePlayerMark(player, "@mou__xingshang_song", 5)
@@ -970,7 +970,7 @@ local mouxingshang = fk.CreateActiveSkill{
       end), Util.IdMapper)
       local toId
       local result = room:askForCustomDialog(
-        player, self.name,
+        target, self.name,
         "packages/mougong/qml/ZhuiSiBox.qml",
         { availablePlayers, "$MouXingShang" }
       )
@@ -988,13 +988,13 @@ local mouxingshang = fk.CreateActiveSkill{
       end
       skills = table.filter(skills, function(skill_name)
         local skill = Fk.skills[skill_name]
-        return not skill.lordSkill and not (#skill.attachedKingdom > 0 and not table.contains(skill.attachedKingdom, player.kingdom))
+        return not skill.lordSkill and not (#skill.attachedKingdom > 0 and not table.contains(skill.attachedKingdom, target.kingdom))
       end)
       if #skills > 0 then
-        room:handleAddLoseSkills(player, table.concat(skills, "|"))
+        room:handleAddLoseSkills(target, table.concat(skills, "|"))
       end
 
-      room:setPlayerMark(player, "@mou__xingshang_memorialized", to.deputyGeneral ~= "" and "seat#" .. to.seat or to.general)
+      room:setPlayerMark(target, "@mou__xingshang_memorialized", to.deputyGeneral ~= "" and "seat#" .. to.seat or to.general)
       room:handleAddLoseSkills(player, "-" .. self.name .. '|-mou__fangzhu|-mou__songwei')
     end
   end,
