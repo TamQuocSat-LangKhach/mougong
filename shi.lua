@@ -932,7 +932,18 @@ local mouxingshang = fk.CreateActiveSkill{
   end,
   card_filter = Util.FalseFunc,
   target_filter = function(self, to_select, selected, selected_cards)
-    return #selected == 0 and not (self.interaction.data == "mou__xingshang_memorialize" and to_select ~= Self.id)
+    if #selected > 0 then
+      return false
+    end
+
+    local interactionData = self.interaction.data
+    if interactionData == "mou__xingshang_recover" then
+      return Fk:currentRoom():getPlayerById(to_select).maxHp < 10
+    elseif interactionData == "mou__xingshang_memorialize" then
+      return to_select == Self.id
+    end
+
+    return true
   end,
   on_use = function(self, room, effect)
     local player = room:getPlayerById(effect.from)
@@ -1023,8 +1034,8 @@ Fk:loadTranslationTable{
   ["mou__xingshang"] = "行殇",
   [":mou__xingshang"] = "当一名角色受到伤害后（此项每回合限一次）或死亡时，则你获得两枚“颂”标记（你至多拥有9枚“颂”标记）；出牌阶段限两次，" ..
   "你可选择一名角色并移去至少一枚“颂”令其执行对应操作：2枚，复原武将牌或摸X张牌（X为阵亡角色数，至少为2且至多为5）；5枚，" ..
-  "回复1点体力并加1点体力上限，然后随机恢复一个已废除的装备栏或<u>追思</u>一名已阵亡的角色，获得其武将牌上除主公技外的所有技能" ..
-  "（你选择自己且你的武将牌上有“行殇”技能时方可选择此项），然后你失去“行殇”、“放逐”、“颂威”。" ..
+  "回复1点体力并加1点体力上限，然后随机恢复一个已废除的装备栏（目标体力上限不大于9方可选择），或<u>追思</u>一名已阵亡的角色，" ..
+  "获得其武将牌上除主公技外的所有技能（你选择自己且你的武将牌上有“行殇”技能时方可选择此项），然后你失去“行殇”、“放逐”、“颂威”。" ..
   "<br/><font color='grey'>#\"<b>追思</b>\"：被追思过的角色本局游戏不能再成为追思的目标。",
   ["#mou__xingshang"] = "放逐：你可选择一名角色，消耗一定数量的“颂”标记对其进行增益",
   ["#mou__xingshang_trigger"] = "行殇",
