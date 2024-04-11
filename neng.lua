@@ -758,6 +758,8 @@ mou__zhiji:addRelatedSkill(mou__zhiji_prohibit)
 jiangwei:addSkill(mou__zhiji)
 Fk:loadTranslationTable{
   ["mou__jiangwei"] = "谋姜维",
+  ["#mou__jiangwei"] = "见危授命",
+  ["cv:mou__jiangwei"] = "杨超然",
   ["mou__tiaoxin"] = "挑衅",
   [":mou__tiaoxin"] = "蓄力技（4/4），"..
   "<br>①出牌阶段限一次，你可以消耗任意“蓄力”值并选择等量的其他角色，令这些角色依次选择一项：1.对你使用一张无距离限制的【杀】；2.交给你一张牌。"..
