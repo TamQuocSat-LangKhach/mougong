@@ -928,7 +928,7 @@ local mouxingshang = fk.CreateActiveSkill{
     return UI.ComboBox { choices = choices, all_choices = choiceList }
   end,
   can_use = function(self, player)
-    return player:usedSkillTimes(self.name, Player.HistoryPhase) < 2 and player:getMark("@mou__xingshang_song") > 1
+    return player:getMark("mou__xingshang_used-phase") < 2 and player:getMark("@mou__xingshang_song") > 1
   end,
   card_filter = Util.FalseFunc,
   target_filter = function(self, to_select, selected, selected_cards)
@@ -948,6 +948,7 @@ local mouxingshang = fk.CreateActiveSkill{
   on_use = function(self, room, effect)
     local player = room:getPlayerById(effect.from)
     local target = room:getPlayerById(effect.tos[1])
+    room:addPlayerMark(player, "mou__xingshang_used-phase")
 
     local choice = self.interaction.data
     if choice == "mou__xingshang_restore" then
@@ -1013,6 +1014,7 @@ local mouxingshang = fk.CreateActiveSkill{
 local mouxingshangTriggger = fk.CreateTriggerSkill{
   name = "#mou__xingshang_trigger",
   mute = true,
+  main_skill = mouxingshang,
   events = {fk.Damaged, fk.Death},
   can_trigger = function(self, event, target, player, data)
     return
