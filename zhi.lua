@@ -14,7 +14,8 @@ local mou__guose = fk.CreateActiveSkill{
   card_num = 1,
   target_num = 1,
   can_use = function(self, player)
-    return player:usedSkillTimes(self.name, Player.HistoryPhase) < 4 and not player:isNude()
+    local max_limit = table.contains({"aaa_role_mode", "aab_role_mode"}, Fk:currentRoom().room_settings.gameMode) and 4 or 2
+    return player:usedSkillTimes(self.name, Player.HistoryPhase) < max_limit
   end,
   interaction = function()
     return UI.ComboBox {choices = {"mou__guose_use" , "mou__guose_throw"}}
@@ -52,12 +53,12 @@ local mou__guose = fk.CreateActiveSkill{
         if not card then card = Fk:getCardById(id) end
         if card.name == "indulgence" then
           room:throwCard({id}, self.name, target, player)
+          break
         end
       end
     end
     if not player.dead then
-      player:drawCards(2, self.name)
-      room:askForDiscard(player, 1, 1, true, self.name, false)
+      player:drawCards(1, self.name)
     end
   end,
 }
@@ -146,8 +147,8 @@ Fk:loadTranslationTable{
   ["mou__daqiao"] = "谋大乔",
   ["#mou__daqiao"] = "矜持之花",
   ["mou__guose"] = "国色",
-  [":mou__guose"] = "出牌阶段限四次，你可以选择一项：1.将一张<font color='red'>♦</font>牌当【乐不思蜀】使用；"..
-  "2.弃置一张<font color='red'>♦</font>牌并弃置场上的一张【乐不思蜀】。选择完成后，你摸两张牌，然后弃置一张牌。",
+  [":mou__guose"] = "出牌阶段限四次（若不为身份模式改为限两次），你可以选择一项：1.将一张<font color='red'>♦</font>牌当【乐不思蜀】使用；"..
+  "2.弃置一张<font color='red'>♦</font>牌并弃置场上的一张【乐不思蜀】。选择完成后，你摸一张牌。",
   ["mou__guose_use"] = "使用乐不思蜀",
   ["mou__guose_throw"] = "弃置乐不思蜀",
   ["mou__liuli"] = "流离",

@@ -731,6 +731,7 @@ Fk:loadTranslationTable{
 
 local mouzhurong = General(extension, "mou__zhurong", "shu", 4, 4, General.Female)
 
+local juxiang_derivecards = {{"savage_assault", Card.Spade, 7}, {"savage_assault", Card.Club, 7}}
 local mou__juxiang = fk.CreateTriggerSkill{
   name = "mou__juxiang",
   anim_type = "defensive",
@@ -751,8 +752,10 @@ local mou__juxiang = fk.CreateTriggerSkill{
     elseif event == fk.EventPhaseStart then
       if target == player and player.phase == Player.Finish then
         local room = player.room
-        local cards = room:getTag("mou__juxiang")
-        return (type(cards) ~= "table" or #cards > 0) and #player.room.logic:getEventsOfScope(GameEvent.UseCard, 1, function (e)
+        return table.find(U.prepareDeriveCards(room, juxiang_derivecards, "mou_juxiang_derivecards"), function (id)
+          return room:getCardArea(id) == Card.Void
+        end)
+        and #player.room.logic:getEventsOfScope(GameEvent.UseCard, 1, function (e)
           local use = e.data[1]
           return use.from == player.id and use.card.trueName == "savage_assault"
         end, Player.HistoryTurn) == 0
@@ -766,22 +769,15 @@ local mou__juxiang = fk.CreateTriggerSkill{
       player.room:obtainCard(player, data.card, true, fk.ReasonJustMove)
     elseif event == fk.EventPhaseStart then
       local room = player.room
-      local cards = room:getTag("mou__juxiang")
-      if type(cards) ~= "table" then
-        cards = {
-          {Card.Spade, 13}, {Card.Spade, 11}, {Card.Spade, 9}, {Card.Spade, 7},
-          {Card.Club, 13}, {Card.Club, 11}, {Card.Club, 9}, {Card.Club, 7}
-        }
-      end
+      local cards = table.filter(U.prepareDeriveCards(room, juxiang_derivecards, "mou_juxiang_derivecards"), function (id)
+        return room:getCardArea(id) == Card.Void
+      end)
       if #cards == 0 then return false end
-      local to_give =  table.remove(cards, math.random(1, #cards))
-      room:setTag("mou__juxiang", cards)
       local targets = room:askForChoosePlayers(player, table.map(room.alive_players, Util.IdMapper),
       1, 1, "#mou__juxiang-choose", self.name, false)
       if #targets > 0 then
-        local toGain = room:printCard("savage_assault", to_give[1], to_give[2])
         room:moveCards({
-          ids = {toGain.id},
+          ids = table.random(cards, 1),
           to = targets[1],
           toArea = Card.PlayerHand,
           moveReason = fk.ReasonGive,
@@ -856,7 +852,7 @@ Fk:loadTranslationTable{
 
   ["mou__juxiang"] = "巨象",
   [":mou__juxiang"] = "锁定技，【南蛮入侵】对你无效；当其他角色使用的【南蛮入侵】结算结束后，你获得之。"..
-  "结束阶段，若你本回合未使用过【南蛮入侵】，你随机将游戏外一张【南蛮入侵】交给一名角色（游戏外共有8张【南蛮入侵】）。",
+  "结束阶段，若你本回合未使用过【南蛮入侵】，你随机将游戏外一张【南蛮入侵】交给一名角色（游戏外共有2张【南蛮入侵】）。",
   ["mou__lieren"] = "烈刃",
   [":mou__lieren"] = "当你使用【杀】指定一名其他角色为唯一目标后，你可以摸一张牌，然后与其拼点。"..
   "若你赢，此【杀】结算结束后，你可对另一名其他角色造成1点伤害。",
