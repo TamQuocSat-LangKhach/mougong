@@ -245,6 +245,8 @@ mousunshangxiang:addSkill(mou__xiaoji)
 
 Fk:loadTranslationTable{
   ["mou__sunshangxiang"] = "谋孙尚香",
+  ["#mou__sunshangxiang"] = "骄豪明俏",
+  ["illustrator:mou__sunshangxiang"] = "暗金",
   ["mou__jieyin"] = "结姻",
   [":mou__jieyin"] = "游戏开始时，你选择一名其他角色令其获得“助”。"..
   "出牌阶段开始时，有“助”的角色须选择一项：1. 若其有手牌，交给你两张手牌（若其手牌不足两张则交给你所有手牌），然后其获得一点“护甲”；"..
@@ -345,6 +347,7 @@ mouyuanshao:addSkill(mou__luanji)
 mouyuanshao:addSkill(mou__xueyi)
 Fk:loadTranslationTable{
   ["mou__yuanshao"] = "谋袁绍",
+  ["#mou__yuanshao"] = "高贵的名门",
   ["mou__luanji"] = "乱击",
   [":mou__luanji"] = "出牌阶段限一次，你可以将两张手牌当【万箭齐发】使用；"..
   "当其他角色打出【闪】响应你使用的【万箭齐发】时，你摸一张牌（每回合你以此法至多获得三张牌）。",
@@ -471,6 +474,7 @@ mou__yangwei:addRelatedSkill(mou__yangwei_trigger)
 mou__huaxiong:addSkill(mou__yangwei)
 Fk:loadTranslationTable{
   ["mou__huaxiong"] = "谋华雄",
+  ["#mou__huaxiong"] = "跋扈雄狮",
   
   ["mou__yaowu"] = "耀武",
   [":mou__yaowu"] = "锁定技，当你受到【杀】造成的伤害时，若此【杀】：为红色，伤害来源选择回复1点体力或摸一张牌；不为红色，你摸一张牌。",
@@ -613,6 +617,8 @@ local mou__zaiqi = fk.CreateTriggerSkill{
 menghuo:addSkill(mou__zaiqi)
 Fk:loadTranslationTable{
   ["mou__menghuo"] = "谋孟获",
+  ["#mou__menghuo"] = "南蛮王",
+  ["illustrator:mou__menghuo"] = "刘小狼Syaoran",
   ["mou__huoshou"] = "祸首",
   [":mou__huoshou"] = "锁定技，①【南蛮入侵】对你无效；"..
   "<br>②当其他角色使用【南蛮入侵】指定目标后，你代替其成为此牌造成的伤害的来源；"..
@@ -781,6 +787,7 @@ Fk:loadTranslationTable{
 local guanyu = General(extension, "mou__guanyu", "shu", 4)
 Fk:loadTranslationTable{
   ["mou__guanyu"] = "谋关羽",
+  ["#mou__guanyu"] = "关圣帝君",
   ["~mou__guanyu"] = "大哥，翼德，来生再于桃园，论豪情壮志……",
 }
 local mouWuSheng = fk.CreateViewAsSkill{
