@@ -1217,9 +1217,9 @@ local mousongwei = fk.CreateActiveSkill{
   end,
   on_use = function(self, room, effect)
     local target = room:getPlayerById(effect.tos[1])
-    local skills = Fk.generals[target.general]:getSkillNameList()
+    local skills = Fk.generals[target.general]:getSkillNameList(true)
     if target.deputyGeneral ~= "" then
-      table.insertTableIfNeed(skills, Fk.generals[target.deputyGeneral]:getSkillNameList())
+      table.insertTableIfNeed(skills, Fk.generals[target.deputyGeneral]:getSkillNameList(true))
     end
     if #skills > 0 then
       skills = table.map(skills, function(skillName) return "-" .. skillName end)
