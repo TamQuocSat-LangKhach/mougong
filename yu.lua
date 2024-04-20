@@ -607,37 +607,13 @@ local mou__jizhi = fk.CreateTriggerSkill{
     return target == player and player:hasSkill(self) and data.card:isCommonTrick()
   end,
   on_use = function(self, event, target, player, data)
-    player:drawCards(1, self.name)
-  end,
-
-  refresh_events = {fk.AfterCardsMove, fk.AfterTurnEnd},
-  can_refresh = function(self, event, target, player, data)
-    return true
-  end,
-  on_refresh = function(self, event, target, player, data)
-    local room = player.room
-    if event == fk.AfterCardsMove then
-      for _, move in ipairs(data) do
-        if move.to == player.id and move.toArea == Card.PlayerHand and move.skillName == self.name then
-          for _, info in ipairs(move.moveInfo) do
-            local id = info.cardId
-            if room:getCardArea(id) == Card.PlayerHand and room:getCardOwner(id) == player then
-              room:setCardMark(Fk:getCardById(id), "@@mou__jizhi-inhand", 1)
-            end
-          end
-        end
-      end
-    elseif event == fk.AfterTurnEnd then
-      for _, id in ipairs(player:getCardIds(Player.Hand)) do
-        room:setCardMark(Fk:getCardById(id), "@@mou__jizhi-inhand", 0)
-      end
-    end
+    player:drawCards(1, self.name, nil, "@@mou__jizhi-inhand-turn")
   end,
 }
 local mou__jizhi_maxcards = fk.CreateMaxCardsSkill{
   name = "#mou__jizhi_maxcards",
   exclude_from = function(self, player, card)
-    return card:getMark("@@mou__jizhi-inhand") > 0
+    return card:getMark("@@mou__jizhi-inhand-turn") > 0
   end,
 }
 local mou__qicai_select = fk.CreateActiveSkill{
@@ -797,7 +773,7 @@ Fk:loadTranslationTable{
   "将手牌或弃牌堆中一张装备牌置入其装备区（若为斗地主模式，则改为防具牌且每种牌名限一次），"..
   "然后其获得“奇”标记。有“奇”标记的角色接下来获得的三张普通锦囊牌须交给你。",
 
-  ["@@mou__jizhi-inhand"] = "集智",
+  ["@@mou__jizhi-inhand-turn"] = "集智",
   ["#mou__qicai-active"] = "发动 奇才，选择1名角色令其装装备，然后其获得的锦囊牌须交给你",
   ["#mou__qicai-choose"] = "奇才：令%dest装备你手牌或弃牌堆里的一张装备牌",
   ["mou__qicai_select"] = "奇才",

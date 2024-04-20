@@ -656,40 +656,8 @@ local mou__luoshen = fk.CreateTriggerSkill{
             room:throwCard(cards, self.name, p, p)
           end
         elseif card.color == Card.Black then
-          room:moveCards({
-            ids = cards,
-            from = p.id,
-            to = player.id,
-            toArea = Player.Hand,
-            moveReason = fk.ReasonPrey,
-            proposer = player.id,
-            skillName = "mou__luoshen_prey",
-          })
+          room:moveCardTo(cards, Card.PlayerHand, player, fk.ReasonPrey, self.name, "", true, player.id, "@@mou__luoshen-inhand-turn")
         end
-      end
-    end
-  end,
-
-  refresh_events = {fk.AfterCardsMove, fk.AfterTurnEnd},
-  can_refresh = function(self, event, target, player, data)
-    return true
-  end,
-  on_refresh = function(self, event, target, player, data)
-    local room = player.room
-    if event == fk.AfterCardsMove then
-      for _, move in ipairs(data) do
-        if move.to == player.id and move.toArea == Card.PlayerHand and move.skillName == "mou__luoshen_prey" then
-          for _, info in ipairs(move.moveInfo) do
-            local id = info.cardId
-            if room:getCardArea(id) == Card.PlayerHand and room:getCardOwner(id) == player then
-              room:setCardMark(Fk:getCardById(id), "@@mou__luoshen-inhand", 1)
-            end
-          end
-        end
-      end
-    elseif event == fk.AfterTurnEnd then
-      for _, id in ipairs(player:getCardIds(Player.Hand)) do
-        room:setCardMark(Fk:getCardById(id), "@@mou__luoshen-inhand", 0)
       end
     end
   end,
@@ -697,7 +665,7 @@ local mou__luoshen = fk.CreateTriggerSkill{
 local mou__luoshen_maxcards = fk.CreateMaxCardsSkill{
   name = "#mou__luoshen_maxcards",
   exclude_from = function(self, player, card)
-    return card:getMark("@@mou__luoshen-inhand") > 0
+    return card:getMark("@@mou__luoshen-inhand-turn") > 0
   end,
 }
 mou__luoshen:addRelatedSkill(mou__luoshen_maxcards)
@@ -713,7 +681,7 @@ Fk:loadTranslationTable{
   ["#mou__luoshen-choose"] = "发动洛神，选择一名其他角色作为起始角色",
   ["#mou__luoshen-show"] = "洛神：展示一张手牌，若为黑色则%src获得之，若为红色则弃置之",
 
-  ["@@mou__luoshen-inhand"] = "洛神",
+  ["@@mou__luoshen-inhand-turn"] = "洛神",
 
   ["$mou__luoshen1"] = "商灵缤兮恭迎，伞盖纷兮若云。",
   ["$mou__luoshen2"] = "晨张兮细帷，夕茸兮兰櫋。",
