@@ -1584,10 +1584,10 @@ local mouquhu = fk.CreateActiveSkill{
     if #targetOne:getPile(self.name) < #targetTwo:getPile(self.name) then
       mostPut = targetTwo
     elseif #targetOne:getPile(self.name) == #targetTwo:getPile(self.name) then
-      local nearestTarget = player.next
+      local nearestTarget = player
       for i = 1, #room.players - 1 do
         nearestTarget = nearestTarget.next
-  
+
         if table.contains(targets, nearestTarget) then
           break
         end
@@ -1673,7 +1673,7 @@ local moujieming = fk.CreateTriggerSkill{
   end,
   on_cost = function(self, event, target, player, data)
     local room = player.room
-    local tos = room:askForChoosePlayers(player, table.map(room.alive_players, Util.IdMapper), 1, 1, "#mou__jieming")
+    local tos = room:askForChoosePlayers(player, table.map(room.alive_players, Util.IdMapper), 1, 1, "#mou__jieming", self.name)
     if #tos > 0 then
       self.cost_data = tos[1]
       return true
@@ -1689,7 +1689,7 @@ local moujieming = fk.CreateTriggerSkill{
     local toDiscard = room:askForDiscard(
       to,
       1,
-      1,
+      999,
       true,
       self.name,
       true,
@@ -1710,8 +1710,9 @@ Fk:loadTranslationTable{
   ["mou__jieming"] = "节命",
   [":mou__jieming"] = "当你受到伤害后，你可以令一名角色摸四张牌，然后其可弃置至少一张牌，若其弃置的牌数小于X" ..
   "（X为你已损失的体力值且至少为1），则你失去1点体力。",
+  ["#mou__jieming"] = "节命：你可令一名角色摸牌且其可弃牌，弃牌不满足数量你失去体力",
   ["#mou__jieming-discard"] = "节命：你可弃置至少一张牌，若弃置牌数小于%arg，则 %src 失去1点体力",
-  ["$mou__jieming1"] = "节命守誓心之节，达百里之命。",
+  ["$mou__jieming1"] = "守誓心之节，达百里之命。",
   ["$mou__jieming2"] = "成佐王定策之功，守殉国忘身之节。",
 }
 
