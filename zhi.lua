@@ -1499,4 +1499,222 @@ Fk:loadTranslationTable{
   ["~mou__zhugeliang"] = "琴焚身陨，功败垂成啊……",
 }
 
+local mouxunyu = General(extension, "mou__xunyu", "wei", 3)
+Fk:loadTranslationTable{
+  ["mou__xunyu"] = "谋荀彧",
+  ["#mou__xunyu"] = "王佐之才",
+  ["~mou__xunyu"] = "北风化王境，空萦荀令香……",
+}
+
+local mouquhu = fk.CreateActiveSkill{
+  name = "mou__quhu",
+  anim_type = "offensive",
+  prompt = "#mou__quhu",
+  card_num = 0,
+  target_num = 2,
+  can_use = function(self, player)
+    return
+      player:usedSkillTimes(self.name, Player.HistoryPhase) == 0 and
+      not player:isNude() and
+      #Fk:currentRoom().alive_players > 2
+  end,
+  card_filter = Util.FalseFunc,
+  target_filter = function(self, to_select, selected, selected_cards)
+    return
+      #selected < 2 and
+      to_select ~= Self.id and
+      not Fk:currentRoom():getPlayerById(to_select):isNude()
+  end,
+  on_use = function(self, room, effect)
+    local player = room:getPlayerById(effect.from)
+    local extraData = {
+      num = 999,
+      min_num = 1,
+      include_equip = true,
+      pattern = ".",
+      reason = self.name,
+    }
+    local data = { "choose_cards_skill", "", false, extraData }
+
+    local targets = {}
+    for index, pid in ipairs(effect.tos) do
+      local to = room:getPlayerById(pid)
+      table.insert(targets, to)
+      data[2] = "#mou__quhu-target::" .. (effect.tos[index == 1 and 2 or 1])
+      to.request_data = json.encode(data)
+    end
+
+    data[2] = "#mou__quhu-user"
+    table.insert(targets, player)
+    player.request_data = json.encode(data)
+
+    room:notifyMoveFocus(targets, self.name)
+    room:doBroadcastRequest("AskForUseActiveSkill", targets)
+
+    local moveInfos = {}
+    for _, p in ipairs(targets) do
+      local quhuCards
+      if p.reply_ready then
+        local replyCard = json.decode(p.client_reply).card
+        quhuCards = json.decode(replyCard).subcards
+      else
+        quhuCards = { p:getCardIds("he")[1] }
+      end
+
+      table.insert(moveInfos, {
+        ids = quhuCards,
+        from = p.id,
+        to = p.id,
+        toArea = Card.PlayerSpecial,
+        moveReason = fk.ReasonJustMove,
+        skillName = self.name,
+        specialName = self.name,
+        moveVisible = false,
+        proposer = p.id,
+      })
+    end
+
+    room:moveCards(table.unpack(moveInfos))
+    room:delay(2000)
+
+    local targetOne = room:getPlayerById(effect.tos[1])
+    local targetTwo = room:getPlayerById(effect.tos[2])
+
+    local mostPut = targetOne
+    if #targetOne:getPile(self.name) < #targetTwo:getPile(self.name) then
+      mostPut = targetTwo
+    elseif #targetOne:getPile(self.name) == #targetTwo:getPile(self.name) then
+      local nearestTarget = player.next
+      for i = 1, #room.players - 1 do
+        nearestTarget = nearestTarget.next
+  
+        if table.contains(targets, nearestTarget) then
+          break
+        end
+      end
+    end
+    if table.find(targets, function(p) return player ~= p and #player:getPile(self.name) >= #p:getPile(self.name) end) then
+      room:damage({
+        from = mostPut,
+        to = mostPut == targetOne and targetTwo or targetOne,
+        damage = 1,
+        skillName = self.name,
+      })
+
+      local dummy = Fk:cloneCard("slash")
+      dummy:addSubcards(player:getPile(self.name))
+      room:obtainCard(mostPut, dummy, false, fk.ReasonPrey)
+
+      room:moveCards(
+        {
+          ids = targetOne:getPile(self.name),
+          from = targetOne.id,
+          toArea = Card.DiscardPile,
+          moveReason = fk.ReasonPutIntoDiscardPile,
+          skillName = self.name,
+          proposer = targetOne.id,
+        },
+        {
+          ids = targetTwo:getPile(self.name),
+          from = targetTwo.id,
+          toArea = Card.DiscardPile,
+          moveReason = fk.ReasonPutIntoDiscardPile,
+          skillName = self.name,
+          proposer = targetTwo.id,
+        }
+      )
+    else
+      local dummy = Fk:cloneCard("slash")
+      dummy:addSubcards(player:getPile(self.name))
+      room:obtainCard(mostPut, dummy, false, fk.ReasonPrey)
+
+      room:moveCards(
+        {
+          ids = targetOne:getPile(self.name),
+          from = targetOne.id,
+          to = targetOne.id,
+          toArea = Card.PlayerHand,
+          moveReason = fk.ReasonPrey,
+          skillName = self.name,
+          proposer = targetOne.id,
+        },
+        {
+          ids = targetTwo:getPile(self.name),
+          from = targetTwo.id,
+          to = targetTwo.id,
+          toArea = Card.PlayerHand,
+          moveReason = fk.ReasonPrey,
+          skillName = self.name,
+          proposer = targetTwo.id,
+        }
+      )
+    end
+  end,
+}
+Fk:loadTranslationTable{
+  ["mou__quhu"] = "驱虎",
+  [":mou__quhu"] = "出牌阶段限一次，若你有牌，你可以与两名有牌的其他角色同时将至少一张牌扣置于各自的武将牌上。若你扣置的牌数唯一最少，" ..
+  "则扣置牌较多的其他角色获得你扣置的牌，且双方获得各自扣置的牌；否则扣置牌较多的其他角色对扣置牌较少的其他角色造成1点伤害，并获得你扣置的牌，" ..
+  "然后双方将其扣置的牌置入弃牌堆（若双方扣置牌数相等，则与你逆时针最近的角色视为扣置牌数较多）。",
+  ["#mou__quhu"] = "驱虎：你可与两名角色扣置牌，若你扣置的不为最少，令他们互相伤害",
+  ["#mou__quhu-user"] = "驱虎：请扣置至少一张牌，若不为最少，令他们互相伤害",
+  ["#mou__quhu-target"] = "驱虎：请扣置至少一张牌，若你较多，有机会对 %dest 造成伤害",
+  ["$mou__quhu1"] = "驱他山之虎，抗近身之豺。",
+  ["$mou__quhu2"] = "引狼喰虎，待虎吞狼。",
+}
+
+mouxunyu:addSkill(mouquhu)
+
+local moujieming = fk.CreateTriggerSkill{
+  name = "mou__jieming",
+  events = {fk.Damaged},
+  can_trigger = function(self, event, target, player, data)
+    return target == player and player:hasSkill(self)
+  end,
+  on_cost = function(self, event, target, player, data)
+    local room = player.room
+    local tos = room:askForChoosePlayers(player, table.map(room.alive_players, Util.IdMapper), 1, 1, "#mou__jieming")
+    if #tos > 0 then
+      self.cost_data = tos[1]
+      return true
+    end
+
+    return false
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    local to = room:getPlayerById(self.cost_data)
+    to:drawCards(4, self.name)
+    local minDiscard = math.max(1, player:getLostHp())
+    local toDiscard = room:askForDiscard(
+      to,
+      1,
+      1,
+      true,
+      self.name,
+      true,
+      ".",
+      "#mou__jieming-discard:" .. player.id .. "::" .. minDiscard
+    )
+
+    if #toDiscard > 0 then
+      room:throwCard(toDiscard, self.name, to, to)
+    end
+
+    if #toDiscard < minDiscard then
+      room:loseHp(player, 1, self.name)
+    end
+  end,
+}
+Fk:loadTranslationTable{
+  ["mou__jieming"] = "节命",
+  [":mou__jieming"] = "当你受到伤害后，你可以令一名角色摸四张牌，然后其可弃置至少一张牌，若其弃置的牌数小于X" ..
+  "（X为你已损失的体力值且至少为1），则你失去1点体力。",
+  ["#mou__jieming-discard"] = "节命：你可弃置至少一张牌，若弃置牌数小于%arg，则 %src 失去1点体力",
+  ["$mou__jieming1"] = "节命守誓心之节，达百里之命。",
+  ["$mou__jieming2"] = "成佐王定策之功，守殉国忘身之节。",
+}
+
+mouxunyu:addSkill(moujieming)
+
 return extension
