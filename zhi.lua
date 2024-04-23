@@ -1697,10 +1697,6 @@ local moujieming = fk.CreateTriggerSkill{
       "#mou__jieming-discard:" .. player.id .. "::" .. minDiscard
     )
 
-    if #toDiscard > 0 then
-      room:throwCard(toDiscard, self.name, to, to)
-    end
-
     if #toDiscard < minDiscard then
       room:loseHp(player, 1, self.name)
     end
