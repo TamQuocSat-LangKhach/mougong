@@ -789,4 +789,144 @@ Fk:loadTranslationTable{
   ["~mou__huangyueying"] = "何日北平中原，夫君再返隆中……",
 }
 
+local mou__luzhik = General(extension, "mou__luzhik", "qun", 3)
+
+local mou__mingren = fk.CreateTriggerSkill{
+  name = "mou__mingren",
+  events = {fk.GameStart, fk.EventPhaseStart},
+  anim_type = "drawcard",
+  can_trigger = function(self, event, target, player, data)
+    if not player:hasSkill(self) then return false end
+    if event == fk.GameStart then return true end
+    return target == player and player.phase == Player.Finish and not player:isKongcheng() and #player:getPile("mou__duty") > 0
+  end,
+  on_cost = function(self, event, target, player, data)
+    if event == fk.GameStart then return true end
+    local cids = player.room:askForCard(player, 1, 1, false, self.name, true, nil,
+    "#mou__mingren-exchange:::"..Fk:getCardById(player:getPile("mou__duty")[1]):toLogString())
+    if #cids > 0 then
+      self.cost_data = cids
+      return true
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    if event == fk.GameStart then
+      player:drawCards(2, self.name)
+      if not player:isKongcheng() then
+        local cids = room:askForCard(player, 1, 1, false, self.name, true, nil, "#mou__mingren-put")
+        if #cids > 0 then
+          player:addToPile("mou__duty", cids[1], true, self.name)
+        end
+      end
+    else
+      room:moveCards({
+        ids = self.cost_data,
+        from = player.id,
+        to = player.id,
+        toArea = Player.Special,
+        moveReason = fk.ReasonExchange,
+        specialName = "mou__duty",
+        moveVisible = true,
+        skillName = self.name,
+        proposer = player.id,
+      },{
+        ids = player:getPile("mou__duty"),
+        from = player.id,
+        to = player.id,
+        toArea = Player.Hand,
+        moveReason = fk.ReasonExchange,
+        moveVisible = true,
+        skillName = self.name,
+        proposer = player.id,
+      })
+    end
+  end,
+}
+mou__luzhik:addSkill(mou__mingren)
+
+local mou__zhenliang = fk.CreateActiveSkill{
+  name = "mou__zhenliang",
+  anim_type = "switch",
+  switch_skill_name = "mou__zhenliang",
+  prompt = "#mou__zhenliang-damage",
+  can_use = function(self, player)
+    return player:usedSkillTimes(self.name, Player.HistoryPhase) < 1 and player:getSwitchSkillState(self.name) == fk.SwitchYang
+  end,
+  card_filter = function(self, to_select, selected)
+    local cid = Self:getPile("mou__duty")[1]
+    if not cid then return end
+    return Fk:getCardById(cid).color == Fk:getCardById(to_select).color and not Self:prohibitDiscard(Fk:getCardById(to_select))
+  end,
+  target_num = 1,
+  target_filter = function(self, to_select, selected, cards)
+    local to = Fk:currentRoom():getPlayerById(to_select)
+    return #selected == 0 and Self:inMyAttackRange(to) and #cards == math.max(1, math.abs(Self.hp - to.hp))
+  end,
+  on_use = function(self, room, effect)
+    local player = room:getPlayerById(effect.from)
+    local to = room:getPlayerById(effect.tos[1])
+    room:throwCard(effect.cards, self.name, player, player)
+    room:damage{
+      from = player,
+      to = to,
+      damage = 1,
+      skillName = self.name,
+    }
+  end,
+}
+local mou__zhenliang_trigger = fk.CreateTriggerSkill{
+  name = "#mou__zhenliang_trigger",
+  anim_type = "switch",
+  main_skill = mou__zhenliang,
+  switch_skill_name = "mou__zhenliang",
+  events = {fk.CardRespondFinished, fk.CardUseFinished},
+  can_trigger = function(self, event, target, player, data)
+    return player:hasSkill(mou__zhenliang) and player:getSwitchSkillState("mou__zhenliang") == fk.SwitchYin
+    and player.phase == Player.NotActive
+    and #player:getPile("mou__duty") > 0 and data.card.type == Fk:getCardById(player:getPile("mou__duty")[1]).type
+  end,
+  on_cost = function(self, event, target, player, data)
+    local tos = player.room:askForChoosePlayers(player, table.map(player.room.alive_players, Util.IdMapper), 1, 1, "#mou__zhenliang-choose", self.name, true)
+    if #tos > 0 then
+      self.cost_data = tos[1]
+      return true
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    player:broadcastSkillInvoke("mou__zhenliang")
+    local to = room:getPlayerById(self.cost_data)
+    to:drawCards(2, self.name)
+  end,
+}
+mou__zhenliang:addRelatedSkill(mou__zhenliang_trigger)
+mou__luzhik:addSkill(mou__zhenliang)
+
+Fk:loadTranslationTable{
+  ["mou__luzhik"] = "谋卢植",
+  ["#mou__luzhik"] = "国之桢干",
+  ["cv:mou__luzhik"] = "袁国庆",
+
+  ["mou__mingren"] = "明任",
+  [":mou__mingren"] = "①游戏开始时，你摸两张牌，然后将一张手牌置于你的武将牌上，称为“任”；②结束阶段，你可以用任意一张手牌替换“任”。",
+  ["mou__zhenliang"] = "贞良",
+  [":mou__zhenliang"] = "转换技，阳：出牌阶段限一次，你可以选择一名你攻击范围内的其他角色并弃置X张与“任”颜色相同的牌（X为你与其体力值之差且至少为1），然后对其造成1点伤害；"..
+  "<br>阴：你的回合外，当一名角色使用或打出牌结算结束后，若此牌与“任”类别相同，你可以令一名角色摸两张牌。",
+
+  ["mou__duty"] = "任",
+  ["#mou__mingren-put"] = "明任：请将一张手牌置于武将牌上",
+  ["#mou__mingren-exchange"] = "明任：你可用一张手牌替换“任”（%arg）",
+  ["#mou__zhenliang-damage"] = "贞良：弃置与“任”颜色相同的牌，对攻击范围内一名角色造成伤害",
+  ["#mou__zhenliang-choose"] = "贞良：你可以令一名角色摸两张牌",
+  ["#mou__zhenliang_trigger"] = "贞良",
+
+  ["$mou__mingren1"] = "父不爱无益之子，君不蓄无用之臣！",
+  ["$mou__mingren2"] = "老夫蒙国重恩，敢不捐躯以报！",
+  ["$mou__zhenliang1"] = "汉室艰祸繁兴，老夫岂忍宸极失御！",
+  ["$mou__zhenliang2"] = "犹思中兴之美，尚怀来苏之望！",
+  ["~mou__luzhik"] = "历数有尽，天命有归……",
+}
+
+
 return extension
