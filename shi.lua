@@ -341,6 +341,7 @@ mou__zhichi:addRelatedSkill(mou__zhichi_delay)
 mou__chengong:addSkill(mou__zhichi)
 Fk:loadTranslationTable{
   ["mou__chengong"] = "谋陈宫",
+  ["#mou__chengong"] = "刚直壮烈",
   ["mou__mingce"] = "明策",
   [":mou__mingce"] = "①出牌阶段限一次，你可以交给一名其他角色一张牌，令其选择一项：1.失去1点体力，令你摸两张牌并获得1个“策”标记；2.摸一张牌。<br>②出牌阶段开始时，若你拥有“策”标记，你可以选择一名其他角色，对其造成X点伤害并移去所有“策”标记（X为你的“策”标记数）。",
   ["mou__mingce_losehp"] = "你失去1点体力，令%src摸两张牌并获得“策”标记",
@@ -472,6 +473,8 @@ mou__pangtong:addSkill(mou__niepan)
 
 Fk:loadTranslationTable{
   ["mou__pangtong"] = "谋庞统",
+  ["#mou__pangtong"] = "凤雏",
+	["illustrator:mou__pangtong"] = "铁杵文化",
 
   ["mou__lianhuan"] = "连环",
   [":mou__lianhuan"] = "出牌阶段，你可以将一张梅花手牌当【铁索连环】使用（每个出牌阶段限一次）或重铸；当你使用【铁索连环】时，你可以失去1点体力。若如此做，当此牌指定一名角色为目标后，若其未横置，你随机弃置其一张手牌。",
@@ -579,6 +582,7 @@ local mou__shipo = fk.CreateTriggerSkill{
 mou__xuhuang:addSkill(mou__shipo)
 Fk:loadTranslationTable{
   ["mou__xuhuang"] = "谋徐晃",
+  ["#mou__xuhuang"] = "径行截辎",
   ["mou__duanliang"] = "断粮",
   [":mou__duanliang"] = "出牌阶段限一次，你可以与一名其他角色进行一次“谋弈”：<br>围城断粮，你将牌堆顶的一张牌当无距离限制的【兵粮寸断】对其使用，若无法使用改为你获得其一张牌；<br>擂鼓进军，你视为对其使用一张【决斗】。",
   ["mou__duanliang-weicheng"] = "围城断粮",
@@ -859,6 +863,9 @@ mou__fenwei:addRelatedSkill(mou__fenwei_trigger)
 mou__ganning:addSkill(mou__fenwei)
 Fk:loadTranslationTable{
   ["mou__ganning"] = "谋甘宁",
+  ["#mou__ganning"] = "兴王定霸",
+	["illustrator:mou__ganning"] = "君桓文化",
+
   ["mou__qixi"] = "奇袭",
   [":mou__qixi"] = "出牌阶段限一次，你可以选择一名其他角色，令其猜测你手牌中最多的花色。若猜错，你可以令该角色从未猜测过的花色中再次猜测；若猜对，你展示所有手牌。然后你弃置其区域内X张牌（X为此阶段该角色猜错的次数，不足则全弃）。",
   ["#mou__qixi-again"] = "奇袭：你可以令其再猜一次",

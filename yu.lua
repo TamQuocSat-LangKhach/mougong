@@ -766,6 +766,7 @@ huangyueying:addSkill(mou__qicai)
 
 Fk:loadTranslationTable{
   ["mou__huangyueying"] = "谋黄月英",
+  ["#mou__huangyueying"] = "足智多谋",
   ["mou__jizhi"] = "集智",
   [":mou__jizhi"] = "锁定技，当你使用普通锦囊牌时，你摸一张牌，以此法获得的牌本回合不计入手牌上限。",
   ["mou__qicai"] = "奇才",

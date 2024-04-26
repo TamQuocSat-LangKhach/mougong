@@ -1360,6 +1360,7 @@ mou__wolong:addSkill(mou__huoji)
 mou__wolong:addSkill(mou__kanpo)
 Fk:loadTranslationTable{
   ["mou__wolong"] = "谋卧龙诸葛亮",
+  ["#mou__wolong"] = "忠武侯",
   ["mou__huoji"] = "火计",
   [":mou__huoji"] = "使命技，出牌阶段限一次，你可以选择一名其他角色，对其及其同势力的其他角色各造成1点火焰伤害。<br>\
   <strong>成功</strong>：准备阶段，若你本局游戏对其他角色造成过至少X点火焰伤害（X为本局游戏人数），你失去〖火计〗〖看破〗，获得〖观星〗〖空城〗。<br>\
