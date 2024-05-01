@@ -950,15 +950,15 @@ local mouYiJue = fk.CreateTriggerSkill{
   name = "mou__yijue",
   anim_type = "negative",
   frequency = Skill.Compulsory,
-  events = {fk.DamageCaused},
+  events = {fk.DamageInflicted},
   can_trigger = function(self, event, target, player, data)
     return
-      target == player and
+      data.from == player and
       player:hasSkill(self) and
       player.phase ~= Player.NotActive and
       player ~= data.to and
       data.to:isAlive() and
-      data.damage >= data.to.hp and
+      data.damage >= math.max(0, data.to.hp) + data.to.shield and
       not table.contains(player.tag["mou__yijue_targets"] or {}, data.to.id)
   end,
   on_use = function(self, event, target, player, data)
@@ -992,8 +992,8 @@ local mouYiJueCancel = fk.CreateTriggerSkill{
 }
 Fk:loadTranslationTable{
   ["mou__yijue"] = "义绝",
-  [":mou__yijue"] = "锁定技，每名角色限一次，当你于回合内对其他角色造成伤害时，若伤害值不小于其体力，则防止此伤害，且直到本回合结束，" ..
-  "当你使用牌指定其为目标时，取消之。",
+  [":mou__yijue"] = "锁定技，每名角色限一次，当其他角色于你的回合内对受到你造成的伤害时，若伤害值不小于其体力值和护甲之和，" ..
+  "则防止此伤害，且直到本回合结束，当你使用牌指定其为目标时，取消之。",
   ["@[mou__yijue]"] = "义绝",
 
   ["$mou__yijue1"] = "承君之恩，今日尽报。",
