@@ -1590,6 +1590,7 @@ local mouquhu = fk.CreateActiveSkill{
         nearestTarget = nearestTarget.next
 
         if table.contains(targets, nearestTarget) then
+          mostPut = nearestTarget
           break
         end
       end
