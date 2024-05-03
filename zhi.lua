@@ -1066,9 +1066,7 @@ local mou__zhangwu = fk.CreateActiveSkill{
           local cards = (#p:getCardIds("he") < x) and p:getCardIds("he") or
           room:askForCard(p, x, x, true, self.name, false, ".", "#mou__zhangwu-give::"..player.id..":"..x)
           if #cards > 0 then
-            local dummy = Fk:cloneCard("dilu")
-            dummy:addSubcards(cards)
-            room:obtainCard(player, dummy, false, fk.ReasonGive)
+            room:obtainCard(player, cards, false, fk.ReasonGive)
           end
         end
       end
@@ -1603,9 +1601,7 @@ local mouquhu = fk.CreateActiveSkill{
         skillName = self.name,
       })
 
-      local dummy = Fk:cloneCard("slash")
-      dummy:addSubcards(player:getPile(self.name))
-      room:obtainCard(mostPut, dummy, false, fk.ReasonPrey)
+      room:obtainCard(mostPut, player:getPile(self.name), false, fk.ReasonPrey)
 
       room:moveCards(
         {
@@ -1626,9 +1622,7 @@ local mouquhu = fk.CreateActiveSkill{
         }
       )
     else
-      local dummy = Fk:cloneCard("slash")
-      dummy:addSubcards(player:getPile(self.name))
-      room:obtainCard(mostPut, dummy, false, fk.ReasonPrey)
+      room:obtainCard(mostPut, player:getPile(self.name), false, fk.ReasonPrey)
 
       room:moveCards(
         {

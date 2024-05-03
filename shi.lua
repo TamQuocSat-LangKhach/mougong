@@ -146,9 +146,7 @@ local mou__enyuan = fk.CreateTriggerSkill{
           if not player:isNude() then
             local cards = #player:getCardIds("he") < 3 and player:getCardIds("he") or
             room:askForCard(player, 3, 3, true, self.name, false, ".", "#mou__enyuan-give:"..p.id)
-            local dummy = Fk:cloneCard("dilu")
-            dummy:addSubcards(cards)
-            room:obtainCard(p, dummy, false, fk.ReasonGive)
+            room:obtainCard(p, cards, false, fk.ReasonGive)
           end
         else
           player:broadcastSkillInvoke(self.name, 2)
@@ -844,9 +842,7 @@ local mou__fenwei_trigger = fk.CreateTriggerSkill{
     local room = player.room
     local choice = room:askForChoice(player, {"#mou__fenwei_get" , "#mou__fenwei_cancel"}, self.name, "#mou__fenwei-choice::"..target.id..":"..data.card:toLogString())
     if choice == "#mou__fenwei_get" then
-      local dummy = Fk:cloneCard("slash")
-      dummy:addSubcards(target:getPile("@mou__fenwei"))
-      room:obtainCard(target, dummy, true, fk.ReasonPrey)
+      room:obtainCard(target, target:getPile("@mou__fenwei"), true, fk.ReasonPrey)
     else
       room:moveCards({
         from = target.id,
