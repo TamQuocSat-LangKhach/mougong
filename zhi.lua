@@ -347,7 +347,7 @@ local mou__zhiheng = fk.CreateActiveSkill{
   min_card_num = 1,
   target_num = 0,
   can_use = function(self, player)
-    return player:usedSkillTimes(self.name) == 0
+    return player:usedSkillTimes(self.name, Player.HistoryPhase) == 0
   end,
   card_filter = function(self, to_select, selected)
     return not Self:prohibitDiscard(Fk:getCardById(to_select))
@@ -377,20 +377,18 @@ local mou__tongye = fk.CreateTriggerSkill{
   frequency = Skill.Compulsory,
   can_trigger = function(self, event, target, player, data)
     if target == player and player:hasSkill(self) then
-      if player.phase == Player.Finish then 
+      if player.phase == Player.Finish then
         return true
       elseif player.phase == Player.Start then
-        return player:getMark("@@tongye1") > 0 or player:getMark("@@tongye2") >0
+        return player:getMark("@@tongye1") > 0 or player:getMark("@@tongye2") > 0
       end
     end
   end,
   on_use = function(self, event, target, player, data)
     local room = player.room
-     local n = 0
-    for _, p in ipairs(room:getAlivePlayers()) do
-      for _, id in ipairs(p:getCardIds{Player.Equip}) do
-         n = n+1
-      end
+    local n = 0
+    for _, p in ipairs(room.alive_players) do
+      n = n + #p:getCardIds{Player.Equip}
     end
     if player.phase == Player.Start then
       if player:getMark("@@tongye1") ~= 0 then
@@ -413,9 +411,9 @@ local mou__tongye = fk.CreateTriggerSkill{
         end
         room:setPlayerMark(player, "@@tongye2", 0)
       end
-       room:setPlayerMark(player, "tongye_num", 0)
+      room:setPlayerMark(player, "tongye_num", 0)
     else
-      room:addPlayerMark(player, "tongye_num", n)
+      room:setPlayerMark(player, "tongye_num", n)
       local choice = room:askForChoice(player, { "tongye1", "tongye2"}, self.name)
       if choice == "tongye1" then
         room:addPlayerMark(player, "@@tongye1")
@@ -459,18 +457,20 @@ sunquan:addSkill(mou__jiuyuan)
 Fk:loadTranslationTable{
   ["mou__sunquan"] = "谋孙权",
   ["#mou__sunquan"] = "江东大帝",
+	["illustrator:mou__sunquan"] = "鬼画府",
+
   ["mou__zhiheng"] = "制衡",
   [":mou__zhiheng"] = "出牌阶段限一次，你可以弃置任意张牌并摸等量的牌。若你以此法弃置了所有的手牌，你多摸1+X张牌（X为你的“业”数），然后你弃置一枚“业”。",
   ["mou__tongye"] = "统业",
-  [":mou__tongye"] = "锁定技，结束阶段，你可以猜测场上的装备数量于你的下个准备阶段开始时有无变化。若你猜对，你获得一枚“业”，猜错，你弃置一枚“业”。",
+  [":mou__tongye"] = "锁定技，结束阶段，你可以猜测场上的装备数量于你的下个准备阶段开始时有无变化。若你猜对，你获得一枚“业”（至多拥有2个“业”标记），猜错，你弃置一枚“业”。",
   ["mou__jiuyuan"] = "救援",
   [":mou__jiuyuan"] = "主公技，锁定技，其他吴势力角色使用【桃】时，你摸一张牌。其他吴势力角色对你使用【桃】回复的体力+1。",
 
   ["tongye1"] = "统业猜测:有变化",
   ["tongye2"] = "统业猜测:无变化",
   ["@tongye"] = "业",
-  ["@@tongye1"] = "统业猜测:有变化",
-  ["@@tongye2"] = "统业猜测:无变化",
+  ["@@tongye1"] = "统业:有变",
+  ["@@tongye2"] = "统业:不变",
 
   ["$mou__zhiheng1"] = "稳坐山河，但观世变。",
   ["$mou__zhiheng2"] = "身处惊涛，尤可弄潮。",
