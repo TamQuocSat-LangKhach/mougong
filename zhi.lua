@@ -11,7 +11,8 @@ local daqiao = General(extension, "mou__daqiao", "wu", 3, 3, General.Female)
 local mou__guose = fk.CreateActiveSkill{
   name = "mou__guose",
   anim_type = "control",
-  card_num = 1,
+  min_card_num = 0,
+  max_card_num = 1,
   target_num = 1,
   can_use = function(self, player)
     local max_limit = table.contains({"aaa_role_mode", "aab_role_mode"}, Fk:currentRoom().room_settings.gameMode) and 4 or 2
@@ -21,19 +22,16 @@ local mou__guose = fk.CreateActiveSkill{
     return UI.ComboBox {choices = {"mou__guose_use" , "mou__guose_throw"}}
   end,
   card_filter = function(self, to_select, selected)
-    if #selected > 0 or not self.interaction.data or Fk:getCardById(to_select).suit ~= Card.Diamond then return false end
-    if self.interaction.data == "mou__guose_use" then
-      local card = Fk:cloneCard("indulgence")
-      card:addSubcard(to_select)
-      return Self:canUse(card) and not Self:prohibitUse(card)
-    else
-      return not Self:prohibitDiscard(Fk:getCardById(to_select))
-    end
+    if #selected > 0 or self.interaction.data ~= "mou__guose_use" then return false end
+    local card = Fk:cloneCard("indulgence")
+    card:addSubcard(to_select)
+    return Self:canUse(card) and not Self:prohibitUse(card) and Fk:getCardById(to_select).suit == Card.Diamond
   end,
   target_filter = function(self, to_select, selected, cards)
-    if #cards ~= 1 or #selected > 0 or not self.interaction.data then return false end
+    if #selected > 0 or not self.interaction.data then return false end
     local target = Fk:currentRoom():getPlayerById(to_select)
     if self.interaction.data == "mou__guose_use" then
+      if #cards ~= 1 then return false end
       local card = Fk:cloneCard("indulgence")
       card:addSubcard(cards[1])
       return to_select ~= Self.id and not Self:isProhibited(target, card)
@@ -47,7 +45,6 @@ local mou__guose = fk.CreateActiveSkill{
     if self.interaction.data == "mou__guose_use" then
       room:useVirtualCard("indulgence", effect.cards, player, target, self.name)
     else
-      room:throwCard(effect.cards, self.name, player, player)
       for _, id in ipairs(target.player_cards[Player.Judge]) do
         local card = target:getVirualEquip(id)
         if not card then card = Fk:getCardById(id) end
@@ -148,7 +145,7 @@ Fk:loadTranslationTable{
   ["#mou__daqiao"] = "矜持之花",
   ["mou__guose"] = "国色",
   [":mou__guose"] = "出牌阶段限四次（若不为身份模式改为限两次），你可以选择一项：1.将一张<font color='red'>♦</font>牌当【乐不思蜀】使用；"..
-  "2.弃置一张<font color='red'>♦</font>牌并弃置场上的一张【乐不思蜀】。选择完成后，你摸一张牌。",
+  "2.弃置场上的一张【乐不思蜀】。选择完成后，你摸一张牌。",
   ["mou__guose_use"] = "使用乐不思蜀",
   ["mou__guose_throw"] = "弃置乐不思蜀",
   ["mou__liuli"] = "流离",
