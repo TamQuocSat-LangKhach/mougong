@@ -1292,4 +1292,153 @@ Fk:loadTranslationTable{
   ["~mou__zhaoyun"] = "汉室未兴，功业未成……",
 }
 
+local xiahoudun = General(extension, "mou__xiahoudun", "wei", 4)
+Fk:loadTranslationTable{
+  ["mou__xiahoudun"] = "谋夏侯惇",
+  ["#mou__xiahoudun"] = "独眼的罗刹",
+  ["~mou__xiahoudun"] = "急功盲进，实是有愧丞相……",
+}
+
+local ganglie = fk.CreateActiveSkill{
+  name = "mou__ganglie",
+  anim_type = "offensive",
+  prompt = "#mou__ganglie",
+  card_num = 0,
+  target_num = 1,
+  can_use = function(self, player)
+    return true
+  end,
+  card_filter = Util.FalseFunc,
+  target_filter = function(self, to_select, selected)
+    return
+      #selected == 0 and
+      table.contains(U.getMark(Self, "mou__ganglie_enemy"), to_select) and
+      not table.contains(U.getMark(Self, "mou__ganglie_targeted"), to_select)
+  end,
+  on_use = function(self, room, effect)
+    local player = room:getPlayerById(effect.from)
+    local playersTargeted = U.getMark(player, "mou__ganglie_targeted")
+    table.insertIfNeed(playersTargeted, effect.tos[1])
+    room:setPlayerMark(player, "mou__ganglie_targeted", playersTargeted)
+
+    room:damage{
+      from = player,
+      to = room:getPlayerById(effect.tos[1]),
+      damage = 2,
+      skillName = self.name,
+    }
+  end,
+}
+local ganglieRecord = fk.CreateTriggerSkill{
+  name = "#mou__ganglie_record",
+  refresh_events = {fk.EventAcquireSkill, fk.BeforeHpChanged},
+  can_refresh = function (self, event, target, player, data)
+    if event == fk.BeforeHpChanged then
+      return
+        target == player and
+        player:hasSkill(self) and
+        data.reason == "damage" and
+        data.damageEvent and
+        data.damageEvent.from
+    else
+      return target == player and data == self
+    end
+  end,
+  on_refresh = function (self, event, target, player, data)
+    local room = player.room
+    if event == fk.EventAcquireSkill then
+      local enemies = {}
+      U.getActualDamageEvents(room, 999, function(e)
+          local damageData = e.data[1]
+          if damageData.from and damageData.to == player then
+            table.insertIfNeed(enemies, damageData.from)
+          end
+
+          return false
+        end,
+        Player.HistoryGame
+      )
+
+      room:setPlayerMark(player, "mou__ganglie_enemy", enemies)
+    else
+      local enemies = U.getMark(player, "mou__ganglie_enemy")
+      table.insertIfNeed(enemies, data.damageEvent.from.id)
+      room:setPlayerMark(player, "mou__ganglie_enemy", enemies)
+    end
+  end,
+}
+Fk:loadTranslationTable{
+  ["mou__ganglie"] = "刚烈",
+  [":mou__ganglie"] = "每名角色限一次，出牌阶段，你可以对一名对你造成过伤害的角色造成2点伤害。",
+  ["#mou__ganglie"] = "刚烈：你可对其中一名角色造成2点伤害",
+  ["$mou__ganglie1"] = "一军之帅，岂惧暗箭之伤。",
+  ["$mou__ganglie2"] = "宁陨沙场，不容折侮。",
+}
+
+ganglie:addRelatedSkill(ganglieRecord)
+xiahoudun:addSkill(ganglie)
+
+local qingjian = fk.CreateTriggerSkill{
+  name = "mou__qingjian",
+  anim_type = "drawcard",
+  events = {fk.AfterCardsMove, fk.EventPhaseEnd},
+  can_trigger = function (self, event, target, player, data)
+    if event == fk.AfterCardsMove then
+      return
+        player:hasSkill(self) and
+        #player:getPile("mou__qingjian") < math.max(player.hp - 1, 1) and
+        table.find(
+          data,
+          function(info)
+            return
+              (info.moveReason ~= fk.ReasonUse or not player.room.logic:getCurrentEvent():findParent(GameEvent.UseCard, true))
+              and info.toArea == Card.DiscardPile
+          end
+        )
+    else
+      return target == player and player:hasSkill(self) and player.phase == Player.Play and #player:getPile("mou__qingjian") > 0
+    end
+  end,
+  on_cost = Util.TrueFunc,
+  on_use = function (self, event, target, player, data)
+    local room = player.room
+    if event == fk.AfterCardsMove then
+      local toPut = {}
+      for _, info in ipairs(data) do
+        if
+          (info.moveReason ~= fk.ReasonUse or not room.logic:getCurrentEvent():findParent(GameEvent.UseCard, true)) and
+          info.toArea == Card.DiscardPile
+        then
+          local diff = math.max(player.hp - 1, 1) - #player:getPile("mou__qingjian")
+          table.insertTable(
+            toPut,
+            table.map(
+              table.slice(info.moveInfo, 1, diff + 1),
+              function(moveInfo) return moveInfo.cardId end
+            )
+          )
+
+          if #toPut >= diff then
+            break
+          end
+        end
+      end
+
+      player:addToPile("mou__qingjian", toPut, true, self.name)
+    else
+      local num = #player:getPile("mou__qingjian")
+      U.askForDistribution(player, player:getPile("mou__qingjian"), nil, self.name, num, num, nil, "mou__qingjian")
+    end
+  end,
+}
+Fk:loadTranslationTable{
+  ["mou__qingjian"] = "清俭",
+  [":mou__qingjian"] = "当一张牌不因使用而进入弃牌堆后，若你的“清俭”数不大于X（X为你的体力值-1，且至少为1），则你将此牌置于你的武将牌上，" ..
+  "称为“清俭”；出牌阶段结束时，你将你的所有“清俭”分配给任意角色。",
+  ["$mou__qingjian1"] = "如今乱世，还是当以俭治军。",
+  ["$mou__qingjian2"] = "浮奢之举，非是正道。",
+}
+
+xiahoudun:addSkill(qingjian)
+
 return extension
