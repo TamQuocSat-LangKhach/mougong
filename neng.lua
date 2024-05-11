@@ -1003,4 +1003,207 @@ Fk:loadTranslationTable{
 mouYiJue:addRelatedSkill(mouYiJueCancel)
 guanyu:addSkill(mouYiJue)
 
+
+local gaoshun = General(extension, "mou__gaoshun", "qun", 4)
+Fk:loadTranslationTable{
+  ["mou__gaoshun"] = "谋高顺",
+  ["#mou__gaoshun"] = "攻无不克",
+  ["~mou__gaoshun"] = "宁为断头鬼，不当受降虏……",
+}
+
+local xianzhen = fk.CreateActiveSkill{
+  name = "mou__xianzhen",
+  anim_type = "offensive",
+  card_num = 0,
+  target_num = 1,
+  can_use = function(self, player)
+    return player:usedSkillTimes(self.name, Player.HistoryPhase) == 0
+  end,
+  card_filter = Util.FalseFunc,
+  target_filter = function(self, to_select, selected)
+    return
+      #selected == 0 and
+      to_select ~= Self.id and
+      not (
+        table.contains({"aaa_role_mode", "aab_role_mode", "vanished_dragon"}, Fk:currentRoom().room_settings.gameMode) and
+        Fk:currentRoom():getPlayerById(to_select).hp >= Self.hp
+      )
+  end,
+  on_use = function(self, room, effect)
+    room:setPlayerMark(room:getPlayerById(effect.tos[1]), "@@mou__xianzhen-phase", effect.from)
+  end
+}
+local xianzhenDistance = fk.CreateTargetModSkill{
+  name = "#mou__xianzhen_distance",
+  bypass_distances = function (self, player, skill, card, to)
+    return to:getMark("@@mou__xianzhen-phase") == player.id
+  end
+}
+local xianzhenPindian = fk.CreateTriggerSkill{
+  name = "#mou__xianzhen_pindian",
+  anim_type = "offensive",
+  events = {fk.TargetSpecified},
+  can_trigger = function(self, event, target, player, data)
+    if not (target == player and data.card.trueName == "slash") then
+      return false
+    end
+
+    local to = player.room:getPlayerById(data.to)
+    return to:getMark("@@mou__xianzhen-phase") == player.id and player:canPindian(to)
+  end,
+  on_cost = function(self, event, target, player, data)
+    return player.room:askForSkillInvoke(player, self.name, nil, "#mou__xianzhen-pindian::" .. data.to)
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    local to = room:getPlayerById(data.to)
+    local pindian = player:pindian({ to }, self.name)
+    if pindian.results[to.id].winner == player then
+      if player:getMark("mou__xianzhen_damaged-turn") == 0 then
+        room:setPlayerMark(player, "mou__xianzhen_damaged-turn", 1)
+
+        room:damage{
+          from = player,
+          to = to,
+          damage = 1,
+          skillName = xianzhen.name,
+        }
+      end
+
+      if not data.extraUse then
+        data.extraUse = true
+        player:addCardUseHistory(data.card.trueName, -1)
+      end
+
+      local cardEvent = room.logic:getCurrentEvent():findParent(GameEvent.UseCard)
+      if not cardEvent then return false end
+      cardEvent.mouxianzhenArmor = true
+      for _, p in ipairs(room.alive_players) do
+        room:addPlayerMark(p, fk.MarkArmorNullified)
+      end
+
+      local pindianCard = pindian.results[to.id].toCard
+      if player:isAlive() and pindianCard.trueName == "slash" and room:getCardArea(pindianCard) == Card.DiscardPile then
+        room:obtainCard(player, pindianCard, true, fk.ReasonPrey, player.id)
+      end
+    end
+  end,
+
+  refresh_events = {fk.CardUseFinished},
+  can_refresh = function(self, event, target, player, data)
+    if player ~= target then return false end
+    local cardEvent = player.room.logic:getCurrentEvent():findParent(GameEvent.UseCard, true)
+    return cardEvent and cardEvent.mouxianzhenArmor
+  end,
+  on_refresh = function(self, event, target, player, data)
+    local room = player.room
+    for _, p in ipairs(room.alive_players) do
+      room:removePlayerMark(p, fk.MarkArmorNullified)
+    end
+  end,
+}
+Fk:loadTranslationTable{
+  ["mou__xianzhen"] = "陷阵",
+  [":mou__xianzhen"] = "出牌阶段限一次，你可以选择一名其他角色（若为身份模式，则改为一名体力值小于你的其他角色）。" ..
+  "本阶段内你对其使用牌无距离限制，且当你使用【杀】指定其为目标后，你可以与其拼点。若你赢，则你对其造成1点伤害（每回合限一次），" ..
+  "然后此【杀】无视防具、不计入次数；若其拼点牌为【杀】，则你获得之。",
+  ["#mou__xianzhen_pindian"] = "陷阵",
+  ["@@mou__xianzhen-phase"] = "被陷阵",
+  ["#mou__xianzhen-pindian"] = "陷阵：你可与 %dest 拼点，若你赢则对其造成1点伤害（限一次）且此杀无视防具不计次数",
+
+  ["$mou__xianzhen1"] = "陷阵营中，皆是以一敌百之士！",
+  ["$mou__xianzhen2"] = "军令既出，使命必完！",
+}
+
+xianzhen:addRelatedSkill(xianzhenDistance)
+xianzhen:addRelatedSkill(xianzhenPindian)
+gaoshun:addSkill(xianzhen)
+
+local jinjiu = fk.CreateFilterSkill{
+  name = "mou__jinjiu",
+  anim_type = "offensive",
+  frequency = Skill.Compulsory,
+  card_filter = function(self, card, player, isJudgeEvent)
+    return player:hasSkill(self) and card.name == "analeptic" and
+    (table.contains(player.player_cards[Player.Hand], card.id) or isJudgeEvent)
+  end,
+  view_as = function(self, to_select)
+    return Fk:cloneCard("slash", to_select.suit, to_select.number)
+  end,
+}
+local jinjiuTrigger = fk.CreateTriggerSkill{
+  name = "#mou__jinjiu_trigger",
+  frequency = Skill.Compulsory,
+  anim_type = "defensive",
+  events = {fk.DamageInflicted, fk.PindianCardsDisplayed},
+  can_trigger = function(self, event, target, player, data)
+    if event == fk.DamageInflicted then
+      if not (target == player and player:hasSkill(jinjiu) and data.card and data.card.trueName == "slash") then
+        return false
+      end
+
+      local parentUseData = player.room.logic:getCurrentEvent():findParent(GameEvent.UseCard)
+      if parentUseData then
+        local drankBuff = parentUseData and (parentUseData.data[1].extra_data or {}).drankBuff or 0
+        if drankBuff > 0 then
+          self.cost_data = drankBuff
+          return true
+        end
+      end
+    else
+      if data.from == player then
+        for _, result in pairs(data.results) do
+          if result.toCard.name == "analeptic" then
+            return true
+          end
+        end
+      elseif table.contains(data.tos, player) then
+        return data.fromCard.name == "analeptic"
+      end
+    end
+
+    return false
+  end,
+  on_use = function(self, event, target, player, data)
+    if event == fk.DamageInflicted then
+      data.damage = 1
+    else
+      if data.from == player then
+        for _, result in pairs(data.results) do
+          if result.toCard.name == "analeptic" then
+            result.toCard.number = 1
+          end
+        end
+      else
+        data.fromCard.number = 1
+      end
+    end
+  end,
+}
+local jinjiuProhibit = fk.CreateProhibitSkill{
+  name = "#mou__jinjiu_prohibit",
+  frequency = Skill.Compulsory,
+  prohibit_use = function(self, player, card)
+    if card and card.name == "analeptic" then
+      return table.find(Fk:currentRoom().alive_players, function(p)
+        return p.phase ~= Player.NotActive and p:hasSkill(jinjiu) and p ~= player
+      end)
+    end
+  end,
+}
+Fk:loadTranslationTable{
+  ["mou__jinjiu"] = "禁酒",
+  [":mou__jinjiu"] = "锁定技，你的【酒】均视为【杀】；当你受到【酒】【杀】造成的伤害时，此伤害改为1；你的回合内，其他角色不能使用【酒】；" ..
+  "当与你拼点的角色拼点牌亮出后，若此牌为【酒】，则此牌的点数视为1。",
+  ["#mou__jinjiu_trigger"] = "禁酒",
+  ["#mou__jinjiu_prohibit"] = "禁酒",
+
+  ["$mou__jinjiu1"] = "军规严戒，不容稍纵形骸！",
+  ["$mou__jinjiu2"] = "黄汤乱军误事，不可不禁！",
+}
+
+jinjiu:addRelatedSkill(jinjiuTrigger)
+jinjiu:addRelatedSkill(jinjiuProhibit)
+gaoshun:addSkill(jinjiu)
+
 return extension

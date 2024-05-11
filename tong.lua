@@ -1391,8 +1391,9 @@ local qingjian = fk.CreateTriggerSkill{
           data,
           function(info)
             return
-              (info.moveReason ~= fk.ReasonUse or not player.room.logic:getCurrentEvent():findParent(GameEvent.UseCard, true))
-              and info.toArea == Card.DiscardPile
+              (info.moveReason ~= fk.ReasonUse or not player.room.logic:getCurrentEvent():findParent(GameEvent.UseCard, true)) and
+              info.toArea == Card.DiscardPile and
+              table.find(info.moveInfo, function(moveInfo) return player.room:getCardArea(moveInfo.cardId) == Card.DiscardPile end)
           end
         )
     else
@@ -1409,17 +1410,24 @@ local qingjian = fk.CreateTriggerSkill{
           (info.moveReason ~= fk.ReasonUse or not room.logic:getCurrentEvent():findParent(GameEvent.UseCard, true)) and
           info.toArea == Card.DiscardPile
         then
-          local diff = math.max(player.hp - 1, 1) - #player:getPile("mou__qingjian")
-          table.insertTable(
-            toPut,
-            table.map(
-              table.slice(info.moveInfo, 1, diff + 1),
-              function(moveInfo) return moveInfo.cardId end
-            )
+          local cardsInDiscardPile = table.filter(
+            info.moveInfo,
+            function(moveInfo) return room:getCardArea(moveInfo.cardId) == Card.DiscardPile end
           )
 
-          if #toPut >= diff then
-            break
+          local diff = math.max(player.hp - 1, 1) - #player:getPile("mou__qingjian")
+          if #cardsInDiscardPile > 0 then
+            table.insertTable(
+              toPut,
+              table.map(
+                table.slice(cardsInDiscardPile, 1, diff + 1),
+                function(moveInfo) return moveInfo.cardId end
+              )
+            )
+
+            if #toPut >= diff then
+              break
+            end
           end
         end
       end
