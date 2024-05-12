@@ -603,6 +603,7 @@ local mou__jizhi = fk.CreateTriggerSkill{
   name = "mou__jizhi",
   anim_type = "drawcard",
   events = {fk.CardUsing},
+  frequency = Skill.Compulsory,
   can_trigger = function(self, event, target, player, data)
     return target == player and player:hasSkill(self) and data.card:isCommonTrick()
   end,
@@ -646,7 +647,7 @@ local mou__qicai = fk.CreateActiveSkill{
   can_use = function(self, player)
     return player:usedSkillTimes(self.name, Player.HistoryPhase) == 0
   end,
-  card_filter = function() return false end,
+  card_filter = Util.FalseFunc,
   target_filter = function(self, to_select, selected, selected_cards)
     return #selected == 0 and to_select ~= Self.id
   end,
