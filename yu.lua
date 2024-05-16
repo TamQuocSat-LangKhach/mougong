@@ -111,7 +111,7 @@ Fk:loadTranslationTable{
 
   ["$mou__kurou1"] = "既不能破，不如依张子布之言，投降便罢！",
   ["$mou__kurou2"] = "周瑜小儿！破曹不得，便欺吾三世老臣乎？",
-  ["$mou__zhaxiang1"] = "江东六郡之卒，怎敌丞相百万雄师！	",
+  ["$mou__zhaxiang1"] = "江东六郡之卒，怎敌丞相百万雄师！",
   ["$mou__zhaxiang2"] = "闻丞相虚心纳士，盖愿率众归降！",
   ["~mou__huanggai"] = "哈哈哈哈，公瑾计成，老夫死也无憾了……",
 }
@@ -428,7 +428,7 @@ Fk:loadTranslationTable{
   ["mou__huangzhong"] = "谋黄忠",
   ["#mou__huangzhong"] = "没金铩羽",
   ["cv:mou__huangzhong"] = "金垚",
-	["illustrator:mou__huangzhong"] = "漫想族",
+  ["illustrator:mou__huangzhong"] = "漫想族",
   ["~mou__huangzhong"] = "弦断弓藏，将老孤亡…",
   ["mou__liegong"] = "烈弓",
   [":mou__liegong"] = "若你未装备武器，你的【杀】只能当作普通【杀】使用或打出。"
