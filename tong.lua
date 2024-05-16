@@ -1306,25 +1306,25 @@ local ganglie = fk.CreateActiveSkill{
   card_num = 0,
   target_num = 1,
   can_use = function(self, player)
-    return true
+    return player:usedSkillTimes(self.name, Player.HistoryPhase) == 0
   end,
   card_filter = Util.FalseFunc,
   target_filter = function(self, to_select, selected)
     return
       #selected == 0 and
       table.contains(U.getMark(Self, "mou__ganglie_enemy"), to_select) and
-      not table.contains(U.getMark(Self, "mou__ganglie_targeted"), to_select)
+      (U.getMark(Self, "mou__ganglie_targeted")[tostring(to_select)] or 0) < 2
   end,
   on_use = function(self, room, effect)
     local player = room:getPlayerById(effect.from)
     local playersTargeted = U.getMark(player, "mou__ganglie_targeted")
-    table.insertIfNeed(playersTargeted, effect.tos[1])
+    playersTargeted[tostring(effect.tos[1])] = (playersTargeted[tostring(effect.tos[1])] or 0) + 1
     room:setPlayerMark(player, "mou__ganglie_targeted", playersTargeted)
 
     room:damage{
       from = player,
       to = room:getPlayerById(effect.tos[1]),
-      damage = 2,
+      damage = 1,
       skillName = self.name,
     }
   end,
@@ -1369,8 +1369,8 @@ local ganglieRecord = fk.CreateTriggerSkill{
 }
 Fk:loadTranslationTable{
   ["mou__ganglie"] = "刚烈",
-  [":mou__ganglie"] = "每名角色限一次，出牌阶段，你可以对一名对你造成过伤害的角色造成2点伤害。",
-  ["#mou__ganglie"] = "刚烈：你可对其中一名角色造成2点伤害",
+  [":mou__ganglie"] = "每名角色限两次，出牌阶段限一次，你可以对一名对你造成过伤害的角色造成1点伤害。",
+  ["#mou__ganglie"] = "刚烈：你可对其中一名角色造成1点伤害",
   ["$mou__ganglie1"] = "一军之帅，岂惧暗箭之伤。",
   ["$mou__ganglie2"] = "宁陨沙场，不容折侮。",
 }
