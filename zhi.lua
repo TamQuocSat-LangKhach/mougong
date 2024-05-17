@@ -1197,10 +1197,16 @@ local mou__huoji = fk.CreateActiveSkill{
     local target = room:getPlayerById(effect.tos[1])
     room:notifySkillInvoked(player, self.name)
     player:broadcastSkillInvoke(self.name, math.random(2))
-    local kingdom = target.kingdom
+    room:damage{
+      from = player,
+      to = target,
+      damage = 1,
+      damageType = fk.FireDamage,
+      skillName = self.name,
+    }
     local targets = {}
-    for _, p in ipairs(room:getOtherPlayers(player)) do
-      if p.kingdom == kingdom then
+    for _, p in ipairs(room:getAlivePlayers()) do
+      if p ~= player and p ~= target and p.kingdom == target.kingdom then
         table.insert(targets, p)
       end
     end
