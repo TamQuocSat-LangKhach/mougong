@@ -1173,7 +1173,7 @@ local moufangzhuProhibit = fk.CreateProhibitSkill{
 local moufangzhuNullify = fk.CreateInvaliditySkill {
   name = "#mou__fangzhu_nullify",
   invalidity_func = function(self, from, skill)
-    return from:getMark("@@mou__fangzhu_skill_nullified") > 0 and not (skill:isEquipmentSkill() or skill.name:endsWith("&"))
+    return from:getMark("@@mou__fangzhu_skill_nullified") > 0 and skill:isPlayerSkill(from)
   end
 }
 Fk:loadTranslationTable{
