@@ -1158,6 +1158,10 @@ local jinjiuTrigger = fk.CreateTriggerSkill{
         end
       end
     else
+      if not player:hasSkill(jinjiu) then
+        return false
+      end
+
       if data.from == player then
         for _, result in pairs(data.results) do
           if result.toCard.name == "analeptic" then
