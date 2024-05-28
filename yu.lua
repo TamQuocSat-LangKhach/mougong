@@ -791,7 +791,7 @@ Fk:loadTranslationTable{
   ["~mou__huangyueying"] = "何日北平中原，夫君再返隆中……",
 }
 
-local mou__luzhik = General(extension, "mou__luzhik", "qun", 3)
+local mou__luzhi = General(extension, "mou__luzhi", "qun", 3)
 
 local mou__mingren = fk.CreateTriggerSkill{
   name = "mou__mingren",
@@ -845,7 +845,7 @@ local mou__mingren = fk.CreateTriggerSkill{
     end
   end,
 }
-mou__luzhik:addSkill(mou__mingren)
+mou__luzhi:addSkill(mou__mingren)
 
 local mou__zhenliang = fk.CreateActiveSkill{
   name = "mou__zhenliang",
@@ -903,12 +903,12 @@ local mou__zhenliang_trigger = fk.CreateTriggerSkill{
   end,
 }
 mou__zhenliang:addRelatedSkill(mou__zhenliang_trigger)
-mou__luzhik:addSkill(mou__zhenliang)
+mou__luzhi:addSkill(mou__zhenliang)
 
 Fk:loadTranslationTable{
-  ["mou__luzhik"] = "谋卢植",
-  ["#mou__luzhik"] = "国之桢干",
-  ["cv:mou__luzhik"] = "袁国庆",
+  ["mou__luzhi"] = "谋卢植",
+  ["#mou__luzhi"] = "国之桢干",
+  ["cv:mou__luzhi"] = "袁国庆",
 
   ["mou__mingren"] = "明任",
   [":mou__mingren"] = "①游戏开始时，你摸两张牌，然后将一张手牌置于你的武将牌上，称为“任”；②结束阶段，你可以用任意一张手牌替换“任”。",
@@ -927,7 +927,7 @@ Fk:loadTranslationTable{
   ["$mou__mingren2"] = "老夫蒙国重恩，敢不捐躯以报！",
   ["$mou__zhenliang1"] = "汉室艰祸繁兴，老夫岂忍宸极失御！",
   ["$mou__zhenliang2"] = "犹思中兴之美，尚怀来苏之望！",
-  ["~mou__luzhik"] = "历数有尽，天命有归……",
+  ["~mou__luzhi"] = "历数有尽，天命有归……",
 }
 
 
