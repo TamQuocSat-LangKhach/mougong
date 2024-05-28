@@ -12,7 +12,7 @@ ColumnLayout {
     Layout.fillWidth: true
     Layout.preferredHeight: childrenRect.height + 4
 
-    text: Backend.translate(extra_data.name)
+    text: luatr(extra_data.name)
   }
 
   Text {
@@ -22,7 +22,7 @@ ColumnLayout {
 
     font.pixelSize: 18
     color: "#E4D5A0"
-    text: '<b>' + Backend.translate(extra_data.data[1]) + "</b>: " + Backend.translate(":" + extra_data.data[1])
+    text: '<b>' + luatr(extra_data.data[1]) + "</b>: " + luatr(":" + extra_data.data[1])
 
     wrapMode: Text.WordWrap
     textFormat: Text.RichText

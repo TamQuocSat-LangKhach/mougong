@@ -14,7 +14,7 @@ GraphicsBox {
   property var playerInfos: []
   property string titleName: ""
 
-  title.text: Backend.translate(titleName)
+  title.text: luatr(titleName)
   // TODO: Adjust the UI design in case there are more than 7 cards
   width: 700
   height: 360
@@ -81,7 +81,7 @@ GraphicsBox {
 
       MetroButton {
         Layout.fillWidth: true
-        text: Backend.translate("OK")
+        text: luatr("OK")
         enabled: selectedItem.length
 
         onClicked: {
@@ -99,7 +99,7 @@ GraphicsBox {
       MetroButton {
         id: detailBtn
         enabled: selectedItem.length
-        text: Backend.translate("Show General Detail")
+        text: luatr("Show General Detail")
         onClicked: {
           const { general, deputyGeneral } = selectedItem[0];
           const generals = [general];
@@ -125,7 +125,7 @@ GraphicsBox {
             seat = player.seat,
             role = 'hidden',
           }
-        end)()`
+        end)()
       );
       return player;
     });
