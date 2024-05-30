@@ -125,7 +125,7 @@ GraphicsBox {
             seat = player.seat,
             role = 'hidden',
           }
-        end)()
+        end)()`
       );
       return player;
     });
