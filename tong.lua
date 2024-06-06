@@ -895,28 +895,24 @@ local mou__paoxiao = fk.CreateTriggerSkill{
 }
 local mou__paoxiao_delay = fk.CreateTriggerSkill{
   name = "#mou__paoxiao_delay",
-  events = {fk.CardUseFinished},
+  events = {fk.Damage},
   mute = true,
   frequency = Skill.Compulsory,
   can_trigger = function(self, event, target, player, data)
-    return not player.dead and data.extra_data and data.extra_data.mou__paoxiao_user == player.id
+    if not player.dead and not data.to.dead and player.room.logic:damageByCardEffect() then
+      local e = player.room.logic:getCurrentEvent():findParent(GameEvent.CardEffect)
+      if e then
+        local use = e.data[1]
+        return (use.extra_data or {}).mou__paoxiao_user == player.id
+      end
+    end
   end,
   on_use = function(self, event, target, player, data)
     local room = player.room
-    local players = {}
-    for _, pid in ipairs(TargetGroup:getRealTargets(data.tos)) do
-      local to = room:getPlayerById(pid)
-      if not to.dead then
-        table.insertIfNeed(players, pid)
-      end
-    end
-    for i = 1, #players do
-      if player.dead then break end
-      room:loseHp(player, 1, self.name)
-      local cards = table.filter(player:getCardIds("h"), function(id) return not player:prohibitDiscard(Fk:getCardById(id)) end)
-      if #cards > 0 then
-        room:throwCard(table.random(cards, 1), "mou__paoxiao", player, player)
-      end
+    room:loseHp(player, 1, self.name)
+    local cards = table.filter(player:getCardIds("h"), function(id) return not player:prohibitDiscard(Fk:getCardById(id)) end)
+    if #cards > 0 then
+      room:throwCard(table.random(cards, 1), "mou__paoxiao", player, player)
     end
   end,
 }
@@ -1080,7 +1076,7 @@ local mou__xieji_delay = fk.CreateTriggerSkill{
       room:notifySkillInvoked(player, "mou__xieji", "offensive")
       local slash = Fk:cloneCard("slash")
       slash.skillName = "mou__xieji"
-      local targets = table.filter(room:getOtherPlayers(player), function (p) return not player:isProhibited(p, slash) end)
+      local targets = table.filter(room:getOtherPlayers(player), function (p) return player:canUseTo(slash, p, {bypass_times = true}) end)
       if #targets == 0 then return false end
       local tos = player.room:askForChoosePlayers(player, table.map(targets, Util.IdMapper), 1, 3, "#mou__xieji-slash", "mou__xieji", true)
       if #tos > 0 then
@@ -1101,7 +1097,7 @@ Fk:loadTranslationTable{
   ["mou__paoxiao"] = "咆哮",
   [":mou__paoxiao"] = "锁定技，①你使用【杀】无次数限制；"..
   "②若你装备了武器牌，你使用【杀】无距离限制；"..
-  "③当你于出牌阶段使用【杀】指定目标后，若你本阶段已使用过【杀】，你令目标角色本回合非锁定技失效，此【杀】不能被响应且【杀】伤害值+1，此【杀】结算结束后，每有一名目标角色存活，你失去1点体力并随机弃置一张手牌。",
+  "③当你于出牌阶段使用【杀】指定目标后，若你本阶段已使用过【杀】，你令目标角色本回合非锁定技失效，此【杀】不能被响应且【杀】伤害值+1，此【杀】对目标角色造成伤害后若其未死亡，你失去1点体力并随机弃置一张手牌。",
   ["@@mou__paoxiao-turn"] = "咆哮封技",
   ["#mou__paoxiao_delay"] = "咆哮",
 
