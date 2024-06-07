@@ -1057,16 +1057,10 @@ local xianzhenPindian = fk.CreateTriggerSkill{
   on_use = function(self, event, target, player, data)
     local room = player.room
     local to = room:getPlayerById(data.to)
-
-    local handsBefore = to:getCardIds("h")
     local pindian = player:pindian({ to }, self.name)
-    --严谨点可以用移动事件判断，小偷个懒
-    if #handsBefore == 1 and pindian.results[to.id].toCard:getEffectiveId() == handsBefore[1] then
-      data.additionalDamage = (data.additionalDamage or 0) + 1
-    end
 
     if pindian.results[to.id].winner == player then
-      if player:getMark("mou__xianzhen_damaged-turn") < 2 then
+      if player:getMark("mou__xianzhen_damaged-turn") < 1 then
         room:addPlayerMark(player, "mou__xianzhen_damaged-turn")
 
         room:damage{
@@ -1112,8 +1106,8 @@ local xianzhenPindian = fk.CreateTriggerSkill{
 Fk:loadTranslationTable{
   ["mou__xianzhen"] = "陷阵",
   [":mou__xianzhen"] = "出牌阶段限一次，你可以选择一名其他角色（若为身份模式，则改为一名体力值小于你的其他角色）。" ..
-  "本阶段内你对其使用牌无距离限制，且当你使用【杀】指定其为目标后，你可以与其拼点。若你赢，则你对其造成1点伤害（每回合限两次），" ..
-  "然后此【杀】无视防具、不计入次数；若其拼点牌为【杀】，则你获得之；若其拼点牌为其唯一的手牌，则此【杀】对其造成的伤害+1。",
+  "本阶段内你对其使用牌无距离限制，且当你使用【杀】指定其为目标后，你可以与其拼点。若你赢，则你对其造成1点伤害（每回合限一次），" ..
+  "然后此【杀】无视防具、不计入次数；若其拼点牌为【杀】，则你获得之。",
   ["#mou__xianzhen_pindian"] = "陷阵",
   ["@@mou__xianzhen-phase"] = "被陷阵",
   ["#mou__xianzhen-pindian"] = "陷阵：你可与 %dest 拼点，若你赢则对其造成1点伤害（限一次）且此杀无视防具不计次数",
