@@ -55,7 +55,7 @@ local mou__jiang_trigger = fk.CreateTriggerSkill{
         return true
       end
     else
-      return player.room:askForSkillInvoke(player, mou__jiang.name)
+      return true
     end
   end,
   on_use = function(self, event, target, player, data)
@@ -143,7 +143,7 @@ Fk:loadTranslationTable{
   ["#mou__jiang-choose"] = "你可以发动激昂，失去1点体力来为【%arg】额外指定1个目标",
   ["mou__jiang"] = "激昂",
   [":mou__jiang"] = "当你使用【决斗】时，你可以失去1点体力，额外选择一个目标。"..
-  "当你使用【决斗】或红色【杀】指定目标后，或成为【决斗】或红色【杀】的目标后，你可以摸一张牌。"..
+  "当你使用【决斗】或红色【杀】指定目标后，或成为【决斗】或红色【杀】的目标后，你摸一张牌。"..
   "出牌阶段限一次，你可以将所有手牌当【决斗】使用。",
   ["mou__hunzi"] = "魂姿",
   [":mou__hunzi"] = "觉醒技，当你脱离濒死状态时，你减1点体力上限，获得1点护甲，摸三张牌，然后获得〖英姿〗和〖英魂〗。",
