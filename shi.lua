@@ -1131,7 +1131,7 @@ local moufangzhu = fk.CreateActiveSkill{
 }
 local moufangzhuRefresh = fk.CreateTriggerSkill{
   name = "#mou__fangzhu_refresh",
-  refresh_events = { fk.AfterTurnEnd, fk.TargetConfirmed },
+  refresh_events = { fk.AfterTurnEnd, fk.CardUsing },
   can_refresh = function(self, event, target, player, data)
     if event == fk.AfterTurnEnd then
       return
@@ -1142,7 +1142,12 @@ local moufangzhuRefresh = fk.CreateTriggerSkill{
         )
     end
 
-    return target == player and target:getMark("@@mou__fangzhu_disresponsable") > 0 and data.from ~= target.id
+    return
+      target == player and
+      table.find(
+        player.room.alive_players,
+        function(p) return p:getMark("@@mou__fangzhu_disresponsable") > 0 and p ~= target end
+      )
   end,
   on_refresh = function(self, event, target, player, data)
     local room = player.room
@@ -1154,7 +1159,12 @@ local moufangzhuRefresh = fk.CreateTriggerSkill{
         end
       end
     else
-      data.disresponsive = true
+      data.disresponsiveList = data.disresponsiveList or {}
+      local tos = table.filter(
+        player.room.alive_players,
+        function(p) return p:getMark("@@mou__fangzhu_disresponsable") > 0 and p ~= target end
+      )
+      table.insertTableIfNeed(data.disresponsiveList, table.map(tos, Util.IdMapper))
     end
   end,
 }
