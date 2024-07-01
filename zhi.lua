@@ -1233,14 +1233,7 @@ local mou__huoji_trigger = fk.CreateTriggerSkill{
       if event == fk.EventPhaseStart then
         if player.phase == Player.Start then
           local room = player.room
-          local n = 0
-          U.getActualDamageEvents(room, 1, function(e)
-            local damage = e.data[1]
-            if damage and damage.from == player and damage.damageType == fk.FireDamage then
-              n = n + damage.damage
-            end
-          end, Player.HistoryGame)
-          return n >= #room.players
+          return player:getMark("@mou__huoji") >= #room.players
         end
       else
         return true
@@ -1266,6 +1259,34 @@ local mou__huoji_trigger = fk.CreateTriggerSkill{
       player:broadcastSkillInvoke("mou__huoji", 3)
       room:notifySkillInvoked(player, "mou__huoji", "negative")
       room:updateQuestSkillState(player, "mou__huoji", true)
+    end
+  end,
+
+  refresh_events = {fk.EventAcquireSkill, fk.EventLoseSkill, fk.Damage},
+  can_refresh = function (self, event, target, player, data)
+    if event == fk.Damage then
+      return target == player and player:hasSkill(mou__huoji) and not player:getQuestSkillState("mou__huoji")
+      and data.damageType == fk.FireDamage
+    else
+      return target == player and data == mou__huoji and
+      (event == fk.EventLoseSkill or not player:getQuestSkillState("mou__huoji"))
+    end
+  end,
+  on_refresh = function (self, event, target, player, data)
+    local room = player.room
+    if event == fk.Damage then
+      room:addPlayerMark(player, "@mou__huoji", data.damage)
+    elseif event == fk.EventAcquireSkill then
+      local n = 0
+      U.getActualDamageEvents(room, 1, function(e)
+        local damage = e.data[1]
+        if damage and damage.from == player and damage.damageType == fk.FireDamage then
+          n = n + damage.damage
+        end
+      end, Player.HistoryGame)
+      room:setPlayerMark(player, "@mou__huoji", n)
+    else
+      room:setPlayerMark(player, "@mou__huoji", 0)
     end
   end,
 }
@@ -1374,6 +1395,7 @@ Fk:loadTranslationTable{
   ["#mou__kanpo-choice"] = "看破：你可以选择至多%arg个牌名，其他角色使用同名牌时，你可令其无效<br>已记录：%arg2",
   ["#mou__kanpo-invoke"] = "看破：是否令 %dest 使用的%arg无效？",
   ["@[private]$mou__kanpo"] = "看破",
+  ["@mou__huoji"] = "火计",
 
   ["$mou__huoji1"] = "区区汉贼，怎挡天火之威？",
   ["$mou__huoji2"] = "就让此火，再兴炎汉国祚。",
