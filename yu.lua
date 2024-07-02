@@ -628,12 +628,13 @@ local mou__qicai_select = fk.CreateActiveSkill{
   card_filter = function(self, to_select, selected)
     if #selected ~= 0 then return false end
     local card = Fk:getCardById(to_select)
-    if table.contains({"m_1v2_mode", "brawl_mode"}, Fk:currentRoom().room_settings.gameMode) and card.sub_type ~= Card.SubtypeArmor then
+    if table.contains({"m_1v2_mode", "brawl_mode"}, Fk:currentRoom().room_settings.gameMode)
+    and (card.sub_type ~= Card.SubtypeArmor or table.contains(U.getMark(Self, "@$mou__qicai"), card.trueName)) then
       return false
     end
 
-    return 
-      card.type == Card.TypeEquip and not table.contains(U.getMark(Self, "@$mou__qicai"), card.trueName) and
+    return
+      card.type == Card.TypeEquip and
       (table.contains(U.getMark(Self, "mou__qicai_discardpile"), to_select) or Fk:currentRoom():getCardArea(to_select) ~= Card.PlayerEquip) and
       U.canMoveCardIntoEquip(Fk:currentRoom():getPlayerById(Self:getMark("mou__qicai_target-tmp")), to_select, false)
   end,
@@ -659,13 +660,13 @@ local mou__qicai = fk.CreateActiveSkill{
     local ids = table.filter(room.discard_pile, function (id)
       local card = Fk:getCardById(id)
       if
-        table.contains({"m_1v2_mode", "brawl_mode"}, Fk:currentRoom().settings.gameMode) and
-        card.sub_type ~= Card.SubtypeArmor
+        table.contains({"m_1v2_mode", "brawl_mode"}, room.settings.gameMode) and
+        (table.contains(mark, card.trueName) or card.sub_type ~= Card.SubtypeArmor)
       then
         return false
       end
 
-      return card.type == Card.TypeEquip and not table.contains(mark, card.trueName)
+      return card.type == Card.TypeEquip
     end)
     room:setPlayerMark(player, "mou__qicai_target-tmp", target.id)
     room:setPlayerMark(player, "mou__qicai_discardpile", ids)

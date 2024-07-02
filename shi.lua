@@ -635,7 +635,7 @@ local mou__qiaobian = fk.CreateTriggerSkill{
           for _, id in ipairs(player:getCardIds("j")) do
             local vcard = player:getVirualEquip(id)
             local card = vcard or Fk:getCardById(id)
-            if to:hasDelayedTrick(card.name) then
+            if to:hasDelayedTrick(card.name) or to.dead or table.contains(to.sealedSlots, Player.JudgeSlot) then
               table.insert(moveInfos, {
                 ids = {id},
                 from = player.id,
@@ -704,7 +704,7 @@ Fk:loadTranslationTable{
   [":mou__qiaobian"] = "每回合限一次，判定阶段、摸牌阶段、出牌阶段开始前，你可以跳过此阶段并执行对应跳过阶段的效果："..
   "<br>判定阶段：失去1点体力并选择一名其他角色，然后你将判定区里所有的牌置入该角色的判定区（无法置入的判定牌改为置入弃牌堆）；"..
   "<br>摸牌阶段：下个准备阶段开始时，你摸五张牌并回复1点体力；"..
-  "<br>出牌阶段：将手牌数弃置至6张并跳过弃牌阶段，然后你移动场上的一张牌。",
+  "<br>出牌阶段：将手牌数弃置至六张并跳过弃牌阶段，然后你移动场上的一张牌。",
   ["#mou__qiaobian-invoke"] = "巧变：你可以跳过 %arg",
   ["#mou__qiaobian-choose"] = "巧变：将你判定区里所有的牌置入一名其他角色的判定区",
   ["#mou__qiaobian-move"] = "巧变：请选择两名角色，移动场上的一张牌",

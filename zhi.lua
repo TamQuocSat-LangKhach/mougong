@@ -906,7 +906,10 @@ local mou__rende = fk.CreateActiveSkill{
     if self.interaction.data == "mou__rende" then
       local target = room:getPlayerById(effect.tos[1])
       room:setPlayerMark(target, "mou__rende_target-phase", 1)
-      room:setPlayerMark(target, "mou__rende_target", 1)
+      local mark = U.getMark(player, "mou__rende_target")
+      if table.insertIfNeed(mark, target.id) then
+        room:setPlayerMark(player, "mou__rende_target", mark)
+      end
       room:moveCardTo(effect.cards, Player.Hand, target, fk.ReasonGive, self.name, nil, false, player.id)
       room:setPlayerMark(player, "@mou__renwang", math.min(8, player:getMark("@mou__renwang") + #effect.cards))
     else
@@ -935,6 +938,14 @@ local mou__rende_trigger = fk.CreateTriggerSkill{
     local room = player.room
     player:broadcastSkillInvoke("mou__rende")
     room:setPlayerMark(player, "@mou__renwang", math.min(8, player:getMark("@mou__renwang") + 2))
+  end,
+
+  refresh_events = {fk.EventLoseSkill},
+  can_refresh = function (self, event, target, player, data)
+    return target == player and data == mou__rende
+  end,
+  on_refresh = function (self, event, target, player, data)
+    player.room:setPlayerMark(player, "@mou__renwang", 0)
   end,
 }
 mou__rende:addRelatedSkill(mou__rende_trigger)
@@ -1051,19 +1062,21 @@ local mou__zhangwu = fk.CreateActiveSkill{
     return player:usedSkillTimes(self.name, Player.HistoryGame) == 0
   end,
   card_num = 0,
-  card_filter = function() return false end,
+  card_filter = Util.FalseFunc,
   target_num = 0,
+  prompt = "#mou__zhangwu-prompt",
   on_use = function(self, room, effect)
     local player = room:getPlayerById(effect.from)
     local x = math.min(3, (room:getTag("RoundCount") - 1))
     if x > 0 then
+      local mark = U.getMark(player, "mou__rende_target")
       for _, p in ipairs(room:getOtherPlayers(player)) do
         if player.dead then break end
-        if not p.dead and p:getMark("mou__rende_target") > 0 and not p:isNude() then
+        if not p.dead and table.contains(mark, p.id) and not p:isNude() then
           local cards = (#p:getCardIds("he") < x) and p:getCardIds("he") or
           room:askForCard(p, x, x, true, self.name, false, ".", "#mou__zhangwu-give::"..player.id..":"..x)
           if #cards > 0 then
-            room:obtainCard(player, cards, false, fk.ReasonGive)
+            room:obtainCard(player, cards, false, fk.ReasonGive, p.id, self.name)
           end
         end
       end
@@ -1159,6 +1172,7 @@ Fk:loadTranslationTable{
   ["mou__zhangwu"] = "章武",
   [":mou__zhangwu"] = "限定技，出牌阶段，你可以令〖仁德〗选择过的所有角色依次交给你X张牌（X为游戏轮数-1，至多为3），然后你回复3点体力，失去技能〖仁德〗。",
   ["#mou__zhangwu-give"] = "章武：请交给 %dest %arg 张牌",
+  ["#mou__zhangwu-prompt"] = "章武：你可以令获得“仁德”牌的角色交给你牌，你回复3点体力并失去“仁德”",
   ["mou__jijiang"] = "激将",
   [":mou__jijiang"] = "主公技，出牌阶段结束时，你可以选择一名其他角色，令一名攻击范围内含有其且体力值不小于你的其他蜀势力角色选择一项："..
   "1.视为对其使用一张【杀】；2.跳过下一个出牌阶段。",
