@@ -381,7 +381,7 @@ local mouliegong = fk.CreateTriggerSkill{
     -- 展示牌堆顶的牌，计算加伤数量
     if #suits > 1 then
       local cards = room:getNCards(#suits - 1)
-      room:moveCardTo(cards, Card.Processing)
+      room:moveCardTo(cards, Card.Processing, nil, fk.ReasonJustMove, self.name, nil, true, player.id)
       data.additionalDamage = data.additionalDamage or 0
       for _, id in ipairs(cards) do
         if table.contains(suits, Fk:getCardById(id):getSuitString(true)) then
@@ -392,7 +392,7 @@ local mouliegong = fk.CreateTriggerSkill{
         end
         room:delay(200)
       end
-      room:moveCardTo(cards, Card.DiscardPile)
+      room:moveCardTo(cards, Card.DiscardPile, nil, fk.ReasonPutIntoDiscardPile, self.name)
     end
   end,
 
