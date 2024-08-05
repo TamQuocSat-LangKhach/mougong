@@ -1339,7 +1339,6 @@ local mou__kanpo = fk.CreateTriggerSkill{
         all_names = U.getAllCardNames("btd", true)
         room:setPlayerMark(player, "mou__kanpo", all_names)
       end
-      table.insert(all_names, "Cancel")
       local names = table.simpleClone(all_names)
 
       if player:getMark("@[private]$mou__kanpo") ~= 0 then
@@ -1348,24 +1347,15 @@ local mou__kanpo = fk.CreateTriggerSkill{
         end
         room:setPlayerMark(player, "@[private]$mou__kanpo", 0)
       end
-
       local max_limit = table.contains({"m_1v2_mode", "m_2v2_mode"}, room.settings.gameMode) and 2 or 4
       max_limit = max_limit - player:getMark("mou__kanpo_times")
-
-      local mark = {}
-      for i = max_limit, 1, -1 do
-        local choice = room:askForChoice(player, names, self.name,
-          "#mou__kanpo-choice:::"..i..":"..table.concat(table.map(mark, function(name)
-            return "【"..Fk:translate(name).."】" end), "、"), nil, all_names)
-        if choice == "Cancel" then
-          break
-        else
-          table.insert(mark, choice)
+      if max_limit > 0 then
+        local mark = U.askForChooseCardNames(room, player, names, 1, max_limit, self.name, "#mou__kanpo-choice:::"..max_limit,
+        all_names, true, true)
+        if #mark > 0 then
+          room:addPlayerMark(player, "mou__kanpo_times", #mark)
+          U.setPrivateMark(player, "$mou__kanpo", mark)
         end
-      end
-      if #mark > 0 then
-        room:addPlayerMark(player, "mou__kanpo_times", #mark)
-        U.setPrivateMark(player, "$mou__kanpo", mark)
       end
     else
       local mark = U.getPrivateMark(player, "$mou__kanpo")
@@ -1406,7 +1396,7 @@ Fk:loadTranslationTable{
   "非装备牌的牌名（每局游戏至多记录四个牌名，若为斗地主或2V2模式则改为两个牌名）。"..
   "当其他角色使用与你记录牌名相同的牌时，你可以移除一个对应牌名的记录，然后令此牌无效并摸一张牌。",
   ["#mou__huoji"] = "发动 火计，选择一名角色，对所有与其势力相同的其他角色造成1点火焰伤害",
-  ["#mou__kanpo-choice"] = "看破：你可以选择至多%arg个牌名，其他角色使用同名牌时，你可令其无效<br>已记录：%arg2",
+  ["#mou__kanpo-choice"] = "看破：你可选择%arg次牌名，其他角色使用同名牌时，你可令其无效<br>",
   ["#mou__kanpo-invoke"] = "看破：是否令 %dest 使用的%arg无效？",
   ["@[private]$mou__kanpo"] = "看破",
   ["@mou__huoji"] = "火计",
