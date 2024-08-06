@@ -210,57 +210,66 @@ local mou__qingzheng = fk.CreateTriggerSkill{
   events = {fk.EventPhaseStart},
   can_trigger = function(self, event, target, player, data)
     if target == player and player:hasSkill(self) and player.phase == Player.Play then
-      local num = 3 - player:getMark("@mou__jianxiong")
-      local suits = {}
-      for _, id in ipairs(player.player_cards[Player.Hand]) do
-        local suit = Fk:getCardById(id).suit
-        if suit ~= Card.NoSuit then
-          table.insertIfNeed(suits, suit)
-        end
-      end
-      return not player:isKongcheng() and #suits >= num
+      return not player:isKongcheng() and table.find(player.room:getOtherPlayers(player), function(p) return not p:isKongcheng() end)
     end
   end,
   on_cost = function(self, event, target, player, data)
     local room = player.room
+    player:drawCards(5)
     local targets = table.filter(room:getOtherPlayers(player), function(p) return not p:isKongcheng() end)
-    if #targets > 0 then
+    local num = 3 - player:getMark("@mou__jianxiong")
+    local listNames = {"log_spade", "log_club", "log_heart", "log_diamond"}
+    local listCards = {{}, {}, {}, {}}
+    for _, id in ipairs(player.player_cards[Player.Hand]) do
+      local suit = Fk:getCardById(id).suit
+      if suit ~= Card.NoSuit and not player:prohibitDiscard(id) then
+        table.insertIfNeed(listCards[suit], id)
+      end
+    end
+    local choices = U.askForChooseCardList(room, player, listNames, listCards, num, num, self.name, "#mou__qingzheng-card:::"..num)
+    if #choices == num then
       local to = room:askForChoosePlayers(player, table.map(targets, Util.IdMapper), 1, 1,
-      "#mou__qingzheng-choose:::"..(3 - player:getMark("@mou__jianxiong")), self.name, true)
+      "#mou__qingzheng-choose", self.name, true)
       if #to > 0 then
-        self.cost_data = to[1]
+        self.cost_data = {choices, to[1]}
         return true
       end
     end
   end,
   on_use = function(self, event, target, player, data)
     local room = player.room
-    local to = player.room:getPlayerById(self.cost_data)
+    local choices = self.cost_data[1]
+    local to = room:getPlayerById(self.cost_data[2])
     local num = 3 - player:getMark("@mou__jianxiong")
-    local suits = {}
-    for _, id in ipairs(player.player_cards[Player.Hand]) do
-      local suit = Fk:getCardById(id):getSuitString(true)
-      if suit ~= "log_nosuit" then
-        table.insertIfNeed(suits, suit)
-      end
-    end
-    local choices = room:askForChoices(player, suits, num, num, self.name, "#mou__qingzheng-discard:::".. num, false)
-    local cards = table.filter(player.player_cards[Player.Hand], function (id)
+    local my_throw = table.filter(player.player_cards[Player.Hand], function (id)
       return not player:prohibitDiscard(Fk:getCardById(id)) and table.contains(choices, Fk:getCardById(id):getSuitString(true))
     end)
-    if #cards > 0 then
-      room:throwCard(cards, self.name, player, player)
-    end
+    room:throwCard(my_throw, self.name, player, player)
     if player.dead then return end
-    local cids = to.player_cards[Player.Hand]
-    local cards1 = {}
-    if #cids > 0 then
-      local id1 = room:askForCardChosen(player, to, { card_data = { { "$Hand", cids }  } }, self.name, "#mou__qingzheng-throw")
-      cards1 = table.filter(cids, function(id) return Fk:getCardById(id).suit == Fk:getCardById(id1).suit end)
-      room:throwCard(cards1, self.name, to, player)
+    local to_throw = {}
+    local listNames = {"log_spade", "log_club", "log_heart", "log_diamond"}
+    local listCards = {{}, {}, {}, {}}
+    local can_throw
+    for _, id in ipairs(to.player_cards[Player.Hand]) do
+      local suit = Fk:getCardById(id).suit
+      if suit ~= Card.NoSuit then
+        table.insertIfNeed(listCards[suit], id)
+        can_throw = true
+      end
     end
-    if #cards > #cards1 and not to.dead then
-      room:damage{ from = player, to = to, damage = 1, skillName = self.name }
+    if can_throw then
+      local choice = U.askForChooseCardList(room, player, listNames, listCards, 1, 1, self.name,
+      "#mou__qingzheng-throw::"..to.id..":"..#my_throw, false, false)
+      if #choice == 1 then
+        to_throw = table.filter(to.player_cards[Player.Hand], function(id) return Fk:getCardById(id):getSuitString(true) == choice[1] end)
+      end
+    end
+    room:throwCard(to_throw, self.name, to, player)
+    if #my_throw > #to_throw then
+      if not to.dead then
+        room:doIndicate(player.id, {to.id})
+        room:damage{ from = player, to = to, damage = 1, skillName = self.name }
+      end
       if player:hasSkill("mou__jianxiong") and player:getMark("@mou__jianxiong") < 2 then
         if room:askForSkillInvoke(player, self.name, nil, "#mou__qingzheng-addmark") then
           room:addPlayerMark(player, "@mou__jianxiong", 1)
@@ -310,6 +319,7 @@ caocao:addSkill(mou__hujia)
 Fk:loadTranslationTable{
   ["mou__caocao"] = "谋曹操",
   ["#mou__caocao"] = "魏武大帝",
+
   ["mou__jianxiong"] = "奸雄",
   ["#mou__jianxiong_gamestart"] = "奸雄",
   [":mou__jianxiong"] = "游戏开始时，你可以获得至多两枚“治世”标记。当你受到伤害后，你可以获得对你造成伤害的牌并摸2-X张牌，然后你可以移除1枚“治世”。"..
@@ -323,9 +333,9 @@ Fk:loadTranslationTable{
   ["#mou__jianxiong-dismark"] = "奸雄：是否弃置一枚“治世”标记？",
   ["#mou__jianxiong-choice"] = "奸雄：请选择要获得的“治世”标记数量。",
   ["#mou__qingzheng-addmark"] = "清正：是否获得一个“治世”标记？",
-  ["#mou__qingzheng-choose"] = "清正：可以弃置 %arg 种花色的所有手牌，观看一名角色手牌并弃置其中一种花色",
-  ["#mou__qingzheng-discard"] = "清正：请选择 %arg 种花色的所有手牌弃置",
-  ["#mou__qingzheng-throw"] = "清正：弃置其一种花色的所有手牌",
+  ["#mou__qingzheng-card"] = "清正：你可弃置 %arg 种花色的手牌，观看1名角色手牌，弃其1种花色的手牌",
+  ["#mou__qingzheng-choose"] = "清正：选择一名其他角色，观看其手牌并弃置其中一种花色",
+  ["#mou__qingzheng-throw"] = "清正：弃置 %dest 一种花色的手牌，若弃置张数小于 %arg，对其造成伤害",
   ["#mou__hujia-choose"] = "护驾：你可以将伤害转移给一名魏势力角色",
   ["@mou__jianxiong"] = "治世",
 
