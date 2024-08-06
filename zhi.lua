@@ -215,7 +215,6 @@ local mou__qingzheng = fk.CreateTriggerSkill{
   end,
   on_cost = function(self, event, target, player, data)
     local room = player.room
-    player:drawCards(5)
     local targets = table.filter(room:getOtherPlayers(player), function(p) return not p:isKongcheng() end)
     local num = 3 - player:getMark("@mou__jianxiong")
     local listNames = {"log_spade", "log_club", "log_heart", "log_diamond"}
