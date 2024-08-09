@@ -1211,4 +1211,156 @@ jinjiu:addRelatedSkill(jinjiuTrigger)
 jinjiu:addRelatedSkill(jinjiuProhibit)
 gaoshun:addSkill(jinjiu)
 
+local gongsunzan = General(extension, "mou__gongsunzan", "qun", 4)
+Fk:loadTranslationTable{
+  ["mou__gongsunzan"] = "谋公孙瓒",
+  ["#mou__gongsunzan"] = "劲震幽土",
+  ["~mou__gongsunzan"] = "称雄半生，岂可为他人俘虏，啊啊啊……",
+}
+
+local yicong = fk.CreateTriggerSkill{
+  name = "mou__yicong",
+  anim_type = "support",
+  events = {fk.RoundStart},
+  can_trigger = function(self, event, target, player, data)
+    return player:hasSkill(self) and player:getMark("skill_charge") > 0
+  end,
+  on_cost = function (self, event, target, player, data)
+    local room = player.room
+    local choices = {}
+    for i = 1, player:getMark("skill_charge") do
+      table.insert(choices, tostring(i))
+    end
+    table.insert(choices, "Cancel")
+    local num = room:askForChoice(player, choices, self.name, "#mou__yicong-cost")
+    if num == "Cancel" then
+      return false
+    end
+
+    local choice = room:askForChoice(player, { "mou__yicong_offensive", "mou__yicong_defensive", "Cancel" }, self.name)
+    if choice == "Cancel" then
+      return false
+    end
+
+    self.cost_data = { tonumber(num), choice }
+    return true
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    local num = tonumber(self.cost_data[1])
+    U.skillCharged(player, -num)
+
+    local isDefensive = self.cost_data[2] == "mou__yicong_defensive"
+    room:setPlayerMark(
+      player,
+      isDefensive and "@@mou__yicong_def-round" or "@@mou__yicong_off-round",
+      1
+    )
+
+    num = math.min(4 - #player:getPile("mou__yicong_hu&"), num)
+    if num < 1 then
+      return false
+    end
+
+    local ids = room:getCardsFromPileByRule(isDefensive and "jink" or "slash", num)
+    if #ids > 0 then
+      player:addToPile("mou__yicong_hu&", ids, true, self.name)
+    end
+  end,
+
+  refresh_events = {fk.EventAcquireSkill, fk.EventLoseSkill},
+  can_refresh = function(self, event, target, player, data)
+    return data == self and target == player
+  end,
+  on_refresh = function(self, event, target, player, data)
+    if event == fk.EventAcquireSkill then
+      U.skillCharged(player, 2, 4)
+    else
+      U.skillCharged(player, -2, -4)
+    end
+  end,
+}
+local yicongDistance = fk.CreateDistanceSkill{
+  name = "#mou__yicong_distance",
+  correct_func = function(self, from, to)
+    if from:getMark("@@mou__yicong_off-round") > 0 then
+      return -1
+    end
+    if to:getMark("@@mou__yicong_def-round") > 0 then
+      return 1
+    end
+  end,
+}
+Fk:loadTranslationTable{
+  ["mou__yicong"] = "义从",
+  [":mou__yicong"] = "蓄力技（2/4），每轮开始时，你可以消耗至少一点蓄力点并选择一项：1.令你本轮计算与其他角色的距离-1，" ..
+  "并将牌堆中的X张【杀】置于你的武将牌上，称为“扈”；2.令其他角色本轮计算与你的距离+1，并将牌堆中X张【闪】置于你的武将牌上，" ..
+  "称为“扈”（X为你以此法消耗的蓄力点数）。你至多拥有四张“扈”且你可将“扈”如手牌般使用或打出。",
+  ["#mou__yicong-cost"] = "义从：你可消耗至少一点蓄力点发动“义从”",
+  ["mou__yicong_offensive"] = "本轮你至其他角色距离-1",
+  ["mou__yicong_defensive"] = "本轮其他角色至你距离+1",
+  ["@@mou__yicong_def-round"] = "义从 +1",
+  ["@@mou__yicong_off-round"] = "义从 -1",
+  ["mou__yicong_hu&"] = "扈",
+
+  ["$mou__yicong1"] = "尔等性命，皆在吾甲骑之间。",
+  ["$mou__yicong2"] = "围以疲敌，不做无谓之战。",
+}
+
+yicong:addRelatedSkill(yicongDistance)
+gongsunzan:addSkill(yicong)
+
+local qiaomeng = fk.CreateTriggerSkill{
+  name = "mou__qiaomeng",
+  anim_type = "offensive",
+  events = {fk.Damage},
+  can_trigger = function(self, event, target, player, data)
+    return
+      target == player and
+      data.card and
+      data.card.trueName == "slash" and
+      player:hasSkill(self) and
+      player:hasSkill("mou__yicong", true)
+  end,
+  on_cost = function (self, event, target, player, data)
+    local room = player.room
+    local choices = { "mou__qiaomeng_gain", "Cancel" }
+    if data.to:isAlive() and not data.to:isAllNude() then
+      table.insert(choices, 1, "mou__qiaomeng_discard::" .. data.to.id)
+    end
+
+    local choice = room:askForChoice(player, choices, self.name, "#mou__qiaomeng-choose")
+    if choice == "Cancel" then
+      return false
+    end
+
+    self.cost_data = choice
+    return true
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    if self.cost_data:startsWith("mou__qiaomeng_discard") then
+      if data.to:isAlive() and not data.to:isAllNude() then
+        local id = room:askForCardChosen(player, data.to, "hej", self.name)
+        room:throwCard(id, self.name, data.to, player)
+        player:drawCards(1, self.name)
+      end
+    else
+      U.skillCharged(player, 3)
+    end
+  end,
+}
+Fk:loadTranslationTable{
+  ["mou__qiaomeng"] = "趫猛",
+  [":mou__qiaomeng"] = "当你使用【杀】对一名角色造成伤害后，你可以选择一项：1.弃置其区域内的一张牌，然后你摸一张牌；" ..
+  "2.获得3点蓄力点。",
+  ["mou__qiaomeng_discard"] = "弃置%dest区域内的一张牌且你摸一张牌",
+  ["mou__qiaomeng_gain"] = "获得3点蓄力点",
+
+  ["$mou__qiaomeng1"] = "观今天下，何有我义从之敌。",
+  ["$mou__qiaomeng2"] = "众将征战所得，皆为汝等所有。",
+}
+
+gongsunzan:addSkill(qiaomeng)
+
 return extension

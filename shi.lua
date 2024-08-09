@@ -1274,4 +1274,185 @@ Fk:loadTranslationTable{
 mousongwei:addRelatedSkill(mousongweiTrigger)
 moucaopi:addSkill(mousongwei)
 
+local handang = General(extension, "mou__handang", "wu", 4)
+Fk:loadTranslationTable{
+  ["mou__handang"] = "谋韩当",
+  ["#mou__handang"] = "石城侯",
+  ["~mou__handang"] = "吾子难堪大用，主公勿以重任相托……",
+}
+
+local gongqi = fk.CreateTriggerSkill{
+  name = "mou__gongqi",
+  anim_type = "offensive",
+  events = {fk.EventPhaseStart},
+  can_trigger = function(self, event, target, player, data)
+    return target == player and player.phase == Player.Play and player:hasSkill(self) and not player:isNude()
+  end,
+  on_cost = function (self, event, target, player, data)
+    local ids = player.room:askForDiscard(player, 1, 1, true, self.name, true, ".", "#mou__gongqi-discard", true)
+    if #ids > 0 then
+      self.cost_data = ids[1]
+      return true
+    end
+
+    return false
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    local colorStr = Fk:getCardById(self.cost_data):getColorString()
+    room:throwCard(self.cost_data, self.name, player, player)
+    room:setPlayerMark(player, "@mou__gongqi-phase", colorStr)
+  end,
+
+  refresh_events = {fk.HandleAskForPlayCard},
+  can_refresh = function(self, event, target, player, data)
+    return data.eventData and data.eventData.from == player.id and player:getMark("@mou__gongqi-phase") ~= 0
+  end,
+  on_refresh = function(self, event, target, player, data)
+    local room = player.room
+    if not data.afterRequest then
+      room:setBanner("mou__gongqi_user", player.id)
+    else
+      room:setBanner("mou__gongqi_user", 0)
+    end
+  end,
+}
+local gongqiBuff = fk.CreateAttackRangeSkill{
+  name = "#mou__gongqi_buff",
+  correct_func = function(self, from, to)
+    if from:hasSkill("mou__gongqi") then
+      return 4
+    end
+  end,
+}
+local gongqiProhibit = fk.CreateProhibitSkill{
+  name = "#mou__gongqi_prohibit",
+  prohibit_use = function(self, player, card)
+    local room = Fk:currentRoom()
+    local user = room:getBanner("mou__gongqi_user")
+    if user and player.id ~= user then
+      user = room:getPlayerById(user)
+      local colorStr = user:getMark("@mou__gongqi-phase")
+      if colorStr == 0 then
+        return false
+      end
+
+      local subcards = card:isVirtual() and card.subcards or {card.id}
+      return
+        #subcards > 0 and
+        (
+          card.color == Card.NoColor or
+          card:getColorString() ~= colorStr or
+          table.find(subcards, function(id)
+            return room:getCardArea(id) ~= Card.PlayerHand
+          end)
+        )
+    end
+  end,
+  prohibit_response = function(self, player, card)
+    local room = Fk:currentRoom()
+    local user = room:getBanner("mou__gongqi_user")
+    if user and player.id ~= user then
+      user = room:getPlayerById(user)
+      local colorStr = user:getMark("@mou__gongqi-phase")
+      if colorStr == 0 then
+        return false
+      end
+
+      local subcards = card:isVirtual() and card.subcards or {card.id}
+      return
+        #subcards > 0 and
+        (
+          card.color == Card.NoColor or
+          card:getColorString() ~= colorStr or
+          table.find(subcards, function(id)
+            return room:getCardArea(id) ~= Card.PlayerHand
+          end)
+        )
+    end
+  end,
+}
+Fk:loadTranslationTable{
+  ["mou__gongqi"] = "弓骑",
+  [":mou__gongqi"] = "你的攻击范围+4；出牌阶段开始时，你可以弃置一张牌，令其他角色于此回合内不能使用或打出与此牌颜色不同且不为手牌的非虚拟牌响应你使用的牌。",
+  ["#mou__gongqi-discard"] = "弓骑：你可弃置一张牌，此阶段其他角色只能使用非虚拟且颜色相同的手牌响应你的牌",
+  ["@mou__gongqi-phase"] = "弓骑",
+  ["#mou__gongqi_prohibit"] = "弓骑",
+
+  ["$mou__gongqi1"] = "敌寇首级，且看吾一箭取之！",
+  ["$mou__gongqi2"] = "末将尤善骑射，今示于主公一观。",
+}
+
+gongqi:addRelatedSkill(gongqiBuff)
+gongqi:addRelatedSkill(gongqiProhibit)
+handang:addSkill(gongqi)
+
+local jiefan = fk.CreateActiveSkill{
+  name = "mou__jiefan",
+  anim_type = "control",
+  card_num = 0,
+  target_num = 1,
+  can_use = function(self, player)
+    return
+      player:usedSkillTimes(self.name, Player.HistoryPhase) == 0 and
+      player:getMark("@@mou__jiefan_nullified") == 0
+  end,
+  card_filter = Util.FalseFunc,
+  target_filter = function(self, to_select, selected)
+    return #selected == 0
+  end,
+  on_use = function(self, room, effect)
+    local target = room:getPlayerById(effect.tos[1])
+    local others = table.filter(room:getOtherPlayers(target), function(p) return p:inMyAttackRange(target) end)
+    if #others == 0 then
+      return
+    end
+
+    local choice = room:askForChoice(target, { "beishui", "mou__jiefan_discard", "mou__jiefan_draw:::" .. #others }, self.name)
+    if choice == "beishui" then
+      room:setPlayerMark(room:getPlayerById(effect.from), "@@mou__jiefan_nullified", 1)
+    end
+
+    if choice == "beishui" or choice == "mou__jiefan_discard" then
+      for _, p in ipairs(others) do
+        room:askForDiscard(p, 1, 1, true, self.name, false)
+      end
+    end
+
+    if choice == "beishui" or choice:startsWith("mou__jiefan_draw") then
+      target:drawCards(#others, self.name)
+    end
+  end,
+}
+local jiefanResume = fk.CreateTriggerSkill{
+  name = "#mou__jiefan_resume",
+  mute = true,
+  refresh_events = {fk.Deathed},
+  can_refresh = function(self, event, target, player, data)
+    return
+      target ~= player and
+      player:getMark("@@mou__jiefan_nullified") > 0 and
+      data.damage and
+      data.damage.from == player
+  end,
+  on_refresh = function(self, event, target, player, data)
+    player.room:setPlayerMark(player, "@@mou__jiefan_nullified", 0)
+  end,
+}
+
+Fk:loadTranslationTable{
+  ["mou__jiefan"] = "解烦",
+  [":mou__jiefan"] = "出牌阶段限一次，你可以令一名角色选择一项：1.令攻击范围内含有其的角色依次弃置一张牌；" ..
+  "2.其摸攻击范围内含有其的角色数张牌；背水：此技能失效直到你杀死其他角色。",
+  ["mou__jiefan_discard"] = "令攻击范围内含有你的角色依次弃置一张牌",
+  ["mou__jiefan_draw"] = "摸%arg张牌",
+  ["@@mou__jiefan_nullified"] = "解烦失效",
+
+  ["$mou__jiefan1"] = "一箭可解之事，何使公忧烦至此。",
+  ["$mou__jiefan2"] = "贼盛不足惧，有吾解烦营。",
+}
+
+jiefan:addRelatedSkill(jiefanResume)
+handang:addSkill(jiefan)
+
 return extension
