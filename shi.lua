@@ -1374,7 +1374,7 @@ local gongqiProhibit = fk.CreateProhibitSkill{
 }
 Fk:loadTranslationTable{
   ["mou__gongqi"] = "弓骑",
-  [":mou__gongqi"] = "你的攻击范围+4；出牌阶段开始时，你可以弃置一张牌，令其他角色于此回合内不能使用或打出与此牌颜色不同且不为手牌的非虚拟牌响应你使用的牌。",
+  [":mou__gongqi"] = "你的攻击范围+4；出牌阶段开始时，你可以弃置一张牌，令其他角色于阶段内不能使用或打出与此牌颜色不同且不为手牌的非虚拟牌响应你使用的牌。",
   ["#mou__gongqi-discard"] = "弓骑：你可弃置一张牌，此阶段其他角色只能使用非虚拟且颜色相同的手牌响应你的牌",
   ["@mou__gongqi-phase"] = "弓骑",
   ["#mou__gongqi_prohibit"] = "弓骑",
