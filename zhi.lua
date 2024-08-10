@@ -1321,7 +1321,7 @@ local mou__kanpo = fk.CreateTriggerSkill{
     if player:hasSkill(self) then
       if event == fk.RoundStart then
         if player:getMark("@[private]$mou__kanpo") ~= 0 then return true end
-        local max_limit = table.contains({"m_1v2_mode", "m_2v2_mode"}, player.room.settings.gameMode) and 2 or 4
+        local max_limit = table.contains({"m_1v2_mode", "m_2v2_mode", "brawl_mode"}, player.room.settings.gameMode) and 2 or 4
         return player:getMark("mou__kanpo_times") < max_limit
       else
         return target ~= player and table.contains(U.getPrivateMark(player, "$mou__kanpo"), data.card.trueName)
@@ -1356,7 +1356,7 @@ local mou__kanpo = fk.CreateTriggerSkill{
         end
         room:setPlayerMark(player, "@[private]$mou__kanpo", 0)
       end
-      local max_limit = table.contains({"m_1v2_mode", "m_2v2_mode"}, room.settings.gameMode) and 2 or 4
+      local max_limit = table.contains({"m_1v2_mode", "m_2v2_mode", "brawl_mode"}, room.settings.gameMode) and 2 or 4
       max_limit = max_limit - player:getMark("mou__kanpo_times")
       if max_limit > 0 then
         local mark = U.askForChooseCardNames(room, player, names, 1, max_limit, self.name, "#mou__kanpo-choice:::"..max_limit,
