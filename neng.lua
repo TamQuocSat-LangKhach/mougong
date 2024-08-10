@@ -639,6 +639,7 @@ Fk:loadTranslationTable{
 }
 
 local jiangwei = General(extension, "mou__jiangwei", "shu", 4)
+jiangwei.shield = 1
 local mou__tiaoxin = fk.CreateActiveSkill{
   name = "mou__tiaoxin",
   anim_type = "control",
