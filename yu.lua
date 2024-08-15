@@ -931,5 +931,168 @@ Fk:loadTranslationTable{
   ["~mou__luzhi"] = "历数有尽，天命有归……",
 }
 
+local mouluxun = General(extension, "mou__luxun", "wu", 3)
+Fk:loadTranslationTable{
+  ["mou__luxun"] = "谋陆逊",
+  ["#mou__luxun"] = "儒生雄才",
+  -- ["illustrator:mou__luxun"] = "",
+  ["~mou__luxun"] = "清玉岂容有污，今唯以死自证！",
+}
+
+local mouqianxun = fk.CreateTriggerSkill{
+  name = "mou__qianxun",
+  anim_type = "support",
+  events = {fk.CardEffecting, fk.EventPhaseStart},
+  can_trigger = function(self, event, target, player, data)
+    if not (target == player and player:hasSkill(self)) then
+      return false
+    end
+
+    if event == fk.CardEffecting then
+      return
+        data.from ~= player.id and
+        data.card.type == Card.TypeTrick and
+        not table.contains(U.getMark(player, "@$mou__qianxun_names"), data.card.trueName)
+    end
+    
+    return player.phase == Player.Play and #U.getMark(player, "@$mou__qianxun_names") > 0
+  end,
+  on_cost = function(self, event, target, player, data)
+    if event == fk.EventPhaseStart then
+      local results = player.room:askForChoices(
+        player,
+        U.getMark(player, "@$mou__qianxun_names"),
+        1,
+        1, 
+        self.name,
+        "#mou__qianxun_remove"
+      )
+      if #results == 0 then
+        return false
+      end
+
+      self.cost_data = results[1]
+    end
+
+    return true
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    if event == fk.CardEffecting then
+      local names = U.getMark(player, "@$mou__qianxun_names")
+      table.insertIfNeed(names, data.card.trueName)
+      room:setPlayerMark(player, "@$mou__qianxun_names", names)
+      if player:isNude() then
+        return false
+      end
+
+      local max = math.min(#names, 5)
+      local ids = room:askForCard(player, 1, max, true, self.name, true, ".", "#mou__qianxun-put:::" .. max)
+      if #ids > 0 then
+        player:addToPile("mou__qianxun_xun", ids, false, self.name, player.id)
+      end
+    else
+      local nameChosen = self.cost_data
+      local names = U.getMark(player, "@$mou__qianxun_names")
+      table.removeOne(names, nameChosen)
+      room:setPlayerMark(player, "@$mou__qianxun_names", #names > 0 and names or 0)
+      if Fk:cloneCard(nameChosen):isCommonTrick() then
+        U.askForUseVirtualCard(room, player, nameChosen)
+      end
+    end
+  end,
+}
+local mouqianxunBack = fk.CreateTriggerSkill{
+  name = "#mou__qianxun_back",
+  mute = true,
+  events = {fk.TurnEnd},
+  can_trigger = function(self, event, target, player, data)
+    return #player:getPile("mou__qianxun_xun") > 0
+  end,
+  on_cost = Util.TrueFunc,
+  on_use = function(self, event, target, player, data)
+    player.room:obtainCard(player, player:getPile("mou__qianxun_xun"), false, fk.ReasonPrey, player.id, "mou__qianxun")
+  end,
+}
+Fk:loadTranslationTable{
+  ["mou__qianxun"] = "谦逊",
+  [":mou__qianxun"] = "当锦囊牌对你生效时，若此牌名未被“谦逊”记录过且你不为使用者，则你记录之，" ..
+  "然后你可以将至多X张牌扣置于你的武将牌上（X为“谦逊”记录的牌名数，且至多为5）。若如此做，当前回合结束时，你获得这些扣置的牌；" ..
+  "出牌阶段开始时，你可移去“谦逊”记录的一个牌名，若此牌名为普通锦囊牌，则你可视为使用此牌。",
+  ["#mou__qianxun_back"] = "谦逊",
+  ["#mou__qianxun-put"] = "谦逊：你可将至多%arg张牌扣置于武将牌上，于此回合结束时收回",
+  ["#mou__qianxun_remove"] = "谦逊：你可移去其中一个牌名记录，若为普通锦囊牌则可视为使用之",
+  ["@$mou__qianxun_names"] = "谦逊牌名",
+  ["mou__qianxun_xun"] = "谦逊",
+
+  ["$mou__qianxun1"] = "虽有戈矛之刺，不如恭俭之利也。",
+  ["$mou__qianxun2"] = "贤者任重而行恭，智者功大而辞顺。",
+}
+
+mouqianxun:addRelatedSkill(mouqianxunBack)
+mouluxun:addSkill(mouqianxun)
+
+local moulianying = fk.CreateTriggerSkill{
+  name = "mou__lianying",
+  anim_type = "drawcard",
+  events = {fk.TurnEnd},
+  can_trigger = function(self, event, target, player, data)
+    return
+      target ~= player and
+      player:hasSkill(self) and
+      #player.room.logic:getEventsOfScope(GameEvent.MoveCards, 1, function(e)
+        for _, move in ipairs(e.data) do
+          if
+            move.from == player.id and
+            not (move.to == player.id and (move.toArea == Card.PlayerHand or move.toArea == Card.PlayerEquip))
+          then
+            return
+              table.find(
+                move.moveInfo,
+                function(info) return info.fromArea == Card.PlayerHand or info.fromArea == Card.PlayerEquip end
+              ) ~= nil
+          end
+        end
+
+        return false
+      end, Player.HistoryTurn) > 0
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    local sum = 0
+    room.logic:getEventsOfScope(GameEvent.MoveCards, 1, function(e)
+      for _, move in ipairs(e.data) do
+        if
+          move.from == player.id and
+          not (move.to == player.id and (move.toArea == Card.PlayerHand or move.toArea == Card.PlayerEquip))
+        then
+          sum = sum + #table.filter(
+            move.moveInfo,
+            function(info) return info.fromArea == Card.PlayerHand or info.fromArea == Card.PlayerEquip end
+          )
+
+          if sum > 4 then
+            return true
+          end
+        end
+      end
+
+      return false
+    end, Player.HistoryTurn)
+
+    sum = math.min(sum, 5)
+    local ids = room:getNCards(sum)
+    U.askForDistribution(player, ids, nil, self.name, sum, sum, nil, ids)
+  end,
+}
+Fk:loadTranslationTable{
+  ["mou__lianying"] = "连营",
+  [":mou__lianying"] = "其他角色的回合结束时，你可以观看牌堆顶X张牌，然后将这些牌分配给任意角色（X为你本回合失去过的牌数，且至多为5）。",
+
+  ["$mou__lianying1"] = "蜀营连绵百里，正待吾燎原一炬！",
+  ["$mou__lianying2"] = "蜀军虚实已知，吾等不日便破也！",
+}
+
+mouluxun:addSkill(moulianying)
 
 return extension
