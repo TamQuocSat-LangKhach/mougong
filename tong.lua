@@ -1332,7 +1332,7 @@ local ganglieRecord = fk.CreateTriggerSkill{
     if event == fk.BeforeHpChanged then
       return
         target == player and
-        player:hasSkill(self) and
+        player:hasSkill(self, true) and
         data.reason == "damage" and
         data.damageEvent and
         data.damageEvent.from
@@ -1347,7 +1347,7 @@ local ganglieRecord = fk.CreateTriggerSkill{
       U.getActualDamageEvents(room, 999, function(e)
           local damageData = e.data[1]
           if damageData.from and damageData.to == player then
-            table.insertIfNeed(enemies, damageData.from)
+            table.insertIfNeed(enemies, damageData.from.id)
           end
 
           return false
