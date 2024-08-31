@@ -1041,7 +1041,7 @@ local moulianying = fk.CreateTriggerSkill{
       target ~= player and
       player:hasSkill(self) and
       (
-        table.contains({"m_1v2_mode", "m_2v2_mode", "brawl_mode"}, player.room.settings.gameMode) or
+        table.contains({"m_1v2_mode", "brawl_mode"}, player.room.settings.gameMode) or
         #player.room.logic:getEventsOfScope(GameEvent.MoveCards, 1, function(e)
           for _, move in ipairs(e.data) do
             if
@@ -1062,7 +1062,7 @@ local moulianying = fk.CreateTriggerSkill{
   end,
   on_use = function(self, event, target, player, data)
     local room = player.room
-    local sum = table.contains({"m_1v2_mode", "m_2v2_mode", "brawl_mode"}, room.settings.gameMode) and 1 or 0
+    local sum = table.contains({"m_1v2_mode", "brawl_mode"}, room.settings.gameMode) and 1 or 0
     room.logic:getEventsOfScope(GameEvent.MoveCards, 1, function(e)
       for _, move in ipairs(e.data) do
         if
@@ -1091,7 +1091,7 @@ local moulianying = fk.CreateTriggerSkill{
 Fk:loadTranslationTable{
   ["mou__lianying"] = "连营",
   [":mou__lianying"] = "其他角色的回合结束时，你可以观看牌堆顶X张牌，然后将这些牌分配给任意角色" ..
-  "（X为你本回合失去过的牌数，若为2v2或斗地主模式则+1，且至多为5）。",
+  "（X为你本回合失去过的牌数，若为斗地主模式则+1，且至多为5）。",
 
   ["$mou__lianying1"] = "蜀营连绵百里，正待吾燎原一炬！",
   ["$mou__lianying2"] = "蜀军虚实已知，吾等不日便破也！",
