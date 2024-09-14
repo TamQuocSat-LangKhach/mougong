@@ -145,7 +145,7 @@ local moujushouShibei = fk.CreateTriggerSkill{
   end,
   on_cost = function(self, event, target, player, data)
     local room = player.room
-    local choices = { "turnover", "add1shield", "Cancel" }
+    local choices = { "turnOver", "add1shield", "Cancel" }
     if player.shield >= 5 then table.removeOne(choices, "add1shield") end
     local choice = room:askForChoice(player, choices, self.name)
     if choice ~= "Cancel" then
@@ -157,7 +157,7 @@ local moujushouShibei = fk.CreateTriggerSkill{
     local room = player.room
     player:broadcastSkillInvoke("mou__jushou", 2)
     room:notifySkillInvoked(player, "mou__jushou", "masochism")
-    if self.cost_data == "turnover" then
+    if self.cost_data == "turnOver" then
       player:turnOver()
     else
       room:changeShield(player, 1)
@@ -166,9 +166,10 @@ local moujushouShibei = fk.CreateTriggerSkill{
 }
 local moujushou = fk.CreateActiveSkill{
   name = "mou__jushou",
+  prompt = "#mou__jushou",
   mute = true,
   can_use = function(self, player)
-    return player:usedSkillTimes(self.name) == 0 and player.faceup
+    return player:usedSkillTimes(self.name, Player.HistoryPhase) == 0 and player.faceup
   end,
   target_num = 0,
   card_num = 0,
@@ -194,11 +195,12 @@ moucaoren:addSkill(moujushou)
 local moujiewei = fk.CreateActiveSkill{
   name = "mou__jiewei",
   can_use = function(self, player)
-    return player:usedSkillTimes(self.name) == 0 and player.shield > 0
+    return player:usedSkillTimes(self.name, Player.HistoryPhase) == 0 and player.shield > 0
   end,
   target_num = 1,
   card_num = 0,
-  card_filter = function() return false end,
+  card_filter = Util.FalseFunc,
+  prompt = "#mou__jiewei",
   target_filter = function(self, to_select, selected)
     return #selected == 0 and to_select ~= Self.id and
       not Fk:currentRoom():getPlayerById(to_select):isKongcheng()
@@ -207,15 +209,8 @@ local moujiewei = fk.CreateActiveSkill{
     local player = room:getPlayerById(effect.from)
     room:changeShield(player, -1)
     local target = room:getPlayerById(effect.tos[1])
-
-    local cids = target.player_cards[Player.Hand]
-    room:fillAG(player, cids)
-
-    local id = room:askForAG(player, cids, false, self.name)
-    room:closeAG(player)
-
-    if not id then return false end
-    room:obtainCard(player, id, false)
+    local card = room:askForCardChosen(player, target, { card_data = { { "$Hand", target.player_cards[Player.Hand] } } }, self.name)
+    room:obtainCard(player, card, false, fk.ReasonPrey, player.id, self.name)
   end,
 }
 moucaoren:addSkill(moujiewei)
@@ -231,11 +226,12 @@ Fk:loadTranslationTable{
     "1.翻面；2.获得1点“护甲”。<br/>" ..
     "③当你的武将牌从背面翻至正面时，你摸等同于你“护甲”值的牌。",
   ["#mou__jushou-discard"] = "据守：你现在可以弃至多两张牌并获得等量护甲",
-  ["turnover"] = "翻面",
+  ["#mou__jushou"] = "据守：你可以翻至背面，然后可以弃置至多两张牌获得等量“护甲”",
   ["add1shield"] = "获得1点护甲",
   ["mou__jiewei"] = "解围",
-  [":mou__jiewei"] = "出牌阶段限一次，你可以失去1点“护甲”并选择一名其他" ..
-    "角色，你观看其手牌并获得其中一张。",
+  [":mou__jiewei"] = "出牌阶段限一次，你可以失去1点“护甲”并选择一名其他角色，你观看其手牌并获得其中一张。",
+  ["#mou__jiewei"] = "解围：你可失去1点护甲，观看一名其他角色的手牌并获得一张",
+
   ["$mou__jushou1"] = "白马沉河共歃誓，怒涛没城亦不悔！",
   ["$mou__jushou2"] = "山水速疾来去易，襄樊镇固永难开！",
   ["$mou__jushou3"] = "汉水溢流断归路，守城之志穷且坚！",
