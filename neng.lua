@@ -795,8 +795,9 @@ local mouWuSheng = fk.CreateViewAsSkill{
   name = "mou__wusheng",
   pattern = "slash",
   card_num = 1,
+  prompt = "#mou__wusheng",
   card_filter = function(self, to_select, selected)
-    if #selected == 1 or Fk:currentRoom():getCardArea(to_select) ~= Player.Hand then return false end
+    if #selected == 1 or not table.contains(Self:getHandlyIds(true), to_select) then return false end
     local c = Fk:cloneCard("slash")
     return (Fk.currentResponsePattern == nil and Self:canUse(c)) or
       (Fk.currentResponsePattern and Exppattern:Parse(Fk.currentResponsePattern):match(c))
@@ -857,7 +858,7 @@ local mouWuShengTrigger = fk.CreateTriggerSkill{
     if #targets then
       local tos = room:askForChoosePlayers(player, table.map(targets, Util.IdMapper), 1, 1, "#mou__wusheng-choose", self.name)
       if #tos > 0 then
-        self.cost_data = tos[1]
+        self.cost_data = {tos = tos}
         player:broadcastSkillInvoke("mou__wusheng")
         return true
       end
@@ -868,7 +869,7 @@ local mouWuShengTrigger = fk.CreateTriggerSkill{
   on_use = function(self, event, target, player, data)
     local room = player.room
     if event == fk.EventPhaseStart then
-      room:setPlayerMark(room:getPlayerById(self.cost_data), "@mou__wusheng-phase", "")
+      room:setPlayerMark(room:getPlayerById(self.cost_data.tos[1]), "@mou__wusheng-phase", "")
       room:setPlayerMark(player, "mou__wusheng_from-phase", 1)
     end
   end,
@@ -887,7 +888,8 @@ local mouWuShengBuff = fk.CreateTriggerSkill{
   mute = true,
   events = {fk.TargetSpecified},
   can_trigger = function(self, event, target, player, data)
-    return target == player and data.card.trueName == "slash" and player.room:getPlayerById(data.to):getMark("@mou__wusheng-phase") ~= 0
+    return target == player and data.card.trueName == "slash" and player:getMark("mou__wusheng_from-phase") ~= 0
+    and player.room:getPlayerById(data.to):getMark("@mou__wusheng-phase") ~= 0
   end,
   on_cost = Util.TrueFunc,
   on_use = function(self, event, target, player, data)
@@ -899,7 +901,7 @@ local mouWuShengBuff = fk.CreateTriggerSkill{
     end
 
     local drawNum = table.contains({"aaa_role_mode", "aab_role_mode", "vanished_dragon"}, room.settings.gameMode) and 2 or 1
-    player:drawCards(drawNum, self.name)
+    player:drawCards(drawNum, "mou__wusheng")
   end,
 }
 local mouWuShengProhibit = fk.CreateProhibitSkill{
@@ -920,7 +922,8 @@ Fk:loadTranslationTable{
   "你对其使用【杀】无距离和次数限制；当你使用【杀】指定其为目标后，你摸一张牌（若为身份模式则改为摸两张牌）；" ..
   "当你对其使用三张【杀】后，本阶段不可再使用【杀】指定其为目标。",
   ["#mou__wusheng_trigger"] = "武圣",
-  ["@mou__wusheng-phase"] = "武圣",
+  ["#mou__wusheng"] = "武圣：你可以将一张手牌当任意【杀】使用或打出",
+  ["@mou__wusheng-phase"] = "被武圣",
   ["#mou__wusheng-choose"] = "武圣：你可选择一名非主公角色，此阶段可对其出三张【杀】且对其用【杀】摸一张牌",
 
   ["$mou__wusheng1"] = "千军斩将而回，于某又有何难？",
