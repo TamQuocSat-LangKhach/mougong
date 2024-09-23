@@ -1108,15 +1108,10 @@ local moufangzhu = fk.CreateActiveSkill{
     local target = room:getPlayerById(effect.tos[1])
 
     local choice = self.interaction.data
-    if choice == "mou__fangzhu_only_basic" then
-      room:removePlayerMark(player, "@mou__xingshang_song")
-      room:setPlayerMark(target, "@mou__fangzhu_limit", "basic_char")
-    elseif choice == "mou__fangzhu_only_trick" then
-      room:removePlayerMark(player, "@mou__xingshang_song", 2)
-      room:setPlayerMark(target, "@mou__fangzhu_limit", "trick_char")
-    elseif choice == "mou__fangzhu_only_equip" then
-      room:removePlayerMark(player, "@mou__xingshang_song", 3)
-      room:setPlayerMark(target, "@mou__fangzhu_limit", "equip_char")
+    if choice:startsWith("mou__fangzhu_only") then
+      local limit_mark = target:getTableMark("@mou__fangzhu_limit")
+      table.insertIfNeed(limit_mark, choice:sub(-5).."_char")
+      room:setPlayerMark(target, "@mou__fangzhu_limit", limit_mark)
     elseif choice == "mou__fangzhu_nullify_skill" then
       room:removePlayerMark(player, "@mou__xingshang_song", 2)
       room:setPlayerMark(target, "@@mou__fangzhu_skill_nullified", 1)
@@ -1172,11 +1167,11 @@ local moufangzhuProhibit = fk.CreateProhibitSkill{
   name = "#mou__fangzhu_prohibit",
   prohibit_use = function(self, player, card)
     local typeLimited = player:getMark("@mou__fangzhu_limit")
-    if type(typeLimited) == "string" and typeLimited ~= card:getTypeString() .. "_char" then
-      local subcards = card:isVirtual() and card.subcards or {card.id}
-      return #subcards > 0 and table.every(subcards, function(id)
-        return table.contains(player:getCardIds(Player.Hand), id)
-      end)
+    if typeLimited == 0 then return false end
+    if table.every(Card:getIdList(card), function(id)
+      return table.contains(player:getCardIds(Player.Hand), id)
+    end) then
+      return #typeLimited > 1 or typeLimited[1] ~= card:getTypeString() .. "_char"
     end
   end,
 }

@@ -699,6 +699,7 @@ local mou__zhangjiao = General(extension, "mou__zhangjiao", "qun", 3)
 local mou__leiji = fk.CreateActiveSkill{
   name = "mou__leiji",
   anim_type = "offensive",
+  prompt = "#mou__leiji",
   can_use = function(self, player)
     return player:getMark("@daobing") >= 4
   end,
@@ -724,7 +725,8 @@ local mou__guidao = fk.CreateTriggerSkill{
     if event == fk.GameStart then
       return player:hasSkill(self) and player:getMark("@daobing") < 8
     elseif event == fk.Damaged then
-      return player:hasSkill(self) and data.damageType ~= fk.NormalDamage and player:getMark("@daobing") < 8 and player:getMark("mou__guidao_invalidity") == 0
+      return player:hasSkill(self) and data.damageType ~= fk.NormalDamage and player:getMark("@daobing") < 8
+      and player:getMark("mou__guidao_invalidity") == 0
     else
       return player:hasSkill(self) and target == player and player:getMark("@daobing") >= 2
     end
@@ -740,9 +742,10 @@ local mou__guidao = fk.CreateTriggerSkill{
   on_use = function(self, event, target, player, data)
     local room = player.room
     if event == fk.GameStart then
-      room:setPlayerMark(player, "@daobing", math.min(8, player:getMark("@daobing")+4))
-    elseif event == fk.Damaged then
       room:setPlayerMark(player, "@daobing", math.min(8, player:getMark("@daobing")+2))
+    elseif event == fk.Damaged then
+      local isRole = table.contains({"aaa_role_mode", "aab_role_mode", "vanished_dragon"}, room.settings.gameMode)
+      room:setPlayerMark(player, "@daobing", math.min(8, player:getMark("@daobing") + (isRole and 1 or 2)))
     else
       room:removePlayerMark(player, "@daobing", 2)
       if player.phase == Player.NotActive then room:addPlayerMark(player, "mou__guidao_invalidity") end
@@ -771,7 +774,8 @@ local mou__huangtian = fk.CreateTriggerSkill{
       and player:hasEmptyEquipSlot(Card.SubtypeTreasure)
       and room:getCardArea(U.prepareDeriveCards(room, peace_spell, "huangtian_spell")[1]) == Card.Void
     else
-      return player:hasSkill(self) and target and target ~= player and target.kingdom == "qun" and player:hasSkill("mou__guidao", true) and
+      return player:hasSkill(self) and target and target ~= player and target.kingdom == "qun"
+      and player:hasSkill(mou__guidao, true) and
       player:getMark("@daobing") < 8 and player:getMark("mou__huangtian-round") < 4
     end
   end,
@@ -793,10 +797,11 @@ Fk:loadTranslationTable{
   ["#mou__zhangjiao"] = "驱雷掣电",
   ["mou__leiji"] = "雷击",
   [":mou__leiji"] = "出牌阶段，你可以移去4个“道兵”标记，对一名其他角色造成1点雷电伤害。",
+  ["#mou__leiji"] = "雷击：移去4个“道兵”，对一名其他角色造成1点雷电伤害！",
   ["@daobing"] = "道兵",
   ["mou__guidao"] = "鬼道",
-  [":mou__guidao"] = "①游戏开始时，你获得4个“道兵”标记（你至多拥有8个“道兵”标记）；<br>"..
-  "②当一名角色受到属性伤害后，你获得2个“道兵”标记；<br>"..
+  [":mou__guidao"] = "①游戏开始时，你获得2个“道兵”标记（你至多拥有8个“道兵”标记）；<br>"..
+  "②当一名角色受到属性伤害后，你获得1个“道兵”标记（若不为身份模式改为2个）；<br>"..
   "③当你受到伤害时，你可以移去2个“道兵”标记，防止此伤害，若此时为你回合外，〖鬼道〗②失效直到你下回合开始。",
   ["#mou__guidao-invoke"] = "鬼道:你可以移去2个“道兵”标记，防止此次受到的伤害",
   ["#mou__guidao_invalidity-invoke"] = "鬼道:可移去2个“道兵”标记，防止此伤害，且〖鬼道〗②失效直到你下回合开始",
