@@ -168,39 +168,54 @@ local caocao = General(extension, "mou__caocao", "wei", 4)
 local mou__jianxiong = fk.CreateTriggerSkill{
   name = "mou__jianxiong",
   anim_type = "masochism",
-  events = {fk.Damaged},
+  events = {fk.Damaged, fk.GameStart},
   can_trigger = function(self, event, target, player, data)
+    if event == fk.GameStart then
+      return player:hasSkill(self)
+    end
     if target == player and player:hasSkill(self) then
-      return (data.card and U.hasFullRealCard(player.room, data.card)) or player:getMark("@mou__jianxiong") < 2
+      return (data.card and U.hasFullRealCard(player.room, data.card)) or player:getMark("@mou__jianxiong") == 0
+    end
+  end,
+  on_cost = function (self, event, target, player, data)
+    local room = player.room
+    if event == fk.GameStart then
+      local _, dat = room:askForUseActiveSkill(player, "#mou__jianxiong_gamestart", "#mou__jianxiong-gamestart")
+      if dat then
+        self.cost_data = dat.interaction
+        return true
+      end
+    else
+      return room:askForSkillInvoke(player, self.name)
     end
   end,
   on_use = function(self, event, target, player, data)
-    if data.card and U.hasFullRealCard(player.room, data.card) then
-      player.room:moveCardTo(data.card, Player.Hand, player, fk.ReasonPrey, self.name)
-      if player.dead then return end
-    end
-    local num = 2 - player:getMark("@mou__jianxiong")
-    if num > 0 then
-      player:drawCards(num, self.name)
-    end
-    if player:getMark("@mou__jianxiong") > 0 then
-      if player.room:askForSkillInvoke(player, self.name, nil, "#mou__jianxiong-dismark") then
-        player.room:removePlayerMark(player, "@mou__jianxiong", 1)
+    local room = player.room
+    if event == fk.GameStart then
+      room:addPlayerMark(player,  "@mou__jianxiong", self.cost_data)
+    else
+      if data.card and U.hasFullRealCard(player.room, data.card) then
+        room:moveCardTo(data.card, Player.Hand, player, fk.ReasonPrey, self.name)
+        if player.dead then return end
+      end
+      local num = 1 - player:getMark("@mou__jianxiong")
+      if num > 0 then
+        player:drawCards(num, self.name)
+      end
+      if player:getMark("@mou__jianxiong") > 0 then
+        if room:askForSkillInvoke(player, self.name, nil, "#mou__jianxiong-dismark") then
+          room:removePlayerMark(player, "@mou__jianxiong", 1)
+        end
       end
     end
   end,
 }
-local mou__jianxiong_gamestart = fk.CreateTriggerSkill{
+local mou__jianxiong_gamestart = fk.CreateActiveSkill{
   name = "#mou__jianxiong_gamestart",
-  events = {fk.GameStart},
-  can_trigger = function(self, event, target, player, data)
-    return player:hasSkill("mou__jianxiong")
-  end,
-  on_use = function(self, event, target, player, data)
-    local room = player.room
-    player:broadcastSkillInvoke("mou__jianxiong")
-    local choice = room:askForChoice(player, {"0", "1", "2"}, "mou__jianxiong", "#mou__jianxiong-choice")
-    room:addPlayerMark(player,  "@mou__jianxiong", tonumber(choice))
+  card_num = 0,
+  target_num = 0,
+  interaction = function()
+    return UI.Spin { from = 1, to = 2 }
   end,
 }
 
@@ -269,10 +284,10 @@ local mou__qingzheng = fk.CreateTriggerSkill{
         room:doIndicate(player.id, {to.id})
         room:damage{ from = player, to = to, damage = 1, skillName = self.name }
       end
-      if player:hasSkill("mou__jianxiong") and player:getMark("@mou__jianxiong") < 2 then
-        if room:askForSkillInvoke(player, self.name, nil, "#mou__qingzheng-addmark") then
-          room:addPlayerMark(player, "@mou__jianxiong", 1)
-        end
+    end
+    if player:hasSkill(mou__jianxiong) and player:getMark("@mou__jianxiong") < 2 then
+      if room:askForSkillInvoke(player, self.name, nil, "#mou__qingzheng-addmark") then
+        room:addPlayerMark(player, "@mou__jianxiong", 1)
       end
     end
   end,
@@ -290,14 +305,14 @@ local mou__hujia = fk.CreateTriggerSkill{
     if #targets > 0 then
       local to = player.room:askForChoosePlayers(player, table.map(targets, Util.IdMapper), 1, 1, "#mou__hujia-choose", self.name, true)
       if #to > 0 then
-        self.cost_data = to[1]
+        self.cost_data = {tos= to}
         return true
       end
     end
   end,
   on_use = function(self, event, target, player, data)
     local room = player.room
-    local to = room:getPlayerById(self.cost_data)
+    local to = room:getPlayerById(self.cost_data.tos[1])
     room:damage{
       from = data.from,
       to = to,
@@ -310,7 +325,7 @@ local mou__hujia = fk.CreateTriggerSkill{
     return true
   end,
 }
-mou__jianxiong:addRelatedSkill(mou__jianxiong_gamestart)
+Fk:addSkill(mou__jianxiong_gamestart)
 caocao:addSkill(mou__jianxiong)
 caocao:addSkill(mou__qingzheng)
 caocao:addSkill(mou__hujia)
@@ -321,17 +336,15 @@ Fk:loadTranslationTable{
 
   ["mou__jianxiong"] = "奸雄",
   ["#mou__jianxiong_gamestart"] = "奸雄",
-  [":mou__jianxiong"] = "游戏开始时，你可以获得至多两枚“治世”标记。当你受到伤害后，你可以获得对你造成伤害的牌并摸2-X张牌，然后你可以移除1枚“治世”。"..
-  "（X为“治世”的数量且至多为2）。",
+  [":mou__jianxiong"] = "游戏开始时，你可以获得至多两枚“治世”标记。当你受到伤害后，你可以获得对你造成伤害的牌并摸1-X张牌，然后你可以移除1枚“治世”（X为“治世”的数量）。",
   ["mou__qingzheng"] = "清正",
-  [":mou__qingzheng"] = "出牌阶段开始时，你可以选择一名有手牌的其他角色，你弃置3-X（X为你的“治世”标记数）种花色的所有手牌，然后观看其手牌并选择一种"..
-  "花色的牌，其弃置所有该花色的手牌。若如此做且你以此法弃置的牌数大于其弃置的手牌，你对其造成1点伤害，然后若你拥有〖奸雄〗且“治世”标记小于2，你可以"..
-  "获得一枚“治世”。",
+  [":mou__qingzheng"] = "出牌阶段开始时，你可以选择一名有手牌的其他角色，你弃置3-X（X为你的“治世”标记数）种花色的所有手牌，然后观看其手牌并弃置其中一种花色的所有牌，若其被弃置的牌数小于你弃置的牌数，你对其造成1点伤害。然后若你拥有〖奸雄〗且“治世”标记数小于2，你可以"..
+  "获得1枚“治世”。",
   ["mou__hujia"] = "护驾",
   [":mou__hujia"] = "主公技，每轮限一次，当你即将受到伤害时，你可以将此伤害转移给一名其他魏势力角色。",
-  ["#mou__jianxiong-dismark"] = "奸雄：是否弃置一枚“治世”标记？",
-  ["#mou__jianxiong-choice"] = "奸雄：请选择要获得的“治世”标记数量。",
-  ["#mou__qingzheng-addmark"] = "清正：是否获得一个“治世”标记？",
+  ["#mou__jianxiong-dismark"] = "奸雄：你可移除1枚“治世”，削弱“清正”，增强“奸雄”",
+  ["#mou__jianxiong-gamestart"] = "奸雄：可获得至多2个“治世”标记，削弱“奸雄”，增强“清正”",
+  ["#mou__qingzheng-addmark"] = "清正：你可获得1枚“治世”，增强“清正”，削弱“奸雄”",
   ["#mou__qingzheng-card"] = "清正：你可弃置 %arg 种花色的手牌，观看1名角色手牌，弃其1种花色的手牌",
   ["#mou__qingzheng-choose"] = "清正：选择一名其他角色，观看其手牌并弃置其中一种花色",
   ["#mou__qingzheng-throw"] = "清正：弃置 %dest 一种花色的手牌，若弃置张数小于 %arg，对其造成伤害",
