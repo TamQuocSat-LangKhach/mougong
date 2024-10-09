@@ -151,7 +151,7 @@ Fk:loadTranslationTable{
   ["mou__liuli"] = "流离",
   ["#mou__liuli_dangxian"] = "流离",
   [":mou__liuli"] = "每当你成为【杀】的目标时，你可以弃置一张牌并选择你攻击范围内为此【杀】合法目标（无距离限制）的一名角色：若如此做，"..
-  "该角色代替你成为此【杀】的目标。若你以此法弃置了<font color='red'>♥️</font>牌，则你可以令一名不为此【杀】使用者的其他角色获得“流离”标记，"..
+  "该角色代替你成为此【杀】的目标。若你以此法弃置了<font color='red'>♥</font>牌，则你可以令一名不为此【杀】使用者的其他角色获得“流离”标记，"..
   "且移去场上所有其他的“流离”（每回合限一次）。有“流离”的角色回合开始时，其移去其“流离”并执行一个额外的出牌阶段。",
   ["#mou__liuli-target"] = "流离：你可以弃置一张牌，将【杀】的目标转移给一名其他角色",
   ["#mou__liuli-choose"] = "流离：你可以令一名除此【杀】使用者的其他角色获得“流离”标记并清除场上的其他流离标记。",
@@ -839,7 +839,7 @@ local mou__zishou = fk.CreateTriggerSkill{
   events = {fk.EventPhaseStart},
   can_trigger = function(self, event, target, player, data)
     if player:hasSkill(self) and player ~= target and target.phase == Player.Finish and not target:isNude() then
-      return #U.getActualDamageEvents(player.room, 1, function(e)
+      return #player.room.logic:getActualDamageEvents(1, function(e)
         local damage = e.data[1]
         return (damage.from == player and damage.to == target) or (damage.from == target and damage.to == player)
       end, Player.HistoryGame) == 0
@@ -1319,7 +1319,7 @@ local mou__huoji_trigger = fk.CreateTriggerSkill{
       room:addPlayerMark(player, "@mou__huoji", data.damage)
     elseif event == fk.EventAcquireSkill then
       local n = 0
-      U.getActualDamageEvents(room, 1, function(e)
+      room.logic:getActualDamageEvents(1, function(e)
         local damage = e.data[1]
         if damage and damage.from == player and damage.damageType == fk.FireDamage then
           n = n + damage.damage

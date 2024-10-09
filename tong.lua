@@ -40,7 +40,7 @@ local mou__jiang_trigger = fk.CreateTriggerSkill{
   can_trigger = function(self, event, target, player, data)
     if target == player and player:hasSkill(mou__jiang) then
       if event == fk.AfterCardTargetDeclared then
-        return data.card.trueName == "duel" and #U.getUseExtraTargets(player.room, data) > 0
+        return data.card.trueName == "duel" and #player.room:getUseExtraTargets(data) > 0
       else
         return (data.card.trueName == "slash" and data.card.color == Card.Red) or data.card.name == "duel"
       end
@@ -48,7 +48,7 @@ local mou__jiang_trigger = fk.CreateTriggerSkill{
   end,
   on_cost = function(self, event, target, player, data)
     if event == fk.AfterCardTargetDeclared then
-      local to = player.room:askForChoosePlayers(player, U.getUseExtraTargets(player.room, data),
+      local to = player.room:askForChoosePlayers(player, player.room:getUseExtraTargets(data),
       1, 1, "#mou__jiang-choose:::"..data.card:toLogString(), "mou__jiang", true)
       if #to > 0 then
         self.cost_data = to
@@ -295,15 +295,16 @@ Fk:loadTranslationTable{
   ["mou__xiaoqiao"] = "谋小乔",
   ["#mou__xiaoqiao"] = "矫情之花",
   ["mou__tianxiang"] = "天香",
-  [":mou__tianxiang"] = "①出牌阶段限三次，你可将一张红色手牌交给一名没有“天香”标记的其他角色，并令其获得对应花色的“天香”标记。"..
-  "<br>②当你受到伤害时，你可以选择一名拥有“天香”标记的其他角色，移除其“天香”标记，并根据移除的“天香”花色发动：红桃，你防止此伤害，然后令其受到防止伤害的来源角色造成的1点伤害；方块，其交给你两张牌。"..
-  "<br>③准备阶段，若场上有“天香”标记，你移除场上所有“天香”标记，并摸等量的牌（若为2V2模式则额外摸两张）。",
+  [":mou__tianxiang"] = "①出牌阶段限三次，你可将一张红色手牌交给一名没有“天香”标记的其他角色，并令其获得对应花色的“天香”标记。<br>"..
+  "②当你受到伤害时，你可以选择一名拥有“天香”标记的其他角色，移除其“天香”标记，并根据移除的“天香”花色：<font color='red'>♥</font>，"..
+  "你防止此伤害，然后令其受到防止伤害的来源角色造成的1点伤害；<font color='red'>♦</font>，其交给你两张牌。<br>"..
+  "③准备阶段，若场上有“天香”标记，你移除场上所有“天香”标记，并摸等量的牌（若为2V2模式则额外摸两张）。",
   ["#mou__tianxiang-choose"] = "天香：移除一名角色的“天香”标记，并按“天香”花色发动效果",
   ["#mou__tianxiang-give:"] = "天香：请交给 %dest 两张牌",
   ["@mou__tianxiang"] = "天香",
   ["mou__hongyan"] = "红颜",
-  [":mou__hongyan"] = "锁定技，①你的♠牌或你的♠判定牌的花色视为<font color='red'>♥</font>。"..
-  "②当一名角色的判定结果确定前，若花色为♥，你将判定结果改为任意一种花色。",
+  [":mou__hongyan"] = "锁定技，你的♠牌或你的♠判定牌的花色视为<font color='red'>♥</font>。"..
+  "当一名角色的判定结果确定前，若花色为<font color='red'>♥</font>，你将判定结果改为任意一种花色。",
   ["#mou__hongyan_trigger"] = "红颜",
   ["#mou__hongyan-choice"] = "红颜：修改 %dest 进行 %arg 判定结果的花色",
   ["#mou__hongyan-retrial"] = "红颜：你可以修改 %dest 进行 %arg 判定结果的花色",
@@ -942,7 +943,8 @@ Fk:addQmlMark{
   end,
 }
 local checkXieli = function (player, target)
-  local mark = U.getMark(player, "@[mou__xieli]")
+  local room = player.room
+  local mark = player:getTableMark("@[mou__xieli]")
   if #mark == 0 then return false end
   local pid = mark[1]
   if pid == target.id then
@@ -950,14 +952,16 @@ local checkXieli = function (player, target)
     local event_id = mark[3]
     if choice == "xieli_tongchou" then
       local n = 0
-      local events = U.getActualDamageEvents(player.room, 999, function(e) return e.data[1].from == player or e.data[1].from == target end, nil, event_id)
+      local events = room.logic:getActualDamageEvents(999, function(e)
+        return e.data[1].from == player or e.data[1].from == target
+      end, nil, event_id)
       for _, e in ipairs(events) do
         n = n + e.data[1].damage
       end
       return n >= 4
     elseif choice == "xieli_bingjin" then
       local n = 0
-      U.getEventsByRule (player.room, GameEvent.MoveCards, 999, function(e)
+      room.logic:getEventsByRule(GameEvent.MoveCards, 999, function(e)
         for _, move in ipairs(e.data) do
           if move.moveReason == fk.ReasonDraw and (move.to == player.id or move.to == target.id) then
             for _, info in ipairs(move.moveInfo) do
@@ -972,7 +976,7 @@ local checkXieli = function (player, target)
       return n >= 8
     elseif choice == "xieli_shucai" then
       local suits = {}
-      U.getEventsByRule (player.room, GameEvent.MoveCards, 999, function(e)
+      room.logic:getEventsByRule(GameEvent.MoveCards, 999, function(e)
         for _, move in ipairs(e.data) do
           if move.moveReason == fk.ReasonDiscard and (move.from == player.id or move.from == target.id) then
             for _, info in ipairs(move.moveInfo) do
@@ -990,30 +994,24 @@ local checkXieli = function (player, target)
       return #suits == 4
     elseif choice == "xieli_luli" then
       local suits = {}
-      U.getEventsByRule (player.room, GameEvent.UseCard, 999, function(e)
-        for _, move in ipairs(e.data) do
-          local use = e.data[1]
-          if use.from == player.id or use.from == target.id then
-            local suit = use.card.suit
-            if suit ~= Card.NoSuit then
-              table.insertIfNeed(suits, suit)
-            end
+      room.logic:getEventsByRule(GameEvent.UseCard, 999, function(e)
+        local use = e.data[1]
+        if use.from == player.id or use.from == target.id then
+          local suit = use.card.suit
+          if suit ~= Card.NoSuit then
+            table.insertIfNeed(suits, suit)
           end
         end
-        return false
       end, event_id)
       if #suits == 4 then return true end
-      U.getEventsByRule (player.room, GameEvent.RespondCard, 999, function(e)
-        for _, move in ipairs(e.data) do
-          local resp = e.data[1]
-          if resp.from == player.id or resp.from == target.id then
-            local suit = resp.card.suit
-            if suit ~= Card.NoSuit then
-              table.insertIfNeed(suits, suit)
-            end
+      room.logic:getEventsByRule(GameEvent.RespondCard, 999, function(e)
+        local resp = e.data[1]
+        if resp.from == player.id or resp.from == target.id then
+          local suit = resp.card.suit
+          if suit ~= Card.NoSuit then
+            table.insertIfNeed(suits, suit)
           end
         end
-        return false
       end, event_id)
       return #suits == 4
     end
@@ -1344,7 +1342,7 @@ local ganglieRecord = fk.CreateTriggerSkill{
     local room = player.room
     if event == fk.EventAcquireSkill then
       local enemies = {}
-      U.getActualDamageEvents(room, 999, function(e)
+      room.logic:getActualDamageEvents(999, function(e)
           local damageData = e.data[1]
           if damageData.from and damageData.to == player then
             table.insertIfNeed(enemies, damageData.from.id)

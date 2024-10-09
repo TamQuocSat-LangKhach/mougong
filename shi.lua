@@ -181,6 +181,11 @@ Fk:loadTranslationTable{
 local mou__lijian = fk.CreateActiveSkill{
   name = "mou__lijian",
   anim_type = "offensive",
+  min_card_num = 1,
+  min_target_num = 2,
+  prompt = function (self, selected_cards)
+    return "#mou__lijian:::"..#selected_cards..":"..(#selected_cards + 1)
+  end,
   can_use = function(self, player)
     return player:usedSkillTimes(self.name) == 0
   end,
@@ -191,10 +196,8 @@ local mou__lijian = fk.CreateActiveSkill{
   target_filter = function(self, to_select, selected, selected_cards)
     return #selected < #selected_cards + 1 and to_select ~= Self.id
   end,
-  min_card_num = 1,
-  min_target_num = 2,
   feasible = function (self, selected, selected_cards)
-    return #selected > 1 and #selected == #selected_cards +1 
+    return #selected > 1 and #selected == #selected_cards + 1
   end,
   on_use = function(self, room, effect)
     local player = room:getPlayerById(effect.from)
@@ -228,13 +231,9 @@ local mou__biyue = fk.CreateTriggerSkill{
   end,
   on_use = function(self, event, target, player, data)
     local targets = {}
-    player.room.logic:getEventsOfScope(GameEvent.ChangeHp, 999, function(e)
-      local damage = e.data[5]
-      if damage then
-        table.insertIfNeed(targets, damage.to.id)
-      end
+    player.room.logic:getActualDamageEvents(999, function(e)
+      table.insertIfNeed(targets, e.data[1].to.id)
     end, Player.HistoryTurn)
-   
     player:drawCards(math.min(1 + #targets, 5), self.name)
   end,
 }
@@ -245,9 +244,10 @@ Fk:loadTranslationTable{
   ["mou__diaochan"] = "谋貂蝉",
   ["#mou__diaochan"] = "绝世的舞姬",
   ["mou__lijian"] = "离间",
-  [":mou__lijian"] = "出牌阶段限一次，你可以选择至少两名其他角色并弃置X张牌（X为你选择的角色数减一），然后他们依次对逆时针最近座次的你选择的另一名角色视为使用一张【决斗】。",
+  [":mou__lijian"] = "出牌阶段限一次，你可以选择至少两名其他角色并弃置X张牌（X为你选择的角色数-1），然后他们依次对逆时针最近座次的你选择的另一名角色视为使用一张【决斗】。",
   ["mou__biyue"] = "闭月",
-  [":mou__biyue"] = "回合结束时，你可以摸X张牌(X为本回合内受到过伤害的角色数+1且至多为5)。",
+  [":mou__biyue"] = "回合结束时，你可以摸X张牌（X为本回合内受到过伤害的角色数+1且至多为5）。",
+  ["#mou__lijian"] = "离间：弃置%arg张牌，令%arg2名角色互相决斗！",
 
   ["$mou__lijian1"] = "太师若献妾于吕布，妾宁死不受此辱。",
   ["$mou__lijian2"] = "贱妾污浊之身，岂可复侍将军。",
@@ -262,6 +262,7 @@ local mou__mingce = fk.CreateActiveSkill{
   anim_type = "support",
   card_num = 1,
   target_num = 1,
+  prompt = "#mou__mingce",
   can_use = function(self, player)
     return player:usedSkillTimes(self.name, Player.HistoryPhase) == 0 and not player:isNude()
   end,
@@ -341,7 +342,9 @@ Fk:loadTranslationTable{
   ["mou__chengong"] = "谋陈宫",
   ["#mou__chengong"] = "刚直壮烈",
   ["mou__mingce"] = "明策",
-  [":mou__mingce"] = "①出牌阶段限一次，你可以交给一名其他角色一张牌，令其选择一项：1.失去1点体力，令你摸两张牌并获得1个“策”标记；2.摸一张牌。<br>②出牌阶段开始时，若你拥有“策”标记，你可以选择一名其他角色，对其造成X点伤害并移去所有“策”标记（X为你的“策”标记数）。",
+  [":mou__mingce"] = "①出牌阶段限一次，你可以交给一名其他角色一张牌，令其选择一项：1.失去1点体力，令你摸两张牌并获得1个“策”标记；2.摸一张牌。<br>"..
+  "②出牌阶段开始时，若你拥有“策”标记，你可以选择一名其他角色，对其造成X点伤害并移去所有“策”标记（X为你的“策”标记数）。",
+  ["#mou__mingce"] = "明策：交给一名角色一张牌，其选择失去体力令你摸牌，或其摸一张牌",
   ["mou__mingce_losehp"] = "你失去1点体力，令%src摸两张牌并获得“策”标记",
   ["#mou__mingce-choose"] = "明策：移去所有“策”标记，对一名其他角色造成 %arg 点伤害",
   ["@mou__mingce"] = "策",
@@ -475,13 +478,16 @@ Fk:loadTranslationTable{
 	["illustrator:mou__pangtong"] = "铁杵文化",
 
   ["mou__lianhuan"] = "连环",
-  [":mou__lianhuan"] = "出牌阶段，你可以将一张梅花手牌当【铁索连环】使用（每个出牌阶段限一次）或重铸；当你使用【铁索连环】时，你可以失去1点体力。若如此做，当此牌指定一名角色为目标后，若其未横置，你随机弃置其一张手牌。",
+  [":mou__lianhuan"] = "出牌阶段，你可以将一张♣手牌当【铁索连环】使用（每个出牌阶段限一次）或重铸；当你使用【铁索连环】时，你可以失去1点体力。"..
+  "若如此做，当此牌指定一名角色为目标后，若其未横置，你随机弃置其一张手牌。",
   ["#mou__lianhuan"] = "连环：你可以将一张手牌当【铁索连环】使用（每个出牌阶段限一次）或重铸",
   ["#mou__lianhuan_ts"] = "连环",
   ["#mou__lianhuan-invoke"] = "连环：你可以失去1点体力，当此【铁索连环】指定未横置的角色为目标后，你随机弃置其一张手牌",
 
   ["mou__niepan"] = "涅槃",
-  [":mou__niepan"] = "限定技，当你处于濒死状态时，你可以弃置区域里的所有牌，复原你的武将牌，然后摸两张牌并将体力回复至2点，最后修改〖连环〗。<br><b>连环·修改：</b>出牌阶段，你可以将一张梅花手牌当【铁索连环】使用（每个出牌阶段限一次）或重铸；你使用【铁索连环】可以额外指定任意名角色为目标；当你使用【铁索连环】指定一名角色为目标后，若其未横置，你随机弃置其一张手牌。",
+  [":mou__niepan"] = "限定技，当你处于濒死状态时，你可以弃置区域里的所有牌，复原你的武将牌，然后摸两张牌并将体力回复至2点，最后修改〖连环〗。<br>"..
+  "<b>连环·修改：</b>出牌阶段，你可以将一张♣手牌当【铁索连环】使用（每个出牌阶段限一次）或重铸；你使用【铁索连环】可以额外指定任意名角色为目标；"..
+  "当你使用【铁索连环】指定一名角色为目标后，若其未横置，你随机弃置其一张手牌。",
 
   ["$mou__lianhuan1"] = "任凭潮涌，连环无惧！",
   ["$mou__lianhuan2"] = "并排横江，可利水战！",
@@ -494,6 +500,7 @@ local mou__duanliang = fk.CreateActiveSkill{
   name = "mou__duanliang",
   anim_type = "control",
   mute = true,
+  prompt = "#mou__duanliang",
   can_use = function(self, player)
     return player:usedSkillTimes(self.name, Player.HistoryPhase) < 1
   end,
@@ -583,6 +590,7 @@ Fk:loadTranslationTable{
   ["#mou__xuhuang"] = "径行截辎",
   ["mou__duanliang"] = "断粮",
   [":mou__duanliang"] = "出牌阶段限一次，你可以与一名其他角色进行一次“谋弈”：<br>围城断粮，你将牌堆顶的一张牌当无距离限制的【兵粮寸断】对其使用，若无法使用改为你获得其一张牌；<br>擂鼓进军，你视为对其使用一张【决斗】。",
+  ["#mou__duanliang"] = "断粮：与一名其他角色进行“谋弈”，视为对其使用【兵粮寸断】或【决斗】",
   ["mou__duanliang-weicheng"] = "围城断粮",
   ["mou__duanliang-jinjun"] = "擂鼓进军",
   ["mou__duanliang-tuji"] = "全军突击",
