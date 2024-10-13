@@ -1766,4 +1766,220 @@ Fk:loadTranslationTable{
 
 mouxunyu:addSkill(moujieming)
 
+local jiaxu = General(extension, "mou__jiaxu", "qun", 3)
+
+local mou__wansha = fk.CreateTriggerSkill{
+  name = "mou__wansha",
+  anim_type = "control",
+  events = {fk.EnterDying},
+  can_trigger = function(self, event, target, player, data)
+    if player:hasSkill(self) then
+      if player:getMark("@@mou__wansha_upgrade") == 0 then
+        return not target:isKongcheng()
+      else
+        return not target:isAllNude()
+      end
+    end
+  end,
+  on_cost = function (self, event, target, player, data)
+    self.cost_data = {tos = {target.id}}
+    return player.room:askForSkillInvoke(player, self.name, nil, "#mou__wansha-invoke:"..target.id)
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    local card_data = {}
+    local upgrade = player:getMark("@@mou__wansha_upgrade") > 0
+    if upgrade then
+      if #target:getCardIds(Player.Judge) > 0 then
+        table.insert(card_data, { "$Judge", target:getCardIds(Player.Judge) })
+      end
+      if #target:getCardIds(Player.Equip) > 0 then
+        table.insert(card_data, { "$Equip", target:getCardIds(Player.Equip) })
+      end
+    end
+    if not target:isKongcheng() then
+      table.insert(card_data, { "$Hand", target:getCardIds(Player.Hand) })
+    end
+    if #card_data == 0 then return end
+    local cardsChosen = room:askForCardsChosen(player, target, 0, upgrade and 3 or 2, { card_data = card_data }, self.name)
+    local choice = room:askForChoice(target, {"#mou__wansha_give", "#mou__wansha_throw"}, self.name, "#mou__wansha-choice:"..player.id)
+    if choice == "#mou__wansha_give" then
+      local targets = room:getOtherPlayers(target, false)
+      if #cardsChosen == 0 or #targets == 0 then return end
+      local expandPile = table.filter(cardsChosen, function(id) return not table.contains(player:getCardIds("he"), id) end)
+      room:askForYiji(player, cardsChosen, targets, self.name, #cardsChosen, #cardsChosen, nil, expandPile)
+    else
+      local throw = table.filter(target:getCardIds(upgrade and "hej" or "h"), function (id)
+        return not table.contains(cardsChosen, id) and not target:prohibitDiscard(id)
+      end)
+      if #throw > 0 then
+        room:throwCard(throw, self.name, target, target)
+      end
+    end
+  end,
+
+  refresh_events = {fk.EventLoseSkill},
+  can_refresh = function (self, event, target, player, data)
+    return target == player and data == self and player:getMark("@@mou__wansha_upgrade") > 0
+  end,
+  on_refresh = function (self, event, target, player, data)
+    player.room:setPlayerMark(player, "@@mou__wansha_upgrade", 0)
+  end,
+}
+
+local mou__wansha_prohibit = fk.CreateProhibitSkill{
+  name = "#mou__wansha_prohibit",
+  prohibit_use = function(self, player, card)
+    if card.name == "peach" then
+      local from = table.find(Fk:currentRoom().alive_players, function (p)
+        return p:hasSkill(mou__wansha) and p.phase ~= Player.NotActive
+      end)
+      if from and from ~= player then
+        local victims = table.filter(Fk:currentRoom().alive_players, function (p)
+          return p.dying
+        end)
+        return #victims > 0 and not table.contains(victims, player)
+      end
+    end
+  end,
+}
+mou__wansha:addRelatedSkill(mou__wansha_prohibit)
+
+jiaxu:addSkill(mou__wansha)
+
+local mou__weimu = fk.CreateTriggerSkill{
+  name = "mou__weimu",
+  anim_type = "defensive",
+  events = {fk.TargetConfirming, fk.RoundStart},
+  frequency = Skill.Compulsory,
+  can_trigger = function(self, event, target, player, data)
+    if not player:hasSkill(self) then return false end
+    if event == fk.TargetConfirming then
+      return target == player and data.card.type == Card.TypeTrick and data.card.color == Card.Black
+    elseif player:getMark("@@mou__weimu_upgrade") > 0 then
+      local room = player.room
+      local roundEvents = room.logic:getEventsByRule(GameEvent.Round, 2, Util.TrueFunc, 0)
+      if #roundEvents == 2 then
+        return #room.logic:getEventsByRule(GameEvent.UseCard, 3, function (e)
+          if e.id > roundEvents[1].id then return false end
+          local use = e.data[1]
+          return use.from ~= player.id and table.contains(TargetGroup:getRealTargets(use.tos), player.id)
+        end, roundEvents[2].id) < 3
+      end
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    if event == fk.TargetConfirming then
+      AimGroup:cancelTarget(data, player.id)
+      return true
+    else
+      local ids = room:getCardsFromPileByRule(".|.|spade,club|.|.|trick;.|.|.|.|.|armor")
+      if #ids > 0 then
+        room:moveCardTo(ids, Player.Hand, player, fk.ReasonJustMove, self.name)
+      end
+    end
+  end,
+
+  refresh_events = {fk.EventLoseSkill},
+  can_refresh = function (self, event, target, player, data)
+    return target == player and data == self and player:getMark("@@mou__weimu_upgrade") > 0
+  end,
+  on_refresh = function (self, event, target, player, data)
+    player.room:setPlayerMark(player, "@@mou__weimu_upgrade", 0)
+  end,
+}
+
+jiaxu:addSkill(mou__weimu)
+
+local mou__luanwu = fk.CreateActiveSkill{
+  name = "mou__luanwu",
+  anim_type = "offensive",
+  prompt = "#mou__luanwu",
+  card_num = 0,
+  target_num = 0,
+  frequency = Skill.Limited,
+  can_use = function(self, player)
+    return player:usedSkillTimes(self.name, Player.HistoryGame) == 0
+  end,
+  card_filter = Util.FalseFunc,
+  on_use = function(self, room, effect)
+    local player = room:getPlayerById(effect.from)
+    local targets = room:getOtherPlayers(player)
+    room:doIndicate(player.id, table.map(targets, Util.IdMapper))
+    for _, target in ipairs(targets) do
+      if not target.dead then
+        local other_players = table.filter(room:getOtherPlayers(target, false), function(p) return not p:isRemoved() end)
+        local luanwu_targets = table.map(table.filter(other_players, function(p2)
+          return table.every(other_players, function(p1)
+            return target:distanceTo(p1) >= target:distanceTo(p2)
+          end)
+        end), Util.IdMapper)
+        local use = room:askForUseCard(target, "slash", "slash", "#luanwu-use", true, {include_targets = luanwu_targets, bypass_times = true})
+        if use then
+          use.extraUse = true
+          room:useCard(use)
+        else
+          room:loseHp(target, 1, self.name)
+        end
+      end
+    end
+  end,
+}
+
+local mou__luanwu_delay = fk.CreateTriggerSkill{
+  name = "#mou__luanwu_delay",
+  mute = true,
+  events = {fk.HpLost},
+  can_trigger = function(self, event, target, player, data)
+    return data.skillName == "mou__luanwu" and player.phase == Player.Play and not player.dead and
+    (player:hasSkill(mou__wansha, true) and player:getMark("@@mou__wansha_upgrade") == 0
+    or player:hasSkill(mou__weimu, true) and player:getMark("@@mou__weimu_upgrade") == 0)
+  end,
+  on_cost = Util.TrueFunc,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    local all_choices = {"mou__wansha", "mou__weimu"}
+    local choices = table.filter(all_choices, function(name)
+      return player:hasSkill(name, true) and player:getMark("@@".. name.. "_upgrade") == 0
+    end)
+    table.insert(choices, "Cancel")
+    table.insert(all_choices, "Cancel")
+    local choice = room:askForChoice(player, choices, self.name, "#mou__luanwu-choice", false, all_choices)
+    if choice ~= "Cancel" then
+      room:setPlayerMark(player, "@@".. choice.. "_upgrade", 1)
+    end
+  end,
+}
+mou__luanwu:addRelatedSkill(mou__luanwu_delay)
+
+jiaxu:addSkill(mou__luanwu)
+
+
+Fk:loadTranslationTable{
+  ["mou__jiaxu"] = "谋贾诩",
+  ["#mou__jiaxu"] = "计深似海",
+
+  ["mou__wansha"] = "完杀",
+  [":mou__wansha"] = "①你的回合内，若有角色处于濒死状态，则不处于濒死状态的其他角色不能使用【桃】。②一名角色进入濒死状态时，你可以观看其手牌并秘密选择其中的0~2张牌，然后令其选择一项：1.由你将被选择的牌分配给除其以外的角色；2.弃置所有未被选择的牌。"..
+  "<br><b>二级</b>：“观看其手牌并选择其中的0~2张牌”修改为“观看其手牌并选择其区域内的0~3张牌”。",
+  ["@@mou__wansha_upgrade"] = "完杀二级",
+  ["#mou__wansha-invoke"] = "完杀：你可以观看 %src 手牌并选牌，令其选择让你分配之或弃置其余牌",
+  ["#mou__wansha_give"] = "令其将选择的牌分配",
+  ["#mou__wansha_throw"] = "弃置其未未选择的牌",
+  ["#mou__wansha-choice"] = "完杀：%src 秘密选择了你的若干张牌，你须选一项",
+
+  ["mou__weimu"] = "帷幕",
+  [":mou__weimu"] = "锁定技，当你成为黑色锦囊牌的目标时，取消之。"..
+  "<br><b>二级</b>：增加内容：每轮开始时，若你上一轮成为其他角色使用牌的目标的次数不大于两次，则你从弃牌堆随机获得一张黑色锦囊牌或者防具牌。",
+  ["@@mou__weimu_upgrade"] = "帷幕二级",
+
+  ["mou__luanwu"] = "乱武",
+  [":mou__luanwu"] = "限定技，①限定技，出牌阶段，你可以令所有其他角色依次选择一项：1.对距离最近的另一名角色使用一张【杀】；2.失去1点体力。②每有一名角色因此失去体力时，你可以升级“完杀”或者“帷幕”（每个技能各限升级一次）。",
+  ["#mou__luanwu"] = "令所有其他角色选择对最近角色出杀或掉血，若掉血你升级技能",
+  ["#mou__luanwu-choice"] = "乱武：你可以升级“完杀”或者“帷幕”！",
+  ["#mou__luanwu_delay"] = "乱武",
+}
+
+
 return extension

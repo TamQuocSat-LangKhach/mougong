@@ -171,6 +171,7 @@ local mou__tianxiang = fk.CreateActiveSkill{
   anim_type = "control",
   card_num = 1,
   target_num = 1,
+  prompt = "#mou__tianxiang",
   card_filter = function(self, to_select, selected)
     return #selected == 0 and Fk:getCardById(to_select).color == Card.Red and table.contains(Self.player_cards[Player.Hand], to_select)
   end,
@@ -210,17 +211,18 @@ local mou__tianxiang_trigger = fk.CreateTriggerSkill{
       if #targets == 0 then return false end
       local tos = player.room:askForChoosePlayers(player, table.map(targets, Util.IdMapper), 1, 1, "#mou__tianxiang-choose", "mou__tianxiang", true)
       if #tos > 0 then
-        self.cost_data = tos[1]
+        self.cost_data = {tos = tos}
         return true
       end
     else
+      self.cost_data = nil
       return true
     end
   end,
   on_use = function(self, event, target, player, data)
     local room = player.room
     if event == fk.DamageInflicted then
-      local to = room:getPlayerById(self.cost_data)
+      local to = room:getPlayerById(self.cost_data.tos[1])
       local suit = to:getMark("@mou__tianxiang")
       room:setPlayerMark(to, "@mou__tianxiang", 0)
       if suit == "log_heart" then
@@ -300,8 +302,10 @@ Fk:loadTranslationTable{
   "你防止此伤害，然后令其受到防止伤害的来源角色造成的1点伤害；<font color='red'>♦</font>，其交给你两张牌。<br>"..
   "③准备阶段，若场上有“天香”标记，你移除场上所有“天香”标记，并摸等量的牌（若为2V2模式则额外摸两张）。",
   ["#mou__tianxiang-choose"] = "天香：移除一名角色的“天香”标记，并按“天香”花色发动效果",
-  ["#mou__tianxiang-give:"] = "天香：请交给 %dest 两张牌",
+  ["#mou__tianxiang-give"] = "天香：请交给 %dest 两张牌",
   ["@mou__tianxiang"] = "天香",
+  ["#mou__tianxiang"] = "天香：将红色手牌交给其他角色，你下次受伤时：<font color='red'>♥</font>：令其受伤；<font color='red'>♦</font>，其交给你两张牌",
+
   ["mou__hongyan"] = "红颜",
   [":mou__hongyan"] = "锁定技，你的♠牌或你的♠判定牌的花色视为<font color='red'>♥</font>。"..
   "当一名角色的判定结果确定前，若花色为<font color='red'>♥</font>，你将判定结果改为任意一种花色。",
@@ -309,6 +313,7 @@ Fk:loadTranslationTable{
   ["#mou__hongyan-choice"] = "红颜：修改 %dest 进行 %arg 判定结果的花色",
   ["#mou__hongyan-retrial"] = "红颜：你可以修改 %dest 进行 %arg 判定结果的花色",
   ["#mou__hongyan_delay"] = "红颜",
+
   ["$mou__tianxiang1"] = "凤眸流盼，美目含情。",
   ["$mou__tianxiang2"] = "灿如春华，皎如秋月。",
   ["$mou__hongyan"] = "（琴声）",
