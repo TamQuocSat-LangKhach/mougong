@@ -1801,7 +1801,11 @@ local mou__wansha = fk.CreateTriggerSkill{
       table.insert(card_data, { "$Hand", target:getCardIds(Player.Hand) })
     end
     if #card_data == 0 then return end
-    local cardsChosen = room:askForCardsChosen(player, target, 0, upgrade and 3 or 2, { card_data = card_data }, self.name)
+    local countLimit = upgrade and 3 or 2
+    if table.contains({"aaa_role_mode", "aab_role_mode", "vanished_dragon"}, room.settings.gameMode) then
+      countLimit = countLimit - 1
+    end
+    local cardsChosen = room:askForCardsChosen(player, target, 0, countLimit, { card_data = card_data }, self.name)
     local choice = room:askForChoice(target, {"#mou__wansha_give", "#mou__wansha_throw"}, self.name, "#mou__wansha-choice:"..player.id)
     if choice == "#mou__wansha_give" then
       local targets = room:getOtherPlayers(target, false)
@@ -1860,11 +1864,12 @@ local mou__weimu = fk.CreateTriggerSkill{
       local room = player.room
       local roundEvents = room.logic:getEventsByRule(GameEvent.Round, 2, Util.TrueFunc, 0)
       if #roundEvents == 2 then
+        local countLimit = table.contains({"aaa_role_mode", "aab_role_mode", "vanished_dragon"}, room.settings.gameMode) and 1 or 2
         return #room.logic:getEventsByRule(GameEvent.UseCard, 3, function (e)
           if e.id > roundEvents[1].id then return false end
           local use = e.data[1]
           return use.from ~= player.id and table.contains(TargetGroup:getRealTargets(use.tos), player.id)
-        end, roundEvents[2].id) < 3
+        end, roundEvents[2].id) <= countLimit
       end
     end
   end,
@@ -1962,8 +1967,8 @@ Fk:loadTranslationTable{
   ["~mou__jiaxu"] = "踽踽黄泉，与吾行事又有何异？",
 
   ["mou__wansha"] = "完杀",
-  [":mou__wansha"] = "①你的回合内，若有角色处于濒死状态，则不处于濒死状态的其他角色不能使用【桃】。②一名角色进入濒死状态时，你可以观看其手牌并秘密选择其中的0~2张牌，然后令其选择一项：1.由你将被选择的牌分配给除其以外的角色；2.弃置所有未被选择的牌。"..
-  "<br><b>二级</b>：“观看其手牌并选择其中的0~2张牌”修改为“观看其手牌并选择其区域内的0~3张牌”。",
+  [":mou__wansha"] = "①你的回合内，若有角色处于濒死状态，则不处于濒死状态的其他角色不能使用【桃】。②一名角色进入濒死状态时，你可以观看其手牌并秘密选择其中的0~1张牌（若不为身份模式，改为0~2），然后令其选择一项：1.由你将被选择的牌分配给除其以外的角色；2.弃置所有未被选择的牌。"..
+  "<br><b>二级</b>：“观看其手牌并选择其中的0~1张牌（不为身份模式改为0~2）”修改为“观看其手牌并选择其区域内的0~2张牌（不为身份模式改为0~3）”。",
   ["@@mou__wansha_upgrade"] = "完杀二级",
   ["#mou__wansha-invoke"] = "完杀：你可以观看 %src 手牌并选牌，令其选择让你分配之或弃置其余牌",
   ["#mou__wansha_give"] = "令其将选择的牌分配",
@@ -1972,7 +1977,7 @@ Fk:loadTranslationTable{
 
   ["mou__weimu"] = "帷幕",
   [":mou__weimu"] = "锁定技，当你成为黑色锦囊牌的目标时，取消之。"..
-  "<br><b>二级</b>：增加内容：每轮开始时，若你上一轮成为其他角色使用牌的目标的次数不大于两次，则你从弃牌堆随机获得一张黑色锦囊牌或者防具牌。",
+  "<br><b>二级</b>：增加内容：每轮开始时，若你上一轮成为其他角色使用牌的目标的次数不大于1次（若不为身份模式改为2次），则你从弃牌堆随机获得一张黑色锦囊牌或者防具牌。",
   ["@@mou__weimu_upgrade"] = "帷幕二级",
 
   ["mou__luanwu"] = "乱武",
