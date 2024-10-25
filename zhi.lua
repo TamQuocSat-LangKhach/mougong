@@ -1440,14 +1440,14 @@ local mou__zhugeliang = General(extension, "mou__zhugeliang", "shu", 3)
 mou__zhugeliang.hidden = true
 local mou__guanxing = fk.CreateTriggerSkill{
   name = "mou__guanxing",
-  derived_piles = "mou__guanxing&",
+  derived_piles = "$mou__guanxing&",
   events = {fk.EventPhaseStart},
   can_trigger = function(self, event, target, player, data)
     if target == player and player:hasSkill(self) then
       if player.phase == Player.Start then
-        return #player:getPile("mou__guanxing&") > 0 or player:getMark("mou__guanxing_times") < 3
+        return #player:getPile("$mou__guanxing&") > 0 or player:getMark("mou__guanxing_times") < 3
       elseif player.phase == Player.Finish then
-        return #player:getPile("mou__guanxing&") > 0 and player:getMark("mou__guanxing-turn") > 0
+        return #player:getPile("$mou__guanxing&") > 0 and player:getMark("mou__guanxing-turn") > 0
       end
     end
   end,
@@ -1455,24 +1455,24 @@ local mou__guanxing = fk.CreateTriggerSkill{
   on_use = function(self, event, target, player, data)
     local room = player.room
     if player.phase == Player.Start then
-      if #player:getPile("mou__guanxing&") > 0 then
+      if #player:getPile("$mou__guanxing&") > 0 then
         room:moveCards({
           from = player.id,
-          ids = player:getPile("mou__guanxing&"),
+          ids = player:getPile("$mou__guanxing&"),
           toArea = Card.DiscardPile,
           moveReason = fk.ReasonPutIntoDiscardPile,
           skillName = self.name,
-          fromSpecialName = "mou__guanxing&",
+          fromSpecialName = "$mou__guanxing&",
         })
         if player.dead then return false end
       end
       local n = 7 - 3*player:getMark("mou__guanxing_times")
       if n < 1 then return false end
       room:addPlayerMark(player, "mou__guanxing_times")
-      player:addToPile("mou__guanxing&", room:getNCards(n), false, self.name)
-      if player.dead or #player:getPile("mou__guanxing&") == 0 then return false end
+      player:addToPile("$mou__guanxing&", room:getNCards(n), false, self.name)
+      if player.dead or #player:getPile("$mou__guanxing&") == 0 then return false end
     end
-    local result = room:askForGuanxing(player, player:getPile("mou__guanxing&"), nil, nil, self.name, true, {"mou__guanxing&", "Top"})
+    local result = room:askForGuanxing(player, player:getPile("$mou__guanxing&"), nil, nil, self.name, true, {"$mou__guanxing&", "Top"})
     if #result.bottom > 0 then
       room:moveCards({
         ids = table.reverse(result.bottom),
@@ -1481,7 +1481,7 @@ local mou__guanxing = fk.CreateTriggerSkill{
         toArea = Card.DrawPile,
         moveReason = fk.ReasonJustMove,
         skillName = self.name,
-        fromSpecialName = "mou__guanxing&",
+        fromSpecialName = "$mou__guanxing&",
       })
       room:sendLog{
         type = "#GuanxingResult",
@@ -1513,10 +1513,10 @@ local mou__kongcheng = fk.CreateTriggerSkill{
   on_use = function(self, event, target, player, data)
     local room = player.room
     player:broadcastSkillInvoke(self.name)
-    if #player:getPile("mou__guanxing&") > 0 then
+    if #player:getPile("$mou__guanxing&") > 0 then
       room:notifySkillInvoked(player, self.name, "defensive")
-      local pattern = ".|1~"..(#player:getPile("mou__guanxing&") - 1)
-      if #player:getPile("mou__guanxing&") < 2 then
+      local pattern = ".|1~"..(#player:getPile("$mou__guanxing&") - 1)
+      if #player:getPile("$mou__guanxing&") < 2 then
         pattern = "FuckYoka"
       end
       local judge = {
@@ -1525,7 +1525,7 @@ local mou__kongcheng = fk.CreateTriggerSkill{
         pattern = pattern,
       }
       room:judge(judge)
-      if judge.card.number < #player:getPile("mou__guanxing&") then
+      if judge.card.number < #player:getPile("$mou__guanxing&") then
         data.damage = data.damage - 1
       end
     else
@@ -1545,7 +1545,7 @@ Fk:loadTranslationTable{
   ["mou__kongcheng"] = "空城",
   [":mou__kongcheng"] = "锁定技，当你受到伤害时，若你拥有技能〖观星〗且你的武将牌上："..
   "有“星”，你判定，若结果点数不大于“星”数，则此伤害-1；没有“星”，此伤害+1。",
-  ["mou__guanxing&"] = "星",
+  ["$mou__guanxing&"] = "星",
 
   ["$mou__guanxing1"] = "明星皓月，前路通达。",
   ["$mou__guanxing2"] = "冷夜孤星，正如时局啊。",

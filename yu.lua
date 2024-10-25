@@ -986,7 +986,7 @@ local mouqianxun = fk.CreateTriggerSkill{
       local max = math.min(#names, 5)
       local ids = room:askForCard(player, 1, max, true, self.name, true, ".", "#mou__qianxun-put:::" .. max)
       if #ids > 0 then
-        player:addToPile("mou__qianxun_xun", ids, false, self.name, player.id)
+        player:addToPile("$mou__qianxun_xun", ids, false, self.name, player.id)
       end
     else
       local nameChosen = self.cost_data
@@ -1004,11 +1004,11 @@ local mouqianxunBack = fk.CreateTriggerSkill{
   mute = true,
   events = {fk.TurnEnd},
   can_trigger = function(self, event, target, player, data)
-    return #player:getPile("mou__qianxun_xun") > 0
+    return #player:getPile("$mou__qianxun_xun") > 0
   end,
   on_cost = Util.TrueFunc,
   on_use = function(self, event, target, player, data)
-    player.room:obtainCard(player, player:getPile("mou__qianxun_xun"), false, fk.ReasonPrey, player.id, "mou__qianxun")
+    player.room:obtainCard(player, player:getPile("$mou__qianxun_xun"), false, fk.ReasonPrey, player.id, "mou__qianxun")
   end,
 }
 Fk:loadTranslationTable{
@@ -1020,7 +1020,7 @@ Fk:loadTranslationTable{
   ["#mou__qianxun-put"] = "谦逊：你可将至多%arg张牌扣置于武将牌上，于此回合结束时收回",
   ["#mou__qianxun_remove"] = "谦逊：你可移去其中一个牌名记录，若为普通锦囊牌则可视为使用之",
   ["@$mou__qianxun_names"] = "谦逊牌名",
-  ["mou__qianxun_xun"] = "谦逊",
+  ["$mou__qianxun_xun"] = "谦逊",
 
   ["$mou__qianxun1"] = "虽有戈矛之刺，不如恭俭之利也。",
   ["$mou__qianxun2"] = "贤者任重而行恭，智者功大而辞顺。",
