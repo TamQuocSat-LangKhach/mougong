@@ -1050,7 +1050,7 @@ local mou__xieji = fk.CreateTriggerSkill{
 
   refresh_events = {fk.AfterTurnEnd, fk.Death},
   can_refresh = function (self, event, target, player, data)
-    local mark = U.getMark(player, "@[mou__xieli]")
+    local mark = player:getTableMark("@[mou__xieli]")
     return #mark > 0 and mark[1] == target.id
   end,
   on_refresh = function (self, event, target, player, data)
@@ -1251,7 +1251,7 @@ local mou__jizhu = fk.CreateTriggerSkill{
     if event == fk.EventPhaseStart then
       return target == player and player.phase == Player.Finish and player:getMark("@@mou__jizhu") > 0
     else
-      local mark = U.getMark(player, "@[mou__xieli]")
+      local mark = player:getTableMark("@[mou__xieli]")
       return #mark > 0 and mark[1] == target.id
     end
   end,
@@ -1311,12 +1311,12 @@ local ganglie = fk.CreateActiveSkill{
   target_filter = function(self, to_select, selected)
     return
       #selected == 0 and
-      table.contains(U.getMark(Self, "mou__ganglie_enemy"), to_select) and
-      not table.contains(U.getMark(Self, "mou__ganglie_targeted"), to_select)
+      table.contains(Self:getTableMark("mou__ganglie_enemy"), to_select) and
+      not table.contains(Self:getTableMark("mou__ganglie_targeted"), to_select)
   end,
   on_use = function(self, room, effect)
     local player = room:getPlayerById(effect.from)
-    local playersTargeted = U.getMark(player, "mou__ganglie_targeted")
+    local playersTargeted = player:getTableMark("mou__ganglie_targeted")
     table.insertIfNeed(playersTargeted, effect.tos[1])
     room:setPlayerMark(player, "mou__ganglie_targeted", playersTargeted)
 
@@ -1360,7 +1360,7 @@ local ganglieRecord = fk.CreateTriggerSkill{
 
       room:setPlayerMark(player, "mou__ganglie_enemy", enemies)
     else
-      local enemies = U.getMark(player, "mou__ganglie_enemy")
+      local enemies = player:getTableMark("mou__ganglie_enemy")
       table.insertIfNeed(enemies, data.damageEvent.from.id)
       room:setPlayerMark(player, "mou__ganglie_enemy", enemies)
     end

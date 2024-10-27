@@ -859,13 +859,13 @@ local mou__zongshi = fk.CreateTriggerSkill{
   events = {fk.Damaged},
   can_trigger = function(self, event, target, player, data)
     if player:hasSkill(self) and player == target and data.from and not data.from:isKongcheng() then
-      local mark = U.getMark(player, self.name)
+      local mark = player:getTableMark(self.name)
       return not table.contains(mark, data.from.id)
     end
   end,
   on_use = function(self, event, target, player, data)
     local room = player.room
-    local mark = U.getMark(player, self.name)
+    local mark = player:getTableMark(self.name)
     table.insert(mark, data.from.id)
     room:setPlayerMark(player, self.name, mark)
     data.from:throwAllCards("h")
@@ -933,7 +933,7 @@ local mou__rende = fk.CreateActiveSkill{
     if self.interaction.data == "mou__rende" then
       local target = room:getPlayerById(effect.tos[1])
       room:setPlayerMark(target, "mou__rende_target-phase", 1)
-      local mark = U.getMark(player, "mou__rende_target")
+      local mark = player:getTableMark("mou__rende_target")
       if table.insertIfNeed(mark, target.id) then
         room:setPlayerMark(player, "mou__rende_target", mark)
       end
@@ -1096,7 +1096,7 @@ local mou__zhangwu = fk.CreateActiveSkill{
     local player = room:getPlayerById(effect.from)
     local x = math.min(3, (room:getTag("RoundCount") - 1))
     if x > 0 then
-      local mark = U.getMark(player, "mou__rende_target")
+      local mark = player:getTableMark("mou__rende_target")
       for _, p in ipairs(room:getOtherPlayers(player)) do
         if player.dead then break end
         if not p.dead and table.contains(mark, p.id) and not p:isNude() then
@@ -1582,6 +1582,11 @@ local mouquhu = fk.CreateActiveSkill{
   end,
   on_use = function(self, room, effect)
     local player = room:getPlayerById(effect.from)
+    local targets = table.map(effect.tos, Util.Id2PlayerMapper)
+    table.insert(targets, player)
+
+    local req = Request:new(targets, "AskForUseActiveSkill")
+    req.focus_text = self.name
     local extraData = {
       num = 999,
       min_num = 1,
@@ -1590,30 +1595,27 @@ local mouquhu = fk.CreateActiveSkill{
       reason = self.name,
     }
     local data = { "choose_cards_skill", "", false, extraData }
-
-    local targets = {}
-    for index, pid in ipairs(effect.tos) do
-      local to = room:getPlayerById(pid)
-      table.insert(targets, to)
-      data[2] = "#mou__quhu-target::" .. (effect.tos[index == 1 and 2 or 1])
-      to.request_data = json.encode(data)
-    end
-
+    data[2] = "#mou__quhu-target::"..targets[2].id
+    req:setData(targets[1], data)
+    req:setDefaultReply(targets[1], table.random(targets[1]:getCardIds("he")))
+    data[2] = "#mou__quhu-target::"..targets[1].id
+    req:setData(targets[2], data)
+    req:setDefaultReply(targets[2], table.random(targets[2]:getCardIds("he")))
     data[2] = "#mou__quhu-user"
-    table.insert(targets, player)
-    player.request_data = json.encode(data)
-
-    room:notifyMoveFocus(targets, self.name)
-    room:doBroadcastRequest("AskForUseActiveSkill", targets)
+    req:setData(player, data)
+    req:setDefaultReply(player, table.random(player:getCardIds("he")))
+    req:ask()
 
     local moveInfos = {}
     for _, p in ipairs(targets) do
-      local quhuCards
-      if p.reply_ready then
-        local replyCard = json.decode(p.client_reply).card
-        quhuCards = json.decode(replyCard).subcards
-      else
-        quhuCards = { p:getCardIds("he")[1] }
+      local quhuCards = {}
+      local result = req:getResult(p)
+      if result ~= "" then
+        if type(result) == "table" then
+          quhuCards = json.decode(result.card).subcards
+        else
+          quhuCards = {result}
+        end
       end
 
       table.insert(moveInfos, {
@@ -1623,7 +1625,7 @@ local mouquhu = fk.CreateActiveSkill{
         toArea = Card.PlayerSpecial,
         moveReason = fk.ReasonJustMove,
         skillName = self.name,
-        specialName = self.name,
+        specialName = "$mou__quhu",
         moveVisible = false,
         proposer = p.id,
       })
@@ -1636,9 +1638,9 @@ local mouquhu = fk.CreateActiveSkill{
     local targetTwo = room:getPlayerById(effect.tos[2])
 
     local mostPut = targetOne
-    if #targetOne:getPile(self.name) < #targetTwo:getPile(self.name) then
+    if #targetOne:getPile("$mou__quhu") < #targetTwo:getPile("$mou__quhu") then
       mostPut = targetTwo
-    elseif #targetOne:getPile(self.name) == #targetTwo:getPile(self.name) then
+    elseif #targetOne:getPile("$mou__quhu") == #targetTwo:getPile("$mou__quhu") then
       local nearestTarget = player
       for i = 1, #room.players - 1 do
         nearestTarget = nearestTarget.next
@@ -1649,7 +1651,7 @@ local mouquhu = fk.CreateActiveSkill{
         end
       end
     end
-    if table.find(targets, function(p) return player ~= p and #player:getPile(self.name) >= #p:getPile(self.name) end) then
+    if table.find(targets, function(p) return player ~= p and #player:getPile("$mou__quhu") >= #p:getPile("$mou__quhu") end) then
       room:damage({
         from = mostPut,
         to = mostPut == targetOne and targetTwo or targetOne,
@@ -1657,11 +1659,11 @@ local mouquhu = fk.CreateActiveSkill{
         skillName = self.name,
       })
 
-      room:obtainCard(mostPut, player:getPile(self.name), false, fk.ReasonPrey)
+      room:obtainCard(mostPut, player:getPile("$mou__quhu"), false, fk.ReasonPrey)
 
       room:moveCards(
         {
-          ids = targetOne:getPile(self.name),
+          ids = targetOne:getPile("$mou__quhu"),
           from = targetOne.id,
           toArea = Card.DiscardPile,
           moveReason = fk.ReasonPutIntoDiscardPile,
@@ -1669,7 +1671,7 @@ local mouquhu = fk.CreateActiveSkill{
           proposer = targetOne.id,
         },
         {
-          ids = targetTwo:getPile(self.name),
+          ids = targetTwo:getPile("$mou__quhu"),
           from = targetTwo.id,
           toArea = Card.DiscardPile,
           moveReason = fk.ReasonPutIntoDiscardPile,
@@ -1678,11 +1680,11 @@ local mouquhu = fk.CreateActiveSkill{
         }
       )
     else
-      room:obtainCard(mostPut, player:getPile(self.name), false, fk.ReasonPrey)
+      room:obtainCard(mostPut, player:getPile("$mou__quhu"), false, fk.ReasonPrey)
 
       room:moveCards(
         {
-          ids = targetOne:getPile(self.name),
+          ids = targetOne:getPile("$mou__quhu"),
           from = targetOne.id,
           to = targetOne.id,
           toArea = Card.PlayerHand,
@@ -1691,7 +1693,7 @@ local mouquhu = fk.CreateActiveSkill{
           proposer = targetOne.id,
         },
         {
-          ids = targetTwo:getPile(self.name),
+          ids = targetTwo:getPile("$mou__quhu"),
           from = targetTwo.id,
           to = targetTwo.id,
           toArea = Card.PlayerHand,
@@ -1711,6 +1713,7 @@ Fk:loadTranslationTable{
   ["#mou__quhu"] = "驱虎：你可与两名角色扣置牌，若你扣置的不为最少，令他们互相伤害",
   ["#mou__quhu-user"] = "驱虎：请扣置至少一张牌，若不为最少，令他们互相伤害",
   ["#mou__quhu-target"] = "驱虎：请扣置至少一张牌，若你较多，有机会对 %dest 造成伤害",
+  ["$mou__quhu"] = "驱虎",
   ["$mou__quhu1"] = "驱他山之虎，抗近身之豺。",
   ["$mou__quhu2"] = "引狼喰虎，待虎吞狼。",
 }

@@ -617,7 +617,7 @@ local mou__jizhi_maxcards = fk.CreateMaxCardsSkill{
 local mou__qicai_select = fk.CreateActiveSkill{
   name = "mou__qicai_select",
   expand_pile = function (self)
-    return U.getMark(Self, "mou__qicai_discardpile")
+    return Self:getTableMark("mou__qicai_discardpile")
   end,
   can_use = Util.FalseFunc,
   target_num = 0,
@@ -626,13 +626,13 @@ local mou__qicai_select = fk.CreateActiveSkill{
     if #selected ~= 0 then return false end
     local card = Fk:getCardById(to_select)
     if table.contains({"m_1v2_mode", "brawl_mode"}, Fk:currentRoom().room_settings.gameMode)
-    and (card.sub_type ~= Card.SubtypeArmor or table.contains(U.getMark(Self, "@$mou__qicai"), card.trueName)) then
+    and (card.sub_type ~= Card.SubtypeArmor or table.contains(Self:getTableMark("@$mou__qicai"), card.trueName)) then
       return false
     end
 
     return
       card.type == Card.TypeEquip and
-      (table.contains(U.getMark(Self, "mou__qicai_discardpile"), to_select) or Fk:currentRoom():getCardArea(to_select) ~= Card.PlayerEquip) and
+      (table.contains(Self:getTableMark("mou__qicai_discardpile"), to_select) or Fk:currentRoom():getCardArea(to_select) ~= Card.PlayerEquip) and
       U.canMoveCardIntoEquip(Fk:currentRoom():getPlayerById(Self:getMark("mou__qicai_target-tmp")), to_select, false)
   end,
 }
@@ -653,7 +653,7 @@ local mou__qicai = fk.CreateActiveSkill{
   on_use = function(self, room, effect)
     local player = room:getPlayerById(effect.from)
     local target = room:getPlayerById(effect.tos[1])
-    local mark = U.getMark(player, "@$mou__qicai")
+    local mark = player:getTableMark("@$mou__qicai")
     local ids = table.filter(room.discard_pile, function (id)
       local card = Fk:getCardById(id)
       if
@@ -949,16 +949,16 @@ local mouqianxun = fk.CreateTriggerSkill{
       return
         data.from ~= player.id and
         data.card.type == Card.TypeTrick and
-        not table.contains(U.getMark(player, "@$mou__qianxun_names"), data.card.trueName)
+        not table.contains(player:getTableMark("@$mou__qianxun_names"), data.card.trueName)
     end
     
-    return player.phase == Player.Play and #U.getMark(player, "@$mou__qianxun_names") > 0
+    return player.phase == Player.Play and #player:getTableMark("@$mou__qianxun_names") > 0
   end,
   on_cost = function(self, event, target, player, data)
     if event == fk.EventPhaseStart then
       local results = player.room:askForChoices(
         player,
-        U.getMark(player, "@$mou__qianxun_names"),
+        player:getTableMark("@$mou__qianxun_names"),
         1,
         1, 
         self.name,
@@ -976,7 +976,7 @@ local mouqianxun = fk.CreateTriggerSkill{
   on_use = function(self, event, target, player, data)
     local room = player.room
     if event == fk.CardEffecting then
-      local names = U.getMark(player, "@$mou__qianxun_names")
+      local names = player:getTableMark("@$mou__qianxun_names")
       table.insertIfNeed(names, data.card.trueName)
       room:setPlayerMark(player, "@$mou__qianxun_names", names)
       if player:isNude() then
@@ -990,7 +990,7 @@ local mouqianxun = fk.CreateTriggerSkill{
       end
     else
       local nameChosen = self.cost_data
-      local names = U.getMark(player, "@$mou__qianxun_names")
+      local names = player:getTableMark("@$mou__qianxun_names")
       table.removeOne(names, nameChosen)
       room:setPlayerMark(player, "@$mou__qianxun_names", #names > 0 and names or 0)
       if Fk:cloneCard(nameChosen):isCommonTrick() then

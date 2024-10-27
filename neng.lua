@@ -734,7 +734,7 @@ local mou__zhiji = fk.CreateTriggerSkill{
     local tos = room:askForChoosePlayers(player, table.map(room.alive_players, Util.IdMapper), 1, 999, "#mou__zhiji-choose", self.name, true)
     for _, pid in ipairs(tos) do
       local p = room:getPlayerById(pid)
-      local mark = U.getMark(p, "@@mou__zhiji")
+      local mark = p:getTableMark("@@mou__zhiji")
       table.insertIfNeed(mark, player.id)
       room:setPlayerMark(p, "@@mou__zhiji", mark)
     end
@@ -746,7 +746,7 @@ local mou__zhiji = fk.CreateTriggerSkill{
   on_refresh = function(self, event, target, player, data)
     local room = player.room
     for _, p in ipairs(room.alive_players) do
-      local mark = U.getMark(p, "@@mou__zhiji")
+      local mark = p:getTableMark("@@mou__zhiji")
       if table.contains(mark, player.id) then
         table.removeOne(mark, player.id)
         room:setPlayerMark(p, "@@mou__zhiji", #mark > 0 and mark or 0)
@@ -757,7 +757,7 @@ local mou__zhiji = fk.CreateTriggerSkill{
 local mou__zhiji_prohibit = fk.CreateProhibitSkill{
   name = "#mou__zhiji_prohibit",
   is_prohibited = function(self, from, to)
-    local mark = U.getMark(from, "@@mou__zhiji")
+    local mark = from:getTableMark("@@mou__zhiji")
     return #mark > 0 and from ~= to and not table.contains(mark, to.id)
   end,
 }

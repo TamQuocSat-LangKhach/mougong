@@ -90,7 +90,7 @@ local mou__xuanhuo_delay = fk.CreateTriggerSkill{
   can_trigger = function(self, event, target, player, data)
     if player:hasSkill(self) then
       local tos = {}
-      local mark = U.getMark(player, "mou__xuanhuo_count")
+      local mark = player:getTableMark("mou__xuanhuo_count")
       for _, move in ipairs(data) do
         if move.to and move.toArea == Card.PlayerHand and move.to ~= player.id then
           local to = player.room:getPlayerById(move.to)
@@ -112,7 +112,7 @@ local mou__xuanhuo_delay = fk.CreateTriggerSkill{
     for _, pid in ipairs(self.cost_data) do
       if player.dead then return end
       local to = room:getPlayerById(pid)
-      local mark = U.getMark(player, "mou__xuanhuo_count")
+      local mark = player:getTableMark("mou__xuanhuo_count")
       local count = mark[tostring(to.id)] or 0
       if not to:isKongcheng() and count < 5 then
         mark[tostring(to.id)] = count + 1
@@ -139,7 +139,7 @@ local mou__enyuan = fk.CreateTriggerSkill{
     for _, p in ipairs(room:getOtherPlayers(player)) do
       if p:getMark("@@mou__xuanhuo") > 0 then
         room:setPlayerMark(p, "@@mou__xuanhuo", 0)
-        local mark = U.getMark(player, "mou__xuanhuo_count")
+        local mark = player:getTableMark("mou__xuanhuo_count")
         local count = mark[tostring(p.id)] or 0
         if count >= 3 then
           player:broadcastSkillInvoke(self.name, 1)
