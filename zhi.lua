@@ -15,7 +15,7 @@ local mou__guose = fk.CreateActiveSkill{
   max_card_num = 1,
   target_num = 1,
   can_use = function(self, player)
-    local max_limit = table.contains({"aaa_role_mode", "aab_role_mode"}, Fk:currentRoom().room_settings.gameMode) and 4 or 2
+    local max_limit = Fk:currentRoom():isGameMode("role_mode") and 4 or 2
     return player:usedSkillTimes(self.name, Player.HistoryPhase) < max_limit
   end,
   interaction = function()
@@ -757,7 +757,7 @@ local mou__guidao = fk.CreateTriggerSkill{
     if event == fk.GameStart then
       room:setPlayerMark(player, "@daobing", math.min(8, player:getMark("@daobing")+2))
     elseif event == fk.Damaged then
-      local isRole = table.contains({"aaa_role_mode", "aab_role_mode", "vanished_dragon"}, room.settings.gameMode)
+      local isRole = room:isGameMode("role_mode")
       room:setPlayerMark(player, "@daobing", math.min(8, player:getMark("@daobing") + (isRole and 1 or 2)))
     else
       room:removePlayerMark(player, "@daobing", 2)
@@ -1805,7 +1805,7 @@ local mou__wansha = fk.CreateTriggerSkill{
     end
     if #card_data == 0 then return end
     local countLimit = upgrade and 3 or 2
-    if table.contains({"aaa_role_mode", "aab_role_mode", "vanished_dragon"}, room.settings.gameMode) then
+    if room:isGameMode("role_mode") then
       countLimit = countLimit - 1
     end
     local cardsChosen = room:askForCardsChosen(player, target, 0, countLimit, { card_data = card_data }, self.name)
@@ -1867,7 +1867,7 @@ local mou__weimu = fk.CreateTriggerSkill{
       local room = player.room
       local roundEvents = room.logic:getEventsByRule(GameEvent.Round, 2, Util.TrueFunc, 0)
       if #roundEvents == 2 then
-        local countLimit = table.contains({"aaa_role_mode", "aab_role_mode", "vanished_dragon"}, room.settings.gameMode) and 1 or 2
+        local countLimit = room:isGameMode("role_mode") and 1 or 2
         return #room.logic:getEventsByRule(GameEvent.UseCard, 3, function (e)
           if e.id > roundEvents[1].id then return false end
           local use = e.data[1]

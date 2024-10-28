@@ -900,7 +900,7 @@ local mouWuShengBuff = fk.CreateTriggerSkill{
       room:setPlayerMark(to, "@mou__wusheng-phase", type(usedTimes) == "string" and 1 or usedTimes + 1)
     end
 
-    local drawNum = table.contains({"aaa_role_mode", "aab_role_mode", "vanished_dragon"}, room.settings.gameMode) and 2 or 1
+    local drawNum = room:isGameMode("role_mode") and 2 or 1
     player:drawCards(drawNum, "mou__wusheng")
   end,
 }
@@ -1029,7 +1029,7 @@ local xianzhen = fk.CreateActiveSkill{
       #selected == 0 and
       to_select ~= Self.id and
       not (
-        table.contains({"aaa_role_mode", "aab_role_mode", "vanished_dragon"}, Fk:currentRoom().room_settings.gameMode) and
+        Fk:currentRoom():isGameMode("role_mode") and
         Fk:currentRoom():getPlayerById(to_select).hp >= Self.hp
       )
   end,
