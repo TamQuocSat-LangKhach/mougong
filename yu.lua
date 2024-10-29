@@ -1082,7 +1082,7 @@ local moulianying = fk.CreateTriggerSkill{
 
     sum = math.min(sum, 5)
     local ids = room:getNCards(sum)
-    U.askForDistribution(player, ids, nil, self.name, sum, sum, nil, ids)
+    room:askForYiji(player, ids, nil, self.name, sum, sum, nil, ids)
   end,
 }
 Fk:loadTranslationTable{

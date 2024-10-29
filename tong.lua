@@ -1434,7 +1434,7 @@ local qingjian = fk.CreateTriggerSkill{
       player:addToPile("mou__qingjian", toPut, true, self.name)
     else
       local num = #player:getPile("mou__qingjian")
-      U.askForDistribution(player, player:getPile("mou__qingjian"), nil, self.name, num, num, nil, "mou__qingjian")
+      room:askForYiji(player, player:getPile("mou__qingjian"), nil, self.name, num, num, nil, "mou__qingjian")
     end
   end,
 }
