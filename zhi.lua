@@ -796,7 +796,7 @@ local mou__huangtian = fk.CreateTriggerSkill{
     local room = player.room
     if event == fk.TurnStart then
       local spell = U.prepareDeriveCards(room, peace_spell, "huangtian_spell")[1]
-      U.moveCardIntoEquip(room, player, spell, self.name, true, player)
+      room:moveCardIntoEquip(player, spell, self.name, true, player)
     else
       local n = math.min(2, 8-player:getMark("@daobing"), 4-player:getMark("mou__huangtian-round"))
       room:addPlayerMark(player, "@daobing", n)

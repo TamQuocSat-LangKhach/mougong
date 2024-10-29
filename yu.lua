@@ -677,7 +677,7 @@ local mou__qicai = fk.CreateActiveSkill{
         table.insert(mark, Fk:getCardById(dat.cards[1]).trueName)
         room:setPlayerMark(player, "@$mou__qicai", mark)
       end
-      U.moveCardIntoEquip(room, target, dat.cards, self.name)
+      room:moveCardIntoEquip(target, dat.cards, self.name)
       room:setPlayerMark(target, "@mou__qicai_target", 3)
       room:setPlayerMark(target, "mou__qicai_source", effect.from)
     end
