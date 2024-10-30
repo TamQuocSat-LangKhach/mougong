@@ -1105,7 +1105,7 @@ local moufangzhu = fk.CreateActiveSkill{
     return
       player:usedSkillTimes(self.name, Player.HistoryPhase) == 0 and
       player:getMark("@mou__xingshang_song") > 0 and
-      player:hasSkill(mouxingshang.name, true)
+      player:hasSkill(mouxingshang, true)
   end,
   card_filter = Util.FalseFunc,
   target_filter = function(self, to_select, selected, selected_cards)

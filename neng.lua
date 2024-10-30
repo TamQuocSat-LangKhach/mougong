@@ -571,22 +571,22 @@ local mou__zaiqi = fk.CreateTriggerSkill{
       local x = player:getMark("skill_charge")
       local tos = room:askForChoosePlayers(player, table.map(room.alive_players, Util.IdMapper), 1, x, "#mou__zaiqi-choose:::"..x, self.name, true)
       if #tos > 0 then
-        self.cost_data = tos
+        room:sortPlayersByAction(tos)
+        self.cost_data = {tos = tos}
         return true
       end
     else
+      self.cost_data = nil
       return true
     end
   end,
   on_use = function(self, event, target, player, data)
     local room = player.room
     if event == fk.EventPhaseEnd then
-      local tos = self.cost_data
+      local tos = table.map(self.cost_data.tos, Util.Id2PlayerMapper)
       U.skillCharged(player, -#tos)
-      room:sortPlayersByAction(tos)
-      for _, pid in ipairs(tos) do
+      for _, p in ipairs(tos) do
         if player.dead then break end
-        local p = room:getPlayerById(pid)
         if not p.dead then
           if not p:isNude() and #room:askForDiscard(p, 1, 1, true, self.name, true, ".", "#mou__zaiqi-discard:"..player.id) > 0 then
             if not player.dead and player:isWounded() then

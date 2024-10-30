@@ -361,7 +361,7 @@ local lueying_charge = fk.CreateTriggerSkill{
   events = {fk.TargetSpecified},
   mute = true,
   can_trigger = function(self, event, target, player, data)
-    return player:hasSkill(lueying.name) and target == player and data.card.trueName == "slash" and player:usedSkillTimes(self.name) < 2
+    return player:hasSkill(lueying) and target == player and data.card.trueName == "slash" and player:usedSkillTimes(self.name) < 2
   end,
   on_cost = function() return true end,
   on_use = function(self, event, target, player, data)
@@ -410,7 +410,7 @@ local yingwu_charge = fk.CreateTriggerSkill{
   events = {fk.TargetSpecified},
   mute = true,
   can_trigger = function(self, event, target, player, data)
-    return player:hasSkill(yingwu.name) and target == player and data.card:isCommonTrick() and not data.card.is_damage_card and
+    return player:hasSkill(yingwu) and target == player and data.card:isCommonTrick() and not data.card.is_damage_card and
       player:usedSkillTimes(self.name) < 2
   end,
   on_cost = function() return true end,
