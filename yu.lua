@@ -814,7 +814,7 @@ local mou__mingren = fk.CreateTriggerSkill{
     if event == fk.GameStart then
       player:drawCards(2, self.name)
       if not player:isKongcheng() then
-        local cids = room:askForCard(player, 1, 1, false, self.name, true, nil, "#mou__mingren-put")
+        local cids = room:askForCard(player, 1, 1, false, self.name, false, nil, "#mou__mingren-put")
         if #cids > 0 then
           player:addToPile("mou__duty", cids[1], true, self.name)
         end
