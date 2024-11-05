@@ -1084,17 +1084,16 @@ local moufangzhu = fk.CreateActiveSkill{
     }
     local choices = {}
     for i = 1, math.min(Self:getMark("@mou__xingshang_song"), 3) do
-      local mode = Fk:currentRoom().room_settings.gameMode
       if i == 1 then
         table.insert(choices, "mou__fangzhu_only_basic")
       elseif i == 2 then
         table.insert(choices, "mou__fangzhu_only_trick")
-        if not table.contains({"m_1v2_mode", "brawl_mode"}, mode) then
+        if not Fk:currentRoom():isGameMode("1v2_mode") then
           table.insert(choices, "mou__fangzhu_nullify_skill")
         end
         table.insert(choices, "mou__fangzhu_disresponsable")
       else
-        if not table.contains({"m_1v2_mode", "brawl_mode"}, mode) then
+        if not Fk:currentRoom():isGameMode("1v2_mode") then
           table.insertTable(choices, { "mou__fangzhu_only_equip", "mou__fangzhu_turn_over" })
         end
       end

@@ -625,7 +625,7 @@ local mou__qicai_select = fk.CreateActiveSkill{
   card_filter = function(self, to_select, selected)
     if #selected ~= 0 then return false end
     local card = Fk:getCardById(to_select)
-    if table.contains({"m_1v2_mode", "brawl_mode"}, Fk:currentRoom().room_settings.gameMode)
+    if Fk:currentRoom():isGameMode("1v2_mode")
     and (card.sub_type ~= Card.SubtypeArmor or table.contains(Self:getTableMark("@$mou__qicai"), card.trueName)) then
       return false
     end
