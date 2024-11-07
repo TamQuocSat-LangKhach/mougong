@@ -1776,7 +1776,7 @@ local mou__wansha = fk.CreateTriggerSkill{
   anim_type = "control",
   events = {fk.EnterDying},
   can_trigger = function(self, event, target, player, data)
-    if player:hasSkill(self) then
+    if player:hasSkill(self) and player:usedSkillTimes(self.name, Player.HistoryRound) == 0 then
       if player:getMark("@@mou__wansha_upgrade") == 0 then
         return not target:isKongcheng()
       else
@@ -1804,10 +1804,7 @@ local mou__wansha = fk.CreateTriggerSkill{
       table.insert(card_data, { "$Hand", target:getCardIds(Player.Hand) })
     end
     if #card_data == 0 then return end
-    local countLimit = upgrade and 3 or 2
-    if room:isGameMode("role_mode") then
-      countLimit = countLimit - 1
-    end
+    local countLimit = 2
     local cardsChosen = room:askForCardsChosen(player, target, 0, countLimit, { card_data = card_data }, self.name)
     local choice = room:askForChoice(target, {"#mou__wansha_give", "#mou__wansha_throw"}, self.name, "#mou__wansha-choice:"..player.id)
     if choice == "#mou__wansha_give" then
@@ -1825,12 +1822,10 @@ local mou__wansha = fk.CreateTriggerSkill{
     end
   end,
 
-  refresh_events = {fk.EventLoseSkill},
-  can_refresh = function (self, event, target, player, data)
-    return target == player and data == self and player:getMark("@@mou__wansha_upgrade") > 0
-  end,
-  on_refresh = function (self, event, target, player, data)
-    player.room:setPlayerMark(player, "@@mou__wansha_upgrade", 0)
+  on_lose = function(self, player)
+    if player:getMark("@@mou__wansha_upgrade") > 0 then
+      player.room:setPlayerMark(player, "@@mou__wansha_upgrade", 0)
+    end
   end,
 }
 
@@ -1864,15 +1859,15 @@ local mou__weimu = fk.CreateTriggerSkill{
     if event == fk.TargetConfirming then
       return target == player and data.card.type == Card.TypeTrick and data.card.color == Card.Black
     elseif player:getMark("@@mou__weimu_upgrade") > 0 then
+      -- maybe 需要改成宝宝标记
       local room = player.room
       local roundEvents = room.logic:getEventsByRule(GameEvent.Round, 2, Util.TrueFunc, 0)
       if #roundEvents == 2 then
-        local countLimit = room:isGameMode("role_mode") and 1 or 2
         return #room.logic:getEventsByRule(GameEvent.UseCard, 3, function (e)
           if e.id > roundEvents[1].id then return false end
           local use = e.data[1]
           return use.from ~= player.id and table.contains(TargetGroup:getRealTargets(use.tos), player.id)
-        end, roundEvents[2].id) <= countLimit
+        end, roundEvents[2].id) <= 1
       end
     end
   end,
@@ -1889,12 +1884,10 @@ local mou__weimu = fk.CreateTriggerSkill{
     end
   end,
 
-  refresh_events = {fk.EventLoseSkill},
-  can_refresh = function (self, event, target, player, data)
-    return target == player and data == self and player:getMark("@@mou__weimu_upgrade") > 0
-  end,
-  on_refresh = function (self, event, target, player, data)
-    player.room:setPlayerMark(player, "@@mou__weimu_upgrade", 0)
+  on_lose = function(self, player)
+    if player:getMark("@@mou__weimu_upgrade") > 0 then
+      player.room:setPlayerMark(player, "@@mou__weimu_upgrade", 0)
+    end
   end,
 }
 
@@ -1917,7 +1910,9 @@ local mou__luanwu = fk.CreateActiveSkill{
     room:doIndicate(player.id, table.map(targets, Util.IdMapper))
     for _, target in ipairs(targets) do
       if not target.dead then
-        local other_players = table.filter(room:getOtherPlayers(target, false), function(p) return not p:isRemoved() end)
+        local other_players = table.filter(room:getOtherPlayers(target, false), function(p)
+          return not p:isRemoved() and p ~= player
+        end)
         local luanwu_targets = table.map(table.filter(other_players, function(p2)
           return table.every(other_players, function(p1)
             return target:distanceTo(p1) >= target:distanceTo(p2)
@@ -1970,8 +1965,9 @@ Fk:loadTranslationTable{
   ["~mou__jiaxu"] = "踽踽黄泉，与吾行事又有何异？",
 
   ["mou__wansha"] = "完杀",
-  [":mou__wansha"] = "①你的回合内，若有角色处于濒死状态，则不处于濒死状态的其他角色不能使用【桃】。②一名角色进入濒死状态时，你可以观看其手牌并秘密选择其中的0~1张牌（若不为身份模式，改为0~2），然后令其选择一项：1.由你将被选择的牌分配给除其以外的角色；2.弃置所有未被选择的牌。"..
-  "<br><b>二级</b>：“观看其手牌并选择其中的0~1张牌（不为身份模式改为0~2）”修改为“观看其手牌并选择其区域内的0~2张牌（不为身份模式改为0~3）”。",
+  [":mou__wansha"] = "①你的回合内，若有角色处于濒死状态，则不处于濒死状态的其他角色不能使用【桃】。"..
+  "<br>②每轮限一次，一名角色进入濒死状态时，你可以观看其手牌并秘密选择其中的0~2张牌，然后令其选择一项：1.由你将被选择的牌分配给除其以外的角色；2.弃置所有未被选择的牌。"..
+  "<br><b>二级</b>：“选择其手牌”修改为“选择其区域内牌”。",
   ["@@mou__wansha_upgrade"] = "完杀二级",
   ["#mou__wansha-invoke"] = "完杀：你可以观看 %src 手牌并选牌，令其选择让你分配之或弃置其余牌",
   ["#mou__wansha_give"] = "令其将选择的牌分配",
@@ -1980,11 +1976,11 @@ Fk:loadTranslationTable{
 
   ["mou__weimu"] = "帷幕",
   [":mou__weimu"] = "锁定技，当你成为黑色锦囊牌的目标时，取消之。"..
-  "<br><b>二级</b>：增加内容：每轮开始时，若你上一轮成为其他角色使用牌的目标的次数不大于1次（若不为身份模式改为2次），则你从弃牌堆随机获得一张黑色锦囊牌或者防具牌。",
+  "<br><b>二级</b>：增加内容：每轮开始时，若你上一轮成为其他角色使用牌的目标的次数不大于1次，则你从弃牌堆随机获得一张黑色锦囊牌或者防具牌。",
   ["@@mou__weimu_upgrade"] = "帷幕二级",
 
   ["mou__luanwu"] = "乱武",
-  [":mou__luanwu"] = "限定技，①限定技，出牌阶段，你可以令所有其他角色依次选择一项：1.对距离最近的另一名角色使用一张【杀】；2.失去1点体力。②每有一名角色因此失去体力时，你可以升级“完杀”或者“帷幕”（每个技能各限升级一次）。",
+  [":mou__luanwu"] = "限定技，①限定技，出牌阶段，你可以令所有其他角色依次选择一项：1.对距离最近的另一名其他角色使用一张【杀】；2.失去1点体力。②每有一名角色因此失去体力时，你可以升级“完杀”或者“帷幕”（每个技能各限升级一次）。",
   ["#mou__luanwu"] = "令所有其他角色选择对最近角色出杀或掉血，若掉血你升级技能",
   ["#mou__luanwu-choice"] = "乱武：你可以升级“完杀”或者“帷幕”！",
   ["#mou__luanwu_delay"] = "乱武",
