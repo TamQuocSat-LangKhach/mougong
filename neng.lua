@@ -34,7 +34,7 @@ local mou__jieyin = fk.CreateTriggerSkill{
     room:notifySkillInvoked(player, self.name)
     if event == fk.GameStart then
       player:broadcastSkillInvoke(self.name, 1)
-      local targets = table.map(room:getOtherPlayers(player, false), function(p) return p.id end)
+      local targets = table.map(room:getOtherPlayers(player, false), Util.IdMapper)
       local tos = room:askForChoosePlayers(player, targets, 1, 1, "#mou__jieyin-choose", self.name, false)
       if #tos > 0 then
         local to = room:getPlayerById(tos[1])

@@ -627,8 +627,7 @@ local mou__qiaobian = fk.CreateTriggerSkill{
     data.to > Player.Start and data.to < Player.Discard
   end,
   on_cost = function(self, event, target, player, data)
-    local phase_name_table = { [3] = "phase_judge", [4] = "phase_draw", [5] = "phase_play", }
-    return player.room:askForSkillInvoke(player, self.name, nil, "#mou__qiaobian-invoke:::" .. phase_name_table[data.to])
+    return player.room:askForSkillInvoke(player, self.name, nil, "#mou__qiaobian-invoke:::" .. Util.PhaseStrMapper(data.to))
   end,
   on_use = function(self, event, target, player, data)
     local room = player.room
