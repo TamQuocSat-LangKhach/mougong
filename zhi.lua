@@ -1612,7 +1612,7 @@ local mouquhu = fk.CreateActiveSkill{
       local result = req:getResult(p)
       if result ~= "" then
         if type(result) == "table" then
-          quhuCards = json.decode(result.card).subcards
+          quhuCards = result.card.subcards
         else
           quhuCards = {result}
         end
