@@ -1528,17 +1528,33 @@ local mingzhe = fk.CreateTriggerSkill{
   end,
   on_use = function(self, event, target, player, data)
     local room = player.room
-    local tos = room:askForChoosePlayers(player, table.map(room.alive_players, Util.IdMapper), 1, 1, "#mou__mingzhe-choose", self.name, false)
+    local num = 0
+    for _, move in ipairs(data) do
+      if move.from == player.id then
+        for _, info in ipairs(move.moveInfo) do
+          if info.fromArea == Player.Hand or info.fromArea == Player.Equip then
+            if Fk:getCardById(info.cardId).type ~= Card.TypeBasic then
+              num = num + 1
+            end
+          end
+        end
+      end
+    end
+    local tos = room:askForChoosePlayers(player, table.map(room.alive_players, Util.IdMapper), 1, 1,
+    "#mou__mingzhe-choose:::"..num, self.name, false)
     local to = room:getPlayerById(tos[1])
     U.skillCharged(to, 1)
+    if num > 0 then
+      to:drawCards(num, self.name)
+    end
   end,
 }
 zhugejin:addSkill(mingzhe)
 
 Fk:loadTranslationTable{
   ["mou__mingzhe"] = "明哲",
-  [":mou__mingzhe"] = "锁定技，每轮限三次。当你于回合外失去牌时，你选择一名角色，若其有“蓄力”技，令其获得1点“蓄力”点",
-  ["#mou__mingzhe-choose"] = "明哲：选择一名角色，若其有“蓄力”技，令其获得1点“蓄力”",
+  [":mou__mingzhe"] = "锁定技，每轮限三次。当你于回合外失去牌时，你选择一名角色，若其有“蓄力”技，令其获得1点“蓄力”点，然后其摸等同于你失去非基本牌数量的牌",
+  ["#mou__mingzhe-choose"] = "明哲：选择一名角色，令其获得1点“蓄力”，摸%arg张牌",
   ["$mou__mingzhe1"] = "事事不求成功，但求尽善尽全。",
   ["$mou__mingzhe2"] = "明可查冒进之失，哲以避险躁之性。",
 }
