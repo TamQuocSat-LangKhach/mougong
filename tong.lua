@@ -18,12 +18,28 @@ local mou__jiang = fk.CreateViewAsSkill{
     card.skillName = self.name
     return card
   end,
+  times = function (self)
+    if Self.phase == Player.Play then
+      local X = 1
+      if Self:usedSkillTimes("mou__zhiba", Player.HistoryGame) > 0 then
+        local num1 = 0
+        for _, p in ipairs(Fk:currentRoom().alive_players) do
+          if p.kingdom == "wu" then
+            num1 = num1 + 1
+          end
+        end
+        X = num1
+      end
+      return math.max(0, X - Self:usedSkillTimes(self.name, Player.HistoryPhase))
+    end
+    return -1
+  end,
   enabled_at_play = function(self, player)
     local X = 1
     if player:usedSkillTimes("mou__zhiba", Player.HistoryGame) > 0 then
       local num1 = 0
       for _, p in ipairs(Fk:currentRoom().alive_players) do
-        if p.kingdom == "wu" then 
+        if p.kingdom == "wu" then
           num1 = num1 + 1
         end
       end
@@ -149,8 +165,8 @@ Fk:loadTranslationTable{
   [":mou__hunzi"] = "觉醒技，当你脱离濒死状态时，你减1点体力上限，获得1点护甲，摸三张牌，然后获得〖英姿〗和〖英魂〗。",
   ["mou__zhiba"] = "制霸",
   [":mou__zhiba"] = "主公技，限定技，当你进入濒死状态时，你可以回复X点体力（X为吴势力角色数-1）"..
-  "并将〖激昂〗描述中的“出牌阶段限一次”改为“出牌阶段限X次（X为吴势力角色数）”，"..
-  "然后其他吴势力角色依次受到1点无伤害来源的伤害（有角色因此死亡后，你摸三张牌）。",
+  "并修改〖激昂〗（将“出牌阶段限一次”改为“出牌阶段限X次（X为吴势力角色数）”），"..
+  "然后其他吴势力角色依次{受到1点无伤害来源的伤害，若其死亡，你摸三张牌}。",
 
   ["$mou__jiang1"] = "义武奋扬，荡尽犯我之寇！",
   ["$mou__jiang2"] = "锦绣江东，岂容小丑横行！",
@@ -179,6 +195,9 @@ local mou__tianxiang = fk.CreateActiveSkill{
     return #selected == 0 and Self.id ~= to_select and #selected_cards == 1
     and Fk:currentRoom():getPlayerById(to_select):getMark("@mou__tianxiang") == 0
   end,
+  times = function(self)
+    return Self.phase == Player.Play and 3 - Self:usedSkillTimes(self.name, Player.HistoryPhase) or -1
+  end,
   can_use = function(self, player)
     return player:usedSkillTimes(self.name, Player.HistoryPhase) < 3
   end,
@@ -199,7 +218,7 @@ local mou__tianxiang_trigger = fk.CreateTriggerSkill{
   mute = true,
   main_skill = mou__tianxiang,
   can_trigger = function(self, event, target, player, data)
-    if player:hasSkill(self) and target == player
+    if player:hasSkill(mou__tianxiang) and target == player
     and table.find(player.room.alive_players, function(p) return p :getMark("@mou__tianxiang") ~= 0 end) then
       return event == fk.DamageInflicted or player.phase == Player.Start
     end
@@ -260,7 +279,6 @@ local mou__hongyan = fk.CreateFilterSkill{
     return Fk:cloneCard(to_select.name, Card.Heart, to_select.number)
   end,
 }
-
 local mou__hongyan_trigger = fk.CreateTriggerSkill {
   name = "#mou__hongyan_trigger",
   events = {fk.AskForRetrial},
@@ -290,7 +308,6 @@ local mou__hongyan_trigger = fk.CreateTriggerSkill {
     }
   end,
 }
-
 mou__hongyan:addRelatedSkill(mou__hongyan_trigger)
 mou__xiaoqiao:addSkill(mou__hongyan)
 Fk:loadTranslationTable{
@@ -666,6 +683,9 @@ local mou__yanyu = fk.CreateActiveSkill{
   prompt = "#mou__yanyu-active",
   card_num = 1,
   target_num = 0,
+  times = function(self)
+    return Self.phase == Player.Play and 2 - Self:usedSkillTimes(self.name, Player.HistoryPhase) or -1
+  end,
   can_use = function(self, player)
     return player:usedSkillTimes(self.name, Player.HistoryPhase) < 2
   end,

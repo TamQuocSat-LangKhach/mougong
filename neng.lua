@@ -123,6 +123,7 @@ local mou__jieyin = fk.CreateTriggerSkill{
       })
     end
     room:changeMaxHp(player, -1)
+    room:invalidateSkill(player, self.name)
   end,
 
   refresh_events = {fk.BuryVictim},
@@ -248,7 +249,7 @@ Fk:loadTranslationTable{
   ["#mou__sunshangxiang"] = "骄豪明俏",
   ["illustrator:mou__sunshangxiang"] = "暗金",
   ["mou__jieyin"] = "结姻",
-  [":mou__jieyin"] = "游戏开始时，你选择一名其他角色令其获得“助”。"..
+  [":mou__jieyin"] = "使命技，游戏开始时，你选择一名其他角色令其获得“助”。"..
   "出牌阶段开始时，有“助”的角色须选择一项：1. 若其有手牌，交给你两张手牌（若其手牌不足两张则交给你所有手牌），然后其获得一点“护甲”；"..
   "2. 令你移动或移除助标记（若其不是第一次获得“助”标记，则你只能移除“助”标记）。<br>\
   <strong>失败</strong>：当“助”标记被移除时，你回复1点体力并获得你武将牌上所有“妆”牌，你将势力修改为“吴”，减1点体力上限。",
@@ -410,6 +411,7 @@ local mou__yangwei = fk.CreateActiveSkill{
     player:drawCards(2, self.name)
     room:setPlayerMark(player, "@@mou__yangwei-phase", 1)
     room:setPlayerMark(player, "mou__yangwei_used", 1)
+    room:invalidateSkill(player, self.name)
   end,
 }
 local mou__yangwei_targetmod = fk.CreateTargetModSkill{
@@ -467,6 +469,7 @@ local mou__yangwei_trigger = fk.CreateTriggerSkill{
       room:setPlayerMark(player, "mou__yangwei_removed-turn", 1)
     else
       room:setPlayerMark(player, "mou__yangwei_used", 0)
+      room:validateSkill(player, "mou__yangwei")
     end
   end,
 }
@@ -475,12 +478,12 @@ mou__huaxiong:addSkill(mou__yangwei)
 Fk:loadTranslationTable{
   ["mou__huaxiong"] = "谋华雄",
   ["#mou__huaxiong"] = "跋扈雄狮",
-  
+
   ["mou__yaowu"] = "耀武",
   [":mou__yaowu"] = "锁定技，当你受到【杀】造成的伤害时，若此【杀】：为红色，伤害来源选择回复1点体力或摸一张牌；不为红色，你摸一张牌。",
-
   ["mou__yangwei"] = "扬威",
-  [":mou__yangwei"] = "出牌阶段限一次，你可以摸两张牌且本阶段获得“威”标记，然后此技能失效直到下个回合的结束阶段。<br><em>“威”标记效果：使用【杀】的次数上限+1、使用【杀】无距离限制且无视防具牌。</em>",
+  [":mou__yangwei"] = "出牌阶段限一次，你可以摸两张牌且本阶段获得“威”标记，然后此技能失效直到下个回合的结束阶段。<br>"..
+  "<em>“威”标记效果：使用【杀】的次数上限+1、使用【杀】无距离限制且无视防具牌。</em>",
   ["@@mou__yangwei-phase"] = "威",
   ["#mou__yangwei_trigger"] = "扬威",
 

@@ -14,6 +14,13 @@ local mou__guose = fk.CreateActiveSkill{
   min_card_num = 0,
   max_card_num = 1,
   target_num = 1,
+  times = function (self)
+    if Self.phase == Player.Play then
+      local max_limit = Fk:currentRoom():isGameMode("role_mode") and 4 or 2
+      return max_limit - Self:usedSkillTimes(self.name, Player.HistoryPhase)
+    end
+    return -1
+  end,
   can_use = function(self, player)
     local max_limit = Fk:currentRoom():isGameMode("role_mode") and 4 or 2
     return player:usedSkillTimes(self.name, Player.HistoryPhase) < max_limit
@@ -1227,7 +1234,7 @@ local mou__huoji = fk.CreateActiveSkill{
   target_num = 1,
   mute = true,
   can_use = function(self, player)
-    return player:usedSkillTimes(self.name, Player.HistoryPhase) == 0 and not player:getQuestSkillState(self.name)
+    return player:usedSkillTimes(self.name, Player.HistoryPhase) == 0
   end,
   card_filter = Util.FalseFunc,
   target_filter = function(self, to_select, selected, selected_cards)
@@ -1300,35 +1307,21 @@ local mou__huoji_trigger = fk.CreateTriggerSkill{
       player:broadcastSkillInvoke("mou__huoji", 3)
       room:notifySkillInvoked(player, "mou__huoji", "negative")
       room:updateQuestSkillState(player, "mou__huoji", true)
-    end
-  end,
-
-  refresh_events = {fk.EventAcquireSkill, fk.EventLoseSkill, fk.Damage},
-  can_refresh = function (self, event, target, player, data)
-    if event == fk.Damage then
-      return target == player and player:hasSkill(mou__huoji) and not player:getQuestSkillState("mou__huoji")
-      and data.damageType == fk.FireDamage
-    else
-      return target == player and data == mou__huoji and
-      (event == fk.EventLoseSkill or not player:getQuestSkillState("mou__huoji"))
-    end
-  end,
-  on_refresh = function (self, event, target, player, data)
-    local room = player.room
-    if event == fk.Damage then
-      room:addPlayerMark(player, "@mou__huoji", data.damage)
-    elseif event == fk.EventAcquireSkill then
-      local n = 0
-      room.logic:getActualDamageEvents(1, function(e)
-        local damage = e.data[1]
-        if damage and damage.from == player and damage.damageType == fk.FireDamage then
-          n = n + damage.damage
-        end
-      end, Player.HistoryGame)
-      room:setPlayerMark(player, "@mou__huoji", n)
-    else
       room:setPlayerMark(player, "@mou__huoji", 0)
     end
+    room:invalidateSkill(player, "mou__huoji")
+  end,
+
+  refresh_events = {fk.Damage},
+  can_refresh = function (self, event, target, player, data)
+    return target == player and player:hasSkill(mou__huoji) and not player:getQuestSkillState("mou__huoji") and data.damageType == fk.FireDamage
+  end,
+  on_refresh = function (self, event, target, player, data)
+    player.room:addPlayerMark(player, "@mou__huoji", data.damage)
+  end,
+
+  on_lose = function(self, player)
+    player.room:setPlayerMark(player, "@mou__huoji", 0)
   end,
 }
 local mou__kanpo = fk.CreateTriggerSkill{
