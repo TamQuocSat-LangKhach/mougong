@@ -1468,4 +1468,207 @@ Fk:loadTranslationTable{
 jiefan:addRelatedSkill(jiefanResume)
 handang:addSkill(jiefan)
 
+local guojia = General(extension, "mou__guojia", "wei", 3)
+
+Fk:loadTranslationTable{
+  ["mou__guojia"] = "谋郭嘉",
+  ["#mou__guojia"] = "奉己佐君",
+  ["~mou__guojia"] = "蒙天所召，嘉先去矣，咳咳咳……",
+}
+
+local tianduViewAs = fk.CreateViewAsSkill{
+  name = "mou__tiandu_view_as",
+  interaction = function(self)
+    local all_names = U.getAllCardNames("t")
+    local names = U.getViewAsCardNames(Self, "mou__tiandu", all_names)
+    if #names > 0 then
+      return U.CardNameBox { choices = names, all_choices = all_names, default_choice = "AskForCardsChosen" }
+    end
+  end,
+  expand_pile = function (self)
+    return { self.card_map[self.interaction.data] }
+  end,
+  card_filter = function(self, to_select, selected)
+    return to_select == self.card_map[self.interaction.data]
+  end,
+  view_as = function(self, cards)
+    if #cards > 0 then
+      local card = Fk:cloneCard(self.interaction.data)
+      card.skillName = "mou__tiandu"
+      return card
+    end
+  end,
+}
+
+local tiandu = fk.CreateTriggerSkill{
+  name = "mou__tiandu",
+  anim_type = "switch",
+  switch_skill_name = "mou__tiandu",
+  mute = true,
+  events = {fk.EventPhaseStart},
+  can_trigger = function(self, event, target, player, data)
+    return player:hasSkill(self) and player == target and player.phase == Player.Play and
+    (player:getSwitchSkillState(self.name, false) == fk.SwitchYin or player:getHandcardNum() > 1)
+  end,
+  on_cost = function(self, event, target, player, data)
+    if player:getSwitchSkillState(self.name, false) == fk.SwitchYang then
+      local cards = player.room:askForDiscard(player, 2, 2, false, self.name, true, ".", "#mou__tiandu-invoke", true)
+      if #cards > 0 then
+        self.cost_data = cards
+        return true
+      end
+    else
+      self.cost_data = {}
+      return true
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    local cards = self.cost_data
+    if #cards > 0 then
+      room:notifySkillInvoked(player, self.name)
+      player:broadcastSkillInvoke(self.name, 1)
+      local suits = player:getTableMark("@[suits]mou__tiandu")
+      local updata_mark = false
+      for _, id in ipairs(cards) do
+        local suit = Fk:getCardById(id).suit
+        if suit ~= Card.NoSuit and table.insertIfNeed(suits, suit) then
+          updata_mark = true
+        end
+      end
+      if updata_mark then
+        room:setPlayerMark(player, "@[suits]mou__tiandu", suits)
+      end
+      room:throwCard(cards, self.name, player, player)
+      if player.dead then return false end
+      local cardMap = player:getMark("mou__tiandu_cardmap")
+      if type(cardMap) ~= "table" then
+        cardMap = {}
+        local tricks = U.getUniversalCards(room, "t")
+        for _, id in ipairs(tricks) do
+          cardMap[Fk:getCardById(id).name] = id
+        end
+        room:setPlayerMark(player, "mou__tiandu_cardmap", cardMap)
+      end
+      local _, dat = room:askForUseViewAsSkill(player, "mou__tiandu_view_as", "#mou__tiandu-viewas", true, {card_map = cardMap})
+      if dat then
+        local card = Fk:cloneCard(dat.interaction)
+        card.skillName = self.name
+        room:useCard{
+          card = card,
+          from = player.id,
+          tos = table.map(dat.targets, function(p) return {p} end),
+          extraUse = true,
+        }
+      end
+    else
+      room:notifySkillInvoked(player, self.name)
+      player:broadcastSkillInvoke(self.name, 2)
+      local suits = player:getTableMark("@[suits]mou__tiandu")
+      local judge_pattern = table.concat(table.map(suits, function (suit)
+        return U.ConvertSuit(suit, "int", "str")
+      end), ",")
+      local judge = {
+        who = player,
+        reason = self.name,
+        pattern = ".|.|".. judge_pattern,
+      }
+      room:judge(judge)
+      if table.contains(suits, judge.card.suit) and not player.dead then
+        room:damage{
+          to = player,
+          damage = 1,
+          skillName = self.name,
+        }
+      end
+    end
+  end,
+
+  on_lose = function (self, player)
+    player.room:setPlayerMark(player, "@[suits]mou__tiandu", 0)
+  end,
+}
+
+local tianduDelay = fk.CreateTriggerSkill{
+  name = "#mou__tiandu_delay",
+  events = {fk.FinishJudge},
+  mute = true,
+  can_trigger = function(self, event, target, player, data)
+    return target == player and data.reason == tiandu.name and player.room:getCardArea(data.card.id) == Card.Processing
+  end,
+  on_cost = Util.TrueFunc,
+  on_use = function(self, event, target, player, data)
+    player.room:obtainCard(player.id, data.card, true)
+  end,
+}
+
+Fk:loadTranslationTable{
+  ["mou__tiandu"] = "天妒",
+  [":mou__tiandu"] = "转换技，出牌阶段开始时，阳：你可以弃置两张手牌并记录这些牌的花色，然后可以视为使用任意普通锦囊牌；"..
+  "阴：你判定，若结果为你记录过的花色，你受到1点无来源伤害。当此次判定的结果确定后，你获得判定牌。",
+  ["#mou__tiandu_delay"] = "天妒",
+  ["mou__tiandu_view_as"] = "天妒",
+
+  ["#mou__tiandu-invoke"] = "是否使用 天妒，弃置两张手牌来视为使用普通锦囊",
+  ["#mou__tiandu-viewas"] = "天妒：你可以视为使用普通锦囊",
+  ["@[suits]mou__tiandu"] = "天妒",
+
+  ["$mou__tiandu1"] = "顺应天命，即为大道所归。	",
+  ["$mou__tiandu2"] = "计高于人，为天所妒。",
+}
+
+
+Fk:addSkill(tianduViewAs)
+tiandu:addRelatedSkill(tianduDelay)
+guojia:addSkill(tiandu)
+
+local yiji = fk.CreateTriggerSkill{
+  name = "mou__yiji",
+  anim_type = "masochism",
+  events = {fk.Damaged, fk.EnterDying},
+  can_trigger = function(self, event, target, player, data)
+    if not player:hasSkill(self) or target ~= player then return false end
+    if event == fk.EnterDying then
+      local room = player.room
+      local logic = room.logic
+      local dying_event = logic:getCurrentEvent():findParent(GameEvent.Dying, true)
+      if dying_event == nil then return false end
+      local mark = player:getMark("mou__yiji-round")
+      if mark == 0 then
+        logic:getEventsOfScope(GameEvent.Dying, 1, function (e)
+          local last_dying = e.data[1]
+          if last_dying.who == player.id then
+            mark = e.id
+            room:setPlayerMark(player, "mou__yiji-round", mark)
+            return true
+          end
+          return false
+        end, Player.HistoryRound)
+      end
+      return mark == dying_event.id
+    end
+    return true
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    local x = event == fk.Damaged and 2 or 1
+    player:drawCards(x, self.name)
+    if player.dead or player:isKongcheng() then return end
+    room:askForYiji(player, player:getCardIds("h"), room:getOtherPlayers(player, false), self.name, 0, x)
+  end
+}
+
+Fk:loadTranslationTable{
+  ["mou__yiji"] = "遗计",
+  [":mou__yiji"] = "当你受到伤害后，你可以摸两张牌，然后可以将一至两张手牌交给其他角色。"..
+  "当你每轮首次进入濒死状态后，你可以摸一张牌，然后可以将一张手牌交给其他角色。",
+
+  ["$mou__yiji1"] = "此身赴黄泉，望明公见计如晤。	",
+  ["$mou__yiji2"] = "身不能征伐，此计或可襄君太平！",
+}
+
+guojia:addSkill(yiji)
+
+
+
 return extension
