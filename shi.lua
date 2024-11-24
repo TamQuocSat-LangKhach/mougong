@@ -1613,10 +1613,9 @@ Fk:loadTranslationTable{
   ["#mou__tiandu-viewas"] = "天妒：你可以视为使用普通锦囊",
   ["@[suits]mou__tiandu"] = "天妒",
 
-  ["$mou__tiandu1"] = "顺应天命，即为大道所归。	",
+  ["$mou__tiandu1"] = "顺应天命，即为大道所归。",
   ["$mou__tiandu2"] = "计高于人，为天所妒。",
 }
-
 
 Fk:addSkill(tianduViewAs)
 tiandu:addRelatedSkill(tianduDelay)
@@ -1663,7 +1662,7 @@ Fk:loadTranslationTable{
   [":mou__yiji"] = "当你受到伤害后，你可以摸两张牌，然后可以将一至两张手牌交给其他角色。"..
   "当你每轮首次进入濒死状态后，你可以摸一张牌，然后可以将一张手牌交给其他角色。",
 
-  ["$mou__yiji1"] = "此身赴黄泉，望明公见计如晤。	",
+  ["$mou__yiji1"] = "此身赴黄泉，望明公见计如晤。",
   ["$mou__yiji2"] = "身不能征伐，此计或可襄君太平！",
 }
 
