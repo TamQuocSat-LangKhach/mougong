@@ -344,12 +344,9 @@ local mouliegongFilter = fk.CreateFilterSkill{
 local mouliegongProhibit = fk.CreateProhibitSkill{
   name = "#mou__liegong_prohibit",
   prohibit_use = function(self, player, card)
-    -- FIXME: 确保是因为【杀】而出闪，并且指明好事件id
-    if Fk.currentResponsePattern ~= "jink" or card.name ~= "jink" or player:getMark("mou__liegong") == 0 then
-      return false
-    end
-    if table.contains(player:getMark("mou__liegong"), card:getSuitString(true)) then
-      return true
+    local suits = Fk:currentRoom():getBanner("mou__liegong_suits")
+    if suits then
+      return card.name == "jink" and table.contains(suits, card:getSuitString(true))
     end
   end,
 }
@@ -363,6 +360,9 @@ local mouliegong = fk.CreateTriggerSkill{
       #AimGroup:getAllTargets(data.tos) == 1 and
       player:getMark("@mouliegongRecord") ~= 0
   end,
+  on_cost = function(self, event, target, player, data)
+    return player.room:askForSkillInvoke(player, self.name, data, "#mou__liegong-invoke:"..data.to)
+  end,
   on_use = function(self, event, target, player, data)
     local room = player.room
     local logic = room.logic
@@ -370,9 +370,10 @@ local mouliegong = fk.CreateTriggerSkill{
     cardUseEvent.liegong_used = true
 
     -- 让他不能出闪
-    local to = room:getPlayerById(data.to)
     local suits = player:getMark("@mouliegongRecord")
-    room:setPlayerMark(to, self.name, suits)
+    data.extra_data = data.extra_data or {}
+    data.extra_data.mou__liegong_suits = data.extra_data.mou__liegong_suits or {}
+    data.extra_data.mou__liegong_suits[data.to] = suits
 
     -- 展示牌堆顶的牌，计算加伤数量
     if #suits > 1 then
@@ -392,13 +393,17 @@ local mouliegong = fk.CreateTriggerSkill{
     end
   end,
 
-  refresh_events = {fk.TargetConfirmed, fk.CardUsing, fk.CardUseFinished},
+  refresh_events = {fk.TargetConfirmed, fk.CardUsing, fk.CardUseFinished, fk.HandleAskForPlayCard},
   can_refresh = function(self, event, target, player, data)
-    if not (target == player and player:hasSkill(self)) then return end
     local room = player.room
     if event == fk.CardUseFinished then
-      return room.logic:getCurrentEvent().liegong_used
-    else
+      return target == player and data.extra_data and data.extra_data.mou__liegong_suits
+    elseif event == fk.HandleAskForPlayCard then
+      if data.eventData and data.eventData.to == player.id then
+        local dat = data.eventData.extra_data
+        return dat and dat.mou__liegong_suits and dat.mou__liegong_suits[player.id]
+      end
+    elseif target == player and player:hasSkill(self) then
       return data.card.suit ~= Card.NoSuit
     end
   end,
@@ -406,15 +411,23 @@ local mouliegong = fk.CreateTriggerSkill{
     local room = player.room
     if event == fk.CardUseFinished then
       room:setPlayerMark(player, "@mouliegongRecord", 0)
-      for _, p in ipairs(room:getAlivePlayers()) do
-        room:setPlayerMark(p, "mou__liegong", 0)
+    elseif event == fk.HandleAskForPlayCard then
+      if not data.afterRequest then
+        room:setBanner("mou__liegong_suits", data.eventData.extra_data.mou__liegong_suits[player.id])
+      else
+        room:setBanner("mou__liegong_suits", nil)
       end
     else
       local suit = data.card:getSuitString(true)
-      local record = type(player:getMark("@mouliegongRecord")) == "table" and player:getMark("@mouliegongRecord") or {}
-      table.insertIfNeed(record, suit)
-      room:setPlayerMark(player, "@mouliegongRecord", record)
+      local record = player:getTableMark("@mouliegongRecord")
+      if table.insertIfNeed(record, suit) then
+        room:setPlayerMark(player, "@mouliegongRecord", record)
+      end
     end
+  end,
+
+  on_lose = function (self, player, is_death)
+    player.room:setPlayerMark(player, "@mouliegongRecord", 0)
   end,
 }
 mouliegong:addRelatedSkill(mouliegongFilter)
@@ -437,6 +450,7 @@ Fk:loadTranslationTable{
   ["$mou__liegong2"] = "吾虽年迈，箭矢犹锋！",
   ["@mouliegongRecord"] = "烈弓",
   ["#mou__liegong_filter"] = "烈弓",
+  ["#mou__liegong-invoke"] = "对 %src 发动“烈弓”：其不能使用你记录花色的【闪】，且可能加伤",
 }
 
 
