@@ -485,7 +485,7 @@ local mingxuan_active = fk.CreateActiveSkill{
   min_card_num = 1,
   max_card_num = function ()
     local room = Fk:currentRoom()
-    local targetRecorded = Self:getTableMark("mingxuan_targets")
+    local targetRecorded = Self:getTableMark("@[player]mingxuan")
     return #table.filter(room.alive_players, function (p)
       return p.id ~= Self.id and not table.contains(targetRecorded, p.id)
     end)
@@ -497,7 +497,7 @@ local mingxuan_active = fk.CreateActiveSkill{
       return card.suit ~= Fk:getCardById(id).suit end)
   end,
   target_tip = function(self, to_select, selected, selected_cards, card, selectable, extra_data)
-    if to_select ~= Self.id and not table.contains(Self:getTableMark("mingxuan_targets"), to_select) then
+    if to_select ~= Self.id and not table.contains(Self:getTableMark("@[player]mingxuan"), to_select) then
       return "#mingxuan_tip"
     end
   end,
@@ -510,7 +510,7 @@ local mingxuan = fk.CreateTriggerSkill{
   frequency = Skill.Compulsory,
   can_trigger = function(self, event, target, player, data)
     if target == player and player:hasSkill(self) and player.phase == Player.Play and not player:isKongcheng() then
-      local targetRecorded = player:getTableMark("mingxuan_targets")
+      local targetRecorded = player:getTableMark("@[player]mingxuan")
       return table.find(player.room.alive_players, function(p)
         return p ~= player and not table.contains(targetRecorded, p.id)
       end)
@@ -519,7 +519,7 @@ local mingxuan = fk.CreateTriggerSkill{
   on_use = function(self, event, target, player, data)
     if player:isKongcheng() then return false end
     local room = player.room
-    local targetRecorded = player:getTableMark("mingxuan_targets")
+    local targetRecorded = player:getTableMark("@[player]mingxuan")
     local targets = table.filter(room.alive_players, function (p)
       return p ~= player and not table.contains(targetRecorded, p.id)
     end)
@@ -545,6 +545,7 @@ local mingxuan = fk.CreateTriggerSkill{
     end
     room:moveCards(table.unpack(moveInfos))
     room:sortPlayersByAction(tos)
+    local mark_change = false
     for _, id in ipairs(tos) do
       if player.dead then break end
       local to = room:getPlayerById(id)
@@ -555,6 +556,7 @@ local mingxuan = fk.CreateTriggerSkill{
           use.extraUse = true
           room:useCard(use)
           table.insertIfNeed(targetRecorded, id)
+          mark_change = true
         else
           local card = room:askForCard(to, 1, 1, true, self.name, false, ".", "#mingxuan-give:"..player.id)
           room:obtainCard(player.id, card[1], false, fk.ReasonGive)
@@ -564,13 +566,13 @@ local mingxuan = fk.CreateTriggerSkill{
         end
       end
     end
-    if not player.dead then
-      room:setPlayerMark(player, "mingxuan_targets", targetRecorded)
+    if not player.dead and mark_change then
+      room:setPlayerMark(player, "@[player]mingxuan", targetRecorded)
     end
   end,
 
   on_lose = function (self, player)
-    player.room:setPlayerMark(player, "mingxuan_targets", 0)
+    player.room:setPlayerMark(player, "@[player]mingxuan", 0)
   end,
 }
 
@@ -644,6 +646,7 @@ Fk:loadTranslationTable{
   ["#mingxuan-select"] = "暝眩：选择花色各不相同的手牌，随机交给没有被暝眩记录的角色",
   ["#mingxuan-slash"] = "暝眩：你可以对%src使用一张【杀】，或点取消则必须将一张一张牌交给该角色",
   ["#mingxuan-give"] = "暝眩：选择一张牌交给%src",
+  ["@[player]mingxuan"] = "暝眩",
 
   ["#xianchou-choose"] = "陷仇：你可选择一名角色，令其可弃置一张手牌视为对%dest使用【杀】",
   ["#xianchou-discard"] = "陷仇：你可以弃置一张手牌，视为对%dest使用【杀】，若造成伤害则摸一张牌且%src回复1点体力",
