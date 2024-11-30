@@ -1689,10 +1689,10 @@ Fk:loadTranslationTable{
   ["mou__dengfeng_slash"] = "你从牌堆中获得一张【杀】",
   ["mou__dengfeng_beishui"] = "背水：失去1点体力。",
 
-  ["$mou__tuxi1"] = "及敌未合，折其盛势，以安众心！",
-  ["$mou__tuxi2"] = "成败之机，在此一战，诸君何疑！",
-  ["$mou__dengfeng1"] = "甘、凌之流，何可阻我之攻势！",
-  ["$mou__dengfeng2"] = "擒权覆吴，今便得成所愿，众将且奋力一战！",
+  ["$mou__tuxi1"] = "成败之机，在此一战，诸君何疑！",
+  ["$mou__tuxi2"] = "及敌未合，折其盛势，以安众心！",
+  ["$mou__dengfeng1"] = "擒权覆吴，今便得成所愿，众将且奋力一战！",
+  ["$mou__dengfeng2"] = "甘、凌之流，何可阻我之攻势！",
   ["~mou__zhangliao"] = "陛下亲临问疾，臣诚惶诚恐……",
 }
 
