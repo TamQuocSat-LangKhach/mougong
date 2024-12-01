@@ -671,7 +671,7 @@ local mou__qicai = fk.CreateActiveSkill{
     local ids = table.filter(room.discard_pile, function (id)
       local card = Fk:getCardById(id)
       if
-        table.contains({"m_1v2_mode", "brawl_mode"}, room.settings.gameMode) and
+        room:isGameMode("1v2_mode") and
         (table.contains(mark, card.trueName) or card.sub_type ~= Card.SubtypeArmor)
       then
         return false
@@ -686,14 +686,25 @@ local mou__qicai = fk.CreateActiveSkill{
     room:setPlayerMark(player, "qicai_target-tmp", 0)
     room:setPlayerMark(player, "mou__qicai_discardpile", 0)
 
-    if success then
-      if table.contains({"m_1v2_mode", "brawl_mode"}, room.settings.gameMode) then
+    if success and dat then
+      if room:isGameMode("1v2_mode") then
         table.insert(mark, Fk:getCardById(dat.cards[1]).trueName)
         room:setPlayerMark(player, "@$mou__qicai", mark)
       end
       room:moveCardIntoEquip(target, dat.cards, self.name)
       room:setPlayerMark(target, "@mou__qicai_target", 3)
       room:setPlayerMark(target, "mou__qicai_source", effect.from)
+    end
+  end,
+
+  on_lose = function (self, player)
+    local room = player.room
+    room:setPlayerMark(player, "@$mou__qicai", 0)
+    for _, p in ipairs(room.alive_players) do
+      if p:getMark("mou__qicai_source") == player.id then
+        room:setPlayerMark(p, "@mou__qicai_target", 0)
+        room:setPlayerMark(p, "mou__qicai_source", 0)
+      end
     end
   end,
 }
@@ -752,17 +763,6 @@ local mou__qicai_trigger = fk.CreateTriggerSkill{
       end
     end
     room:moveCardTo(to_get, Card.PlayerHand, player, fk.ReasonGive, mou__qicai.name, nil, false, player.id)
-  end,
-
-  refresh_events = {fk.EventLoseSkill, fk.BuryVictim},
-  can_refresh = function(self, event, target, player, data)
-    if event == fk.EventLoseSkill and data ~= mou__qicai then return false end
-    return player:getMark("mou__qicai_source") == target.id
-  end,
-  on_refresh = function(self, event, target, player, data)
-    local room = player.room
-    room:setPlayerMark(player, "@mou__qicai_target", 0)
-    room:setPlayerMark(player, "mou__qicai_source", 0)
   end,
 }
 local mou__qicai_target = fk.CreateTargetModSkill{

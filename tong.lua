@@ -1208,6 +1208,13 @@ local mou__longdan = fk.CreateViewAsSkill{
       end)
     end
   end,
+
+  on_acquire = function (self, player)
+    U.skillCharged(player, 1, 3)
+  end,
+  on_lose = function (self, player)
+    U.skillCharged(player, -1, -3)
+  end,
 }
 local mou__longdan_delay = fk.CreateTriggerSkill{
   name = "#mou__longdan_delay",
@@ -1226,18 +1233,6 @@ local mou__longdan_delay = fk.CreateTriggerSkill{
       player:drawCards(1, "mou__longdan")
     else
       U.skillCharged(player, 1)
-    end
-  end,
-
-  refresh_events = {fk.EventAcquireSkill, fk.EventLoseSkill},
-  can_refresh = function(self, event, target, player, data)
-    return data == self and target == player
-  end,
-  on_refresh = function(self, event, target, player, data)
-    if event == fk.EventAcquireSkill then
-      U.skillCharged(player, 1, 3)
-    else
-      U.skillCharged(player, -1, -3)
     end
   end,
 }

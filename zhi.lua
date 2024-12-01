@@ -958,6 +958,12 @@ local mou__rende = fk.CreateActiveSkill{
       room:useCard(use)
     end
   end,
+
+  on_lose = function (self, player)
+    if player:getMark("@mou__renwang") ~= 0 then
+      player.room:setPlayerMark(player, "@mou__renwang", 0)
+    end
+  end,
 }
 local mou__rende_trigger = fk.CreateTriggerSkill{
   name = "#mou__rende_trigger",
@@ -972,14 +978,6 @@ local mou__rende_trigger = fk.CreateTriggerSkill{
     local room = player.room
     player:broadcastSkillInvoke("mou__rende")
     room:setPlayerMark(player, "@mou__renwang", math.min(8, player:getMark("@mou__renwang") + 2))
-  end,
-
-  refresh_events = {fk.EventLoseSkill},
-  can_refresh = function (self, event, target, player, data)
-    return target == player and data == mou__rende
-  end,
-  on_refresh = function (self, event, target, player, data)
-    player.room:setPlayerMark(player, "@mou__renwang", 0)
   end,
 }
 mou__rende:addRelatedSkill(mou__rende_trigger)
@@ -1391,14 +1389,9 @@ local mou__kanpo = fk.CreateTriggerSkill{
     end
   end,
 
-  refresh_events = {fk.EventLoseSkill},
-  can_refresh = function(self, event, target, player, data)
-    return player == target and data == self
-  end,
-  on_refresh = function(self, event, target, player, data)
-    local room = player.room
-    room:setPlayerMark(player, "@[private]$mou__kanpo", 0)
-    room:setPlayerMark(player, "mou__kanpo_times", 0)
+  on_lose = function (self, player)
+    player.room:setPlayerMark(player, "@[private]$mou__kanpo", 0)
+    player.room:setPlayerMark(player, "mou__kanpo_times", 0)
   end,
 }
 mou__huoji:addRelatedSkill(mou__huoji_trigger)
@@ -1487,11 +1480,7 @@ local mou__guanxing = fk.CreateTriggerSkill{
     end
   end,
 
-  refresh_events = {fk.EventLoseSkill},
-  can_refresh = function(self, event, target, player, data)
-    return player == target and data == self
-  end,
-  on_refresh = function(self, event, target, player, data)
+  on_lose = function (self, player)
     player.room:setPlayerMark(player, "mou__guanxing_times", 0)
   end,
 }
