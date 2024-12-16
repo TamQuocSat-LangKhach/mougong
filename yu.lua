@@ -411,7 +411,7 @@ local mouliegong = fk.CreateTriggerSkill{
       end
     else
       local suit = data.card:getSuitString(true)
-      local record = type(player:getMark("@mouliegongRecord")) == "table" and player:getMark("@mouliegongRecord") or {}
+      local record = player:getTableMark("@mouliegongRecord")
       table.insertIfNeed(record, suit)
       room:setPlayerMark(player, "@mouliegongRecord", record)
     end
@@ -428,11 +428,11 @@ Fk:loadTranslationTable{
   ["~mou__huangzhong"] = "弦断弓藏，将老孤亡…",
   ["mou__liegong"] = "烈弓",
   [":mou__liegong"] = "若你未装备武器，你的【杀】只能当作普通【杀】使用或打出。"
-   .. "你使用牌时或成为其他角色使用牌的目标后，若此牌的花色未被“烈弓”记录，"
-   .. "则记录此种花色。当你使用【杀】指定唯一目标后，你可以亮出牌堆顶的X张牌"
-   .. "（X为你记录的花色数-1，且至少为0），然后每有一张牌花色与“烈弓”记录的"
-   .. "花色相同，你令此【杀】伤害+1，且其不能使用“烈弓”记录花色的牌响应此"
-   .. "【杀】。若如此做，此【杀】结算结束后，清除“烈弓”记录的花色。",
+    .. "你使用牌时或成为其他角色使用牌的目标后，若此牌的花色未被“烈弓”记录，"
+    .. "则记录此种花色。当你使用【杀】指定唯一目标后，你可以亮出牌堆顶的X张牌"
+    .. "（X为你记录的花色数-1，且至少为0），然后每有一张牌花色与“烈弓”记录的"
+    .. "花色相同，你令此【杀】伤害+1，且其不能使用“烈弓”记录花色的牌响应此"
+    .. "【杀】。若如此做，此【杀】结算结束后，清除“烈弓”记录的花色。",
   ["$mou__liegong1"] = "矢贯坚石，劲冠三军！",
   ["$mou__liegong2"] = "吾虽年迈，箭矢犹锋！",
   ["@mouliegongRecord"] = "烈弓",

@@ -458,7 +458,7 @@ local mingxuan_active = fk.CreateActiveSkill{
   min_card_num = 1,
   max_card_num = function ()
     local room = Fk:currentRoom()
-    local targetRecorded = type(Self:getMark("mingxuan_targets")) == "table" and Self:getMark("mingxuan_targets") or {}
+    local targetRecorded = Self:getTableMark("mingxuan_targets")
     return #table.filter(room.alive_players, function (p)
       return p.id ~= Self.id and not table.contains(targetRecorded, p.id)
     end)
@@ -482,7 +482,7 @@ local mingxuan = fk.CreateTriggerSkill{
   on_use = function(self, event, target, player, data)
     if player:isKongcheng() then return false end
     local room = player.room
-    local targetRecorded = type(player:getMark("mingxuan_targets")) == "table" and player:getMark("mingxuan_targets") or {}
+    local targetRecorded = player:getTableMark("mingxuan_targets")
     local targets = table.filter(room.alive_players, function (p)
       return p ~= player and not table.contains(targetRecorded, p.id)
     end)

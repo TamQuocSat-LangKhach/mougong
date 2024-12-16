@@ -63,7 +63,7 @@ local mou__jieyin = fk.CreateTriggerSkill{
           room:changeShield(to, 1)
           return false
         else
-          local mark2 = type(player:getMark("mou__jieyin_break")) == "table" and player:getMark("mou__jieyin_break") or {}
+          local mark2 = player:getTableMark("mou__jieyin_break")
           if not table.contains(mark2, mark) then
             table.insert(mark2, mark)
             room:setPlayerMark(player, "mou__jieyin_break", mark2)

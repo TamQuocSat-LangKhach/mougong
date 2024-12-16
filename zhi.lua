@@ -865,9 +865,7 @@ local mou__zongshi = fk.CreateTriggerSkill{
   end,
   on_use = function(self, event, target, player, data)
     local room = player.room
-    local mark = player:getTableMark(self.name)
-    table.insert(mark, data.from.id)
-    room:setPlayerMark(player, self.name, mark)
+    room:addTableMark(player, self.name, data.from.id)
     data.from:throwAllCards("h")
   end,
 }
@@ -1723,9 +1721,6 @@ mouxunyu:addSkill(mouquhu)
 local moujieming = fk.CreateTriggerSkill{
   name = "mou__jieming",
   events = {fk.Damaged},
-  can_trigger = function(self, event, target, player, data)
-    return target == player and player:hasSkill(self)
-  end,
   on_cost = function(self, event, target, player, data)
     local room = player.room
     local tos = room:askForChoosePlayers(player, table.map(room.alive_players, Util.IdMapper), 1, 1, "#mou__jieming", self.name)
