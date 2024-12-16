@@ -123,6 +123,7 @@ local mou__jieyin = fk.CreateTriggerSkill{
       })
     end
     room:changeMaxHp(player, -1)
+    room:invalidateSkill(player, self.name)
   end,
 
   refresh_events = {fk.BuryVictim},
@@ -248,7 +249,7 @@ Fk:loadTranslationTable{
   ["#mou__sunshangxiang"] = "骄豪明俏",
   ["illustrator:mou__sunshangxiang"] = "暗金",
   ["mou__jieyin"] = "结姻",
-  [":mou__jieyin"] = "游戏开始时，你选择一名其他角色令其获得“助”。"..
+  [":mou__jieyin"] = "使命技，游戏开始时，你选择一名其他角色令其获得“助”。"..
   "出牌阶段开始时，有“助”的角色须选择一项：1. 若其有手牌，交给你两张手牌（若其手牌不足两张则交给你所有手牌），然后其获得一点“护甲”；"..
   "2. 令你移动或移除助标记（若其不是第一次获得“助”标记，则你只能移除“助”标记）。<br>\
   <strong>失败</strong>：当“助”标记被移除时，你回复1点体力并获得你武将牌上所有“妆”牌，你将势力修改为“吴”，减1点体力上限。",
@@ -410,6 +411,7 @@ local mou__yangwei = fk.CreateActiveSkill{
     player:drawCards(2, self.name)
     room:setPlayerMark(player, "@@mou__yangwei-phase", 1)
     room:setPlayerMark(player, "mou__yangwei_used", 1)
+    room:invalidateSkill(player, self.name)
   end,
 }
 local mou__yangwei_targetmod = fk.CreateTargetModSkill{
@@ -467,6 +469,7 @@ local mou__yangwei_trigger = fk.CreateTriggerSkill{
       room:setPlayerMark(player, "mou__yangwei_removed-turn", 1)
     else
       room:setPlayerMark(player, "mou__yangwei_used", 0)
+      room:validateSkill(player, "mou__yangwei")
     end
   end,
 }
@@ -475,12 +478,12 @@ mou__huaxiong:addSkill(mou__yangwei)
 Fk:loadTranslationTable{
   ["mou__huaxiong"] = "谋华雄",
   ["#mou__huaxiong"] = "跋扈雄狮",
-  
+
   ["mou__yaowu"] = "耀武",
   [":mou__yaowu"] = "锁定技，当你受到【杀】造成的伤害时，若此【杀】：为红色，伤害来源选择回复1点体力或摸一张牌；不为红色，你摸一张牌。",
-
   ["mou__yangwei"] = "扬威",
-  [":mou__yangwei"] = "出牌阶段限一次，你可以摸两张牌且本阶段获得“威”标记，然后此技能失效直到下个回合的结束阶段。<br><em>“威”标记效果：使用【杀】的次数上限+1、使用【杀】无距离限制且无视防具牌。</em>",
+  [":mou__yangwei"] = "出牌阶段限一次，你可以摸两张牌且本阶段获得“威”标记，然后此技能失效直到下个回合的结束阶段。<br>"..
+  "<em>“威”标记效果：使用【杀】的次数上限+1、使用【杀】无距离限制且无视防具牌。</em>",
   ["@@mou__yangwei-phase"] = "威",
   ["#mou__yangwei_trigger"] = "扬威",
 
@@ -1513,6 +1516,9 @@ local mingzhe = fk.CreateTriggerSkill{
   events = {fk.AfterCardsMove},
   anim_type = "support",
   frequency = Skill.Compulsory,
+  times = function (self)
+    return 3 - Self:usedSkillTimes(self.name, Player.HistoryRound)
+  end,
   can_trigger = function(self, event, target, player, data)
     if player:hasSkill(self) and player.phase == Player.NotActive and player:usedSkillTimes(self.name, Player.HistoryRound) < 3 then
       for _, move in ipairs(data) do
@@ -1528,19 +1534,166 @@ local mingzhe = fk.CreateTriggerSkill{
   end,
   on_use = function(self, event, target, player, data)
     local room = player.room
-    local tos = room:askForChoosePlayers(player, table.map(room.alive_players, Util.IdMapper), 1, 1, "#mou__mingzhe-choose", self.name, false)
+    local num, draw = 0, false
+    for _, move in ipairs(data) do
+      if move.from == player.id then
+        for _, info in ipairs(move.moveInfo) do
+          if info.fromArea == Player.Hand or info.fromArea == Player.Equip then
+            num = num + 1
+            if Fk:getCardById(info.cardId).type ~= Card.TypeBasic then
+              draw = true
+            end
+          end
+        end
+      end
+    end
+    if not draw then num = 0 end
+    local tos = room:askForChoosePlayers(player, table.map(room.alive_players, Util.IdMapper), 1, 1,
+    "#mou__mingzhe-choose:::"..num, self.name, false)
     local to = room:getPlayerById(tos[1])
     U.skillCharged(to, 1)
+    if num > 0 then
+      to:drawCards(num, self.name)
+    end
   end,
 }
 zhugejin:addSkill(mingzhe)
 
 Fk:loadTranslationTable{
   ["mou__mingzhe"] = "明哲",
-  [":mou__mingzhe"] = "锁定技，每轮限三次。当你于回合外失去牌时，你选择一名角色，若其有“蓄力”技，令其获得1点“蓄力”点",
-  ["#mou__mingzhe-choose"] = "明哲：选择一名角色，若其有“蓄力”技，令其获得1点“蓄力”",
+  [":mou__mingzhe"] = "锁定技，每轮限三次。当你于回合外失去牌时，你选择一名角色，若其有“蓄力”技，令其获得1点“蓄力”点，若其中有非基本牌，其摸与你失去牌等量的牌",
+  ["#mou__mingzhe-choose"] = "明哲：选择一名角色，令其获得1点“蓄力”，摸%arg张牌",
   ["$mou__mingzhe1"] = "事事不求成功，但求尽善尽全。",
   ["$mou__mingzhe2"] = "明可查冒进之失，哲以避险躁之性。",
+}
+
+local zhangliao = General(extension, "mou__zhangliao", "wei", 4)
+
+local tuxi = fk.CreateTriggerSkill{
+  name = "mou__tuxi",
+  anim_type = "control",
+  events = {fk.AfterCardsMove},
+  times = function (self)
+    return 3 - Self:usedSkillTimes(self.name, Player.HistoryTurn)
+  end,
+  can_trigger = function(self, event, target, player, data)
+    if player:hasSkill(self) and player:usedSkillTimes(self.name, Player.HistoryTurn) < 3 and player.phase ~= Player.NotActive then
+      local ids = {}
+      for _, move in ipairs(data) do
+        if move.to == player.id and move.toArea == Card.PlayerHand and move.skillName ~= self.name then
+          for _, info in ipairs(move.moveInfo) do
+            if table.contains(player:getCardIds("h"), info.cardId) then
+              table.insertIfNeed(ids, info.cardId)
+            end
+          end
+        end
+      end
+      ids = U.moveCardsHoldingAreaCheck(player.room, ids)
+      if #ids > 0 then
+        self.cost_data = ids
+        return true
+      end
+    end
+  end,
+  on_cost = function (self, event, target, player, data)
+    local _,ret = player.room:askForUseActiveSkill(player, "mou__tuxi_active", "#mou__tuxi", true, {optional_cards = self.cost_data})
+    if ret then
+      player.room:sortPlayersByAction(ret.targets)
+      self.cost_data = {cards = ret.cards, tos = ret.targets}
+      return true
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    local tos = table.map(self.cost_data.tos, Util.Id2PlayerMapper)
+    room:moveCardTo(self.cost_data.cards, Card.DiscardPile, nil, fk.ReasonPutIntoDiscardPile, self.name, nil, true, player.id)
+    for _, to in ipairs(tos) do
+      if player.dead then break end
+      if not to:isKongcheng() then
+        local cid = room:askForCardChosen(player, to, "h", self.name)
+        room:obtainCard(player, cid, false, fk.ReasonPrey, player.id, self.name)
+      end
+    end
+  end,
+}
+
+local tuxi_active = fk.CreateActiveSkill{
+  name = "mou__tuxi_active",
+  min_card_num = 1,
+  min_target_num = 1,
+  card_filter = function(self, to_select, selected)
+    return table.contains(self.optional_cards or {}, to_select)
+  end,
+  target_filter = function(self, to_select, selected, selected_cards)
+    local to = Fk:currentRoom():getPlayerById(to_select)
+    return #selected < #selected_cards and Self.id ~= to_select and not Fk:currentRoom():getPlayerById(to_select):isKongcheng()
+  end,
+}
+Fk:addSkill(tuxi_active)
+
+zhangliao:addSkill(tuxi)
+
+local dengfeng = fk.CreateTriggerSkill{
+  name = "mou__dengfeng",
+  anim_type = "offensive",
+  events = {fk.EventPhaseStart},
+  can_trigger = function(self, event, target, player, data)
+    return player:hasSkill(self) and target == player and player.phase == Player.Start
+  end,
+  on_cost = function (self, event, target, player, data)
+    local tos = player.room:askForChoosePlayers(player, table.map(player.room:getOtherPlayers(player, false), Util.IdMapper),
+    1, 1, "#mou__dengfeng-choose", self.name, true)
+    if #tos > 0 then
+      self.cost_data = {tos = tos}
+      return true
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    local to = room:getPlayerById(self.cost_data.tos[1])
+    local choices = {"mou__dengfeng_equip", "mou__dengfeng_slash", "mou__dengfeng_beishui"}
+    local choice = choices[2]
+    if #to:getCardIds("e") > 0 then
+      choice = room:askForChoice(player, choices, self.name)
+    end
+    if choice == "mou__dengfeng_beishui" then
+      room:loseHp(player, 1, self.name)
+    end
+    if choice ~= "mou__dengfeng_slash" and #to:getCardIds("e") > 0 then
+      local cards = room:askForCardsChosen(player, to, 1, 2, "e", self.name)
+      room:obtainCard(to, cards, true, fk.ReasonPrey, to.id, self.name)
+    end
+    if choice ~= "mou__dengfeng_equip" and not player.dead then
+      local ids = room:getCardsFromPileByRule("slash")
+      if #ids > 0 then
+        room:obtainCard(player, ids, true, fk.ReasonJustMove, player.id, self.name)
+      end
+    end
+  end,
+}
+zhangliao:addSkill(dengfeng)
+
+Fk:loadTranslationTable{
+  ["mou__zhangliao"] = "谋张辽",
+  ["#mou__zhangliao"] = "古之召虎",
+
+  ["mou__tuxi"] = "突袭",
+  [":mou__tuxi"] = "你的回合内限三次，当你不因此技能获得牌后，你可以将其中任意张牌置入弃牌堆，然后你获得至多X名其他角色各一张手牌（X为你此次以此法置入弃牌堆的牌数）。",
+  ["mou__tuxi_active"] = "突袭",
+  ["#mou__tuxi"] = "突袭：你可以将获得的牌置入弃牌堆，获得至多等量其他角色各一张牌",
+
+  ["mou__dengfeng"] = "登锋",
+  [":mou__dengfeng"] = "准备阶段，你可以选择一名其他角色并选择一项：1.选择其装备区里至多两张牌，令其获得之；2.你从牌堆中获得一张【杀】。背水：失去1点体力。",
+  ["#mou__dengfeng-choose"] = "登锋：选择一名其他角色，令其收回装备牌，或你摸一张【杀】",
+  ["mou__dengfeng_equip"] = "选择其装备区里至多两张牌令其收回",
+  ["mou__dengfeng_slash"] = "你从牌堆中获得一张【杀】",
+  ["mou__dengfeng_beishui"] = "背水：失去1点体力。",
+
+  ["$mou__tuxi1"] = "成败之机，在此一战，诸君何疑！",
+  ["$mou__tuxi2"] = "及敌未合，折其盛势，以安众心！",
+  ["$mou__dengfeng1"] = "擒权覆吴，今便得成所愿，众将且奋力一战！",
+  ["$mou__dengfeng2"] = "甘、凌之流，何可阻我之攻势！",
+  ["~mou__zhangliao"] = "陛下亲临问疾，臣诚惶诚恐……",
 }
 
 return extension

@@ -902,10 +902,9 @@ local mouxingshang = fk.CreateActiveSkill{
   card_num = 0,
   target_num = 1,
   interaction = function(self)
-    local deadPlayers = table.filter(Fk:currentRoom().players, function(p) return p.dead end)
     local choiceList = {
       "mou__xingshang_restore",
-      "mou__xingshang_draw:::" .. math.min(5, math.max(2, #deadPlayers)),
+      "mou__xingshang_draw",
       "mou__xingshang_recover",
       "mou__xingshang_memorialize",
     }
@@ -914,13 +913,15 @@ local mouxingshang = fk.CreateActiveSkill{
     if markValue > 1 then
       table.insertTable(choices, { choiceList[1], choiceList[2] })
     end
-    if markValue > 4 then
+    if markValue > 2 then
       table.insert(choices, choiceList[3])
-      if 
+    end
+    if markValue > 3 then
+      if
         table.find(
-          deadPlayers,
+          Fk:currentRoom().players,
           function(p)
-            return p.rest < 1 and not table.contains(Fk:currentRoom():getBanner('memorializedPlayers') or {}, p.id)
+            return p.dead and p.rest < 1 and not table.contains(Fk:currentRoom():getBanner('memorializedPlayers') or {}, p.id)
           end
         )
       then
@@ -936,6 +937,9 @@ local mouxingshang = fk.CreateActiveSkill{
     end
 
     return UI.ComboBox { choices = choices, all_choices = choiceList }
+  end,
+  times = function(self)
+    return Self.phase == Player.Play and 2 - Self:getMark("mou__xingshang_used-phase") or -1
   end,
   can_use = function(self, player)
     return player:getMark("mou__xingshang_used-phase") < 2 and player:getMark("@mou__xingshang_song") > 1
@@ -966,23 +970,23 @@ local mouxingshang = fk.CreateActiveSkill{
       target:reset()
     elseif choice:startsWith("mou__xingshang_draw") then
       room:removePlayerMark(player, "@mou__xingshang_song", 2)
-      local deadPlayersNum = #table.filter(room.players, function(p) return not p:isAlive() end)
-      target:drawCards(math.min(5, math.max(2, deadPlayersNum)), self.name)
+      target:drawCards(3, self.name)
     elseif choice == "mou__xingshang_recover" then
-      room:removePlayerMark(player, "@mou__xingshang_song", 5)
+      room:removePlayerMark(player, "@mou__xingshang_song", 3)
       room:recover({
         who = target,
         num = 1,
         recoverBy = player,
         skillName = self.name,
       })
+      if target.dead then return end
       room:changeMaxHp(target, 1)
 
-      if #target.sealedSlots > 0 then
+      if not target.dead and #target.sealedSlots > 0 then
         room:resumePlayerArea(target, {table.random(target.sealedSlots)})
       end
     elseif choice == "mou__xingshang_memorialize" then
-      room:removePlayerMark(player, "@mou__xingshang_song", 5)
+      room:removePlayerMark(player, "@mou__xingshang_song", 4)
       local zhuisiPlayers = room:getBanner('memorializedPlayers') or {}
       table.insertIfNeed(zhuisiPlayers, target.id)
       room:setBanner('memorializedPlayers', zhuisiPlayers)
@@ -1020,6 +1024,13 @@ local mouxingshang = fk.CreateActiveSkill{
       room:handleAddLoseSkills(player, "-" .. self.name .. '|-mou__fangzhu|-mou__songwei')
     end
   end,
+
+  on_lose = function (self, player)
+    local room = player.room
+    room:setPlayerMark(player, "mou__xingshang_used-phase", 0)
+    room:setPlayerMark(player, "mou__xingshang_damaged-turn", 0)
+    room:setPlayerMark(player, "@mou__xingshang_song", 0)
+  end
 }
 local mouxingshangTriggger = fk.CreateTriggerSkill{
   name = "#mou__xingshang_trigger",
@@ -1044,20 +1055,22 @@ local mouxingshangTriggger = fk.CreateTriggerSkill{
 }
 Fk:loadTranslationTable{
   ["mou__xingshang"] = "行殇",
-  [":mou__xingshang"] = "当一名角色受到伤害后（此项每回合限一次）或死亡时，则你获得两枚“颂”标记（你至多拥有9枚“颂”标记）；出牌阶段限两次，" ..
-  "你可选择一名角色并移去至少一枚“颂”令其执行对应操作：2枚，复原武将牌或摸X张牌（X为阵亡角色数，至少为2且至多为5）；5枚，" ..
-  "回复1点体力并加1点体力上限，然后随机恢复一个已废除的装备栏（目标体力上限不大于9方可选择），或<u>追思</u>一名已阵亡的角色，" ..
-  "获得其武将牌上除主公技外的所有技能（你选择自己且你的武将牌上有“行殇”技能时方可选择此项），然后你失去“行殇”、“放逐”、“颂威”。" ..
-  "<br/><font color='grey'>#\"<b>追思</b>\"：被追思过的角色本局游戏不能再成为追思的目标。",
+  [":mou__xingshang"] = "当一名角色受到伤害后（每回合限一次）或死亡时，则你获得两枚“颂”标记（你至多拥有9枚“颂”标记）；" ..
+  "出牌阶段限两次，你可选择一名角色并移去至少一枚“颂”令其执行对应操作：2枚，复原武将牌或摸三张牌；" ..
+  "3枚，回复1点体力并加1点体力上限，然后随机恢复一个已废除的装备栏（目标体力上限不大于9方可选择）；" ..
+  "4枚，<a href='memorialize'>追思</a>一名已阵亡的角色（你选择自己且你的武将牌上有〖行殇〗时方可选择此项），"..
+  "获得其武将牌上除主公技外的所有技能，然后你失去〖行殇〗、〖放逐〗、〖颂威〗。",
+
+  ["memorialize"] = "#\"<b>追思</b>\"：被追思过的角色本局游戏不能再成为追思的目标。",
   ["#mou__xingshang"] = "放逐：你可选择一名角色，消耗一定数量的“颂”标记对其进行增益",
   ["#mou__xingshang_trigger"] = "行殇",
   ["$MouXingShang"] = "行殇",
   ["@mou__xingshang_song"] = "颂",
   ["@mou__xingshang_memorialized"] = "行殇",
   ["mou__xingshang_restore"] = "2枚：复原武将牌",
-  ["mou__xingshang_draw"] = "2枚：摸%arg张牌",
-  ["mou__xingshang_recover"] = "5枚：恢复体力与区域",
-  ["mou__xingshang_memorialize"] = "5枚：追思技能",
+  ["mou__xingshang_draw"] = "2枚：摸三张牌",
+  ["mou__xingshang_recover"] = "3枚：恢复体力与区域",
+  ["mou__xingshang_memorialize"] = "4枚：追思技能",
 
   ["$mou__xingshang1"] = "纵是身死，仍要为我所用。",
   ["$mou__xingshang2"] = "汝九泉之下，定会感朕之情。",
@@ -1081,19 +1094,18 @@ local moufangzhu = fk.CreateActiveSkill{
       "mou__fangzhu_disresponsable",
       "mou__fangzhu_turn_over",
     }
-    local choices = {}
-    for i = 1, math.min(Self:getMark("@mou__xingshang_song"), 3) do
-      if i == 1 then
-        table.insert(choices, "mou__fangzhu_only_basic")
-      elseif i == 2 then
+    local choices = {"mou__fangzhu_only_basic"}
+    local x = Self:getMark("@mou__xingshang_song")
+    if x > 3 then
+      table.insert(choices, "mou__fangzhu_disresponsable")
+      if x > 5 then
         table.insert(choices, "mou__fangzhu_only_trick")
         if not Fk:currentRoom():isGameMode("1v2_mode") then
           table.insert(choices, "mou__fangzhu_nullify_skill")
-        end
-        table.insert(choices, "mou__fangzhu_disresponsable")
-      else
-        if not Fk:currentRoom():isGameMode("1v2_mode") then
-          table.insertTable(choices, { "mou__fangzhu_only_equip", "mou__fangzhu_turn_over" })
+          if x > 7 then
+            table.insert(choices, "mou__fangzhu_only_equip")
+            table.insert(choices, "mou__fangzhu_turn_over")
+          end
         end
       end
     end
@@ -1102,7 +1114,7 @@ local moufangzhu = fk.CreateActiveSkill{
   can_use = function(self, player)
     return
       player:usedSkillTimes(self.name, Player.HistoryPhase) == 0 and
-      player:getMark("@mou__xingshang_song") > 0 and
+      player:getMark("@mou__xingshang_song") > 1 and
       player:hasSkill(mouxingshang, true)
   end,
   card_filter = Util.FalseFunc,
@@ -1116,18 +1128,18 @@ local moufangzhu = fk.CreateActiveSkill{
     local choice = self.interaction.data
     if choice:startsWith("mou__fangzhu_only") then
       choice = choice:sub(-5)
-      room:removePlayerMark(player, "@mou__xingshang_song", choice == "basic" and 1 or (choice == "trick" and 2 or 3))
+      room:removePlayerMark(player, "@mou__xingshang_song", choice == "basic" and 2 or (choice == "trick" and 6 or 8))
       local limit_mark = target:getTableMark("@mou__fangzhu_limit")
       table.insertIfNeed(limit_mark, choice.."_char")
       room:setPlayerMark(target, "@mou__fangzhu_limit", limit_mark)
     elseif choice == "mou__fangzhu_nullify_skill" then
-      room:removePlayerMark(player, "@mou__xingshang_song", 2)
+      room:removePlayerMark(player, "@mou__xingshang_song", 6)
       room:setPlayerMark(target, "@@mou__fangzhu_skill_nullified", 1)
     elseif choice == "mou__fangzhu_disresponsable" then
-      room:removePlayerMark(player, "@mou__xingshang_song", 2)
+      room:removePlayerMark(player, "@mou__xingshang_song", 4)
       room:setPlayerMark(target, "@@mou__fangzhu_disresponsable", 1)
     elseif choice == "mou__fangzhu_turn_over" then
-      room:removePlayerMark(player, "@mou__xingshang_song", 3)
+      room:removePlayerMark(player, "@mou__xingshang_song", 8)
       target:turnOver()
     end
   end,
@@ -1154,7 +1166,7 @@ local moufangzhuRefresh = fk.CreateTriggerSkill{
   end,
   on_refresh = function(self, event, target, player, data)
     local room = player.room
-  
+
     if event == fk.AfterTurnEnd then
       for _, markName in ipairs({ "@mou__fangzhu_limit", "@@mou__fangzhu_skill_nullified", "@@mou__fangzhu_disresponsable" }) do
         if player:getMark(markName) ~= 0 then
@@ -1191,21 +1203,21 @@ local moufangzhuNullify = fk.CreateInvaliditySkill {
 }
 Fk:loadTranslationTable{
   ["mou__fangzhu"] = "放逐",
-  [":mou__fangzhu"] = "出牌阶段限一次，若你有“行殇”，则你可以选择一名其他角色，并移去至少一枚“颂”标记令其执行对应操作：1枚，" ..
-  "直到其下个回合结束，其不能使用基本牌外的手牌；2枚，直到其下个回合结束，其所有技能失效或其不可响应除其外的角色使用的牌，" ..
-  "或其不能使用锦囊牌外的手牌；3枚，其翻面或直到其下个回合结束，其不能使用装备牌外的手牌（若为斗地主，则令其他角色技能失效、" ..
-  "只可使用装备牌及翻面的效果不可选择）。",
+  [":mou__fangzhu"] = "出牌阶段限一次，若你有〖行殇〗，则你可以选择一名其他角色，并移去至少一枚“颂”标记令其执行对应操作：" ..
+  "2枚，直到其下个回合结束，其不能使用除基本牌外的手牌；4枚，直到其下个回合结束，其不可响应除其外的角色使用的牌，" ..
+  "6枚，直到其下个回合结束，其所有武将技能失效，或其不能使用除锦囊牌外的手牌；8枚，其翻面，或直到其下个回合结束，其不能使用除装备牌外的手牌"..
+  "（若为斗地主，则令其他角色技能失效、只可使用装备牌及翻面的效果不可选择）。",
   ["#mou__fangzhu"] = "放逐：你可选择一名角色，消耗一定数量的“颂”标记对其进行限制",
   ["#mou__fangzhu_prohibit"] = "放逐",
   ["@mou__fangzhu_limit"] = "放逐限",
   ["@@mou__fangzhu_skill_nullified"] = "放逐 技能失效",
   ["@@mou__fangzhu_disresponsable"] = "放逐 不可响应",
-  ["mou__fangzhu_only_basic"] = "1枚：只可使用基本牌",
-  ["mou__fangzhu_only_trick"] = "2枚：只可使用锦囊牌",
-  ["mou__fangzhu_only_equip"] = "3枚：只可使用装备牌",
-  ["mou__fangzhu_nullify_skill"] = "2枚：武将技能失效",
-  ["mou__fangzhu_disresponsable"] = "2枚：不可响应他人牌",
-  ["mou__fangzhu_turn_over"] = "3枚：翻面",
+  ["mou__fangzhu_only_basic"] = "2枚：只可使用基本牌",
+  ["mou__fangzhu_only_trick"] = "6枚：只可使用锦囊牌",
+  ["mou__fangzhu_only_equip"] = "8枚：只可使用装备牌",
+  ["mou__fangzhu_nullify_skill"] = "6枚：武将技能失效",
+  ["mou__fangzhu_disresponsable"] = "4枚：不可响应他人牌",
+  ["mou__fangzhu_turn_over"] = "8枚：翻面",
 
   ["$mou__fangzhu1"] = "战败而降，辱我国威，岂能轻饶！",
   ["$mou__fangzhu2"] = "此等过错，不杀已是承了朕恩。",
@@ -1215,7 +1227,7 @@ moufangzhu:addRelatedSkill(moufangzhuRefresh)
 moufangzhu:addRelatedSkill(moufangzhuProhibit)
 moufangzhu:addRelatedSkill(moufangzhuNullify)
 moucaopi:addSkill(moufangzhu)
-
+--[[
 local mousongwei = fk.CreateActiveSkill{
   name = "mou__songwei$",
   anim_type = "control",
@@ -1245,14 +1257,15 @@ local mousongwei = fk.CreateActiveSkill{
     room:setPlayerMark(target, "@@mou__songwei_target", 1)
   end,
 }
-local mousongweiTrigger = fk.CreateTriggerSkill{
-  name = "#mou__songwei_trigger",
+]]
+local mousongwei = fk.CreateTriggerSkill{
+  name = "mou__songwei$",
   events = { fk.EventPhaseStart },
   can_trigger = function(self, event, target, player, data)
     return
       target == player and
       player.phase == Player.Play and
-      player:hasSkill(mousongwei) and
+      player:hasSkill(self) and
       player:hasSkill(mouxingshang, true) and
       player:getMark("@mou__xingshang_song") < 9 and
       table.find(player.room.alive_players, function(p) return p.kingdom == "wei" and p ~= player end)
@@ -1265,16 +1278,15 @@ local mousongweiTrigger = fk.CreateTriggerSkill{
 }
 Fk:loadTranslationTable{
   ["mou__songwei"] = "颂威",
-  [":mou__songwei"] = "主公技，出牌阶段开始时，若你有“行殇”，则你获得X枚“颂”标记（X为存活的其他魏势力角色数的两倍）；" ..
-  "每局游戏限一次，出牌阶段，你可以令一名其他魏势力角色失去其武将牌上的所有技能。",
-  ["#mou__songwei"] = "颂威：你可以让一名其他魏国角色失去技能",
-  ["@@mou__songwei_target"] = "已颂威",
+  [":mou__songwei"] = "主公技，出牌阶段开始时，若你有〖行殇〗，你获得X枚“颂”标记（X为存活的其他魏势力角色数的两倍）。",
+  --["#mou__songwei"] = "颂威：你可以让一名其他魏国角色失去技能",
+  --["@@mou__songwei_target"] = "已颂威",
 
   ["$mou__songwei1"] = "江山锦绣，尽在朕手。",
   ["$mou__songwei2"] = "成功建业，扬我魏威。",
 }
 
-mousongwei:addRelatedSkill(mousongweiTrigger)
+--mousongwei:addRelatedSkill(mousongweiTrigger)
 moucaopi:addSkill(mousongwei)
 
 local handang = General(extension, "mou__handang", "wu", 4)
@@ -1396,9 +1408,7 @@ local jiefan = fk.CreateActiveSkill{
   card_num = 0,
   target_num = 1,
   can_use = function(self, player)
-    return
-      player:usedSkillTimes(self.name, Player.HistoryPhase) == 0 and
-      player:getMark("@@mou__jiefan_nullified") == 0
+    return player:usedSkillTimes(self.name, Player.HistoryPhase) == 0
   end,
   card_filter = Util.FalseFunc,
   target_filter = function(self, to_select, selected)
@@ -1413,7 +1423,7 @@ local jiefan = fk.CreateActiveSkill{
 
     local choice = room:askForChoice(target, { "beishui", "mou__jiefan_discard", "mou__jiefan_draw:::" .. #others }, self.name)
     if choice == "beishui" then
-      room:setPlayerMark(room:getPlayerById(effect.from), "@@mou__jiefan_nullified", 1)
+      room:invalidateSkill(room:getPlayerById(effect.from), self.name)
     end
 
     if choice == "beishui" or choice == "mou__jiefan_discard" then
@@ -1434,12 +1444,12 @@ local jiefanResume = fk.CreateTriggerSkill{
   can_refresh = function(self, event, target, player, data)
     return
       target ~= player and
-      player:getMark("@@mou__jiefan_nullified") > 0 and
       data.damage and
-      data.damage.from == player
+      data.damage.from == player and
+      table.contains(player:getTableMark(MarkEnum.InvalidSkills), "mou__jiefan")
   end,
   on_refresh = function(self, event, target, player, data)
-    player.room:setPlayerMark(player, "@@mou__jiefan_nullified", 0)
+    player.room:validateSkill(player, "mou__jiefan")
   end,
 }
 
@@ -1457,5 +1467,207 @@ Fk:loadTranslationTable{
 
 jiefan:addRelatedSkill(jiefanResume)
 handang:addSkill(jiefan)
+
+local guojia = General(extension, "mou__guojia", "wei", 3)
+
+Fk:loadTranslationTable{
+  ["mou__guojia"] = "谋郭嘉",
+  ["#mou__guojia"] = "奉己佐君",
+  ["~mou__guojia"] = "蒙天所召，嘉先去矣，咳咳咳……",
+}
+
+local tianduViewAs = fk.CreateViewAsSkill{
+  name = "mou__tiandu_view_as",
+  interaction = function(self)
+    local all_names = U.getAllCardNames("t")
+    local names = U.getViewAsCardNames(Self, "mou__tiandu", all_names)
+    if #names > 0 then
+      return U.CardNameBox { choices = names, all_choices = all_names, default_choice = "AskForCardsChosen" }
+    end
+  end,
+  expand_pile = function (self)
+    return { self.card_map[self.interaction.data] }
+  end,
+  card_filter = function(self, to_select, selected)
+    return to_select == self.card_map[self.interaction.data]
+  end,
+  view_as = function(self, cards)
+    if #cards > 0 then
+      local card = Fk:cloneCard(self.interaction.data)
+      card.skillName = "mou__tiandu"
+      return card
+    end
+  end,
+}
+
+local tiandu = fk.CreateTriggerSkill{
+  name = "mou__tiandu",
+  anim_type = "switch",
+  switch_skill_name = "mou__tiandu",
+  mute = true,
+  events = {fk.EventPhaseStart},
+  can_trigger = function(self, event, target, player, data)
+    return player:hasSkill(self) and player == target and player.phase == Player.Play and
+    (player:getSwitchSkillState(self.name, false) == fk.SwitchYin or player:getHandcardNum() > 1)
+  end,
+  on_cost = function(self, event, target, player, data)
+    if player:getSwitchSkillState(self.name, false) == fk.SwitchYang then
+      local cards = player.room:askForDiscard(player, 2, 2, false, self.name, true, ".", "#mou__tiandu-invoke", true)
+      if #cards > 0 then
+        self.cost_data = cards
+        return true
+      end
+    else
+      self.cost_data = {}
+      return true
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    local cards = self.cost_data
+    if #cards > 0 then
+      room:notifySkillInvoked(player, self.name)
+      player:broadcastSkillInvoke(self.name, 1)
+      local suits = player:getTableMark("@[suits]mou__tiandu")
+      local updata_mark = false
+      for _, id in ipairs(cards) do
+        local suit = Fk:getCardById(id).suit
+        if suit ~= Card.NoSuit and table.insertIfNeed(suits, suit) then
+          updata_mark = true
+        end
+      end
+      if updata_mark then
+        room:setPlayerMark(player, "@[suits]mou__tiandu", suits)
+      end
+      room:throwCard(cards, self.name, player, player)
+      if player.dead then return false end
+      local cardMap = player:getMark("mou__tiandu_cardmap")
+      if type(cardMap) ~= "table" then
+        cardMap = {}
+        local tricks = U.getUniversalCards(room, "t")
+        for _, id in ipairs(tricks) do
+          cardMap[Fk:getCardById(id).name] = id
+        end
+        room:setPlayerMark(player, "mou__tiandu_cardmap", cardMap)
+      end
+      local _, dat = room:askForUseViewAsSkill(player, "mou__tiandu_view_as", "#mou__tiandu-viewas", true, {card_map = cardMap})
+      if dat then
+        local card = Fk:cloneCard(dat.interaction)
+        card.skillName = self.name
+        room:useCard{
+          card = card,
+          from = player.id,
+          tos = table.map(dat.targets, function(p) return {p} end),
+          extraUse = true,
+        }
+      end
+    else
+      room:notifySkillInvoked(player, self.name)
+      player:broadcastSkillInvoke(self.name, 2)
+      local suits = player:getTableMark("@[suits]mou__tiandu")
+      local judge_pattern = table.concat(table.map(suits, function (suit)
+        return U.ConvertSuit(suit, "int", "str")
+      end), ",")
+      local judge = {
+        who = player,
+        reason = self.name,
+        pattern = ".|.|".. judge_pattern,
+      }
+      room:judge(judge)
+      if table.contains(suits, judge.card.suit) and not player.dead then
+        room:damage{
+          to = player,
+          damage = 1,
+          skillName = self.name,
+        }
+      end
+    end
+  end,
+
+  on_lose = function (self, player)
+    player.room:setPlayerMark(player, "@[suits]mou__tiandu", 0)
+  end,
+}
+
+local tianduDelay = fk.CreateTriggerSkill{
+  name = "#mou__tiandu_delay",
+  events = {fk.FinishJudge},
+  mute = true,
+  can_trigger = function(self, event, target, player, data)
+    return target == player and data.reason == tiandu.name and player.room:getCardArea(data.card.id) == Card.Processing
+  end,
+  on_cost = Util.TrueFunc,
+  on_use = function(self, event, target, player, data)
+    player.room:obtainCard(player.id, data.card, true)
+  end,
+}
+
+Fk:loadTranslationTable{
+  ["mou__tiandu"] = "天妒",
+  [":mou__tiandu"] = "转换技，出牌阶段开始时，阳：你可以弃置两张手牌并记录这些牌的花色，然后可以视为使用任意普通锦囊牌；"..
+  "阴：你判定，若结果为你记录过的花色，你受到1点无来源伤害。当此次判定的结果确定后，你获得判定牌。",
+  ["#mou__tiandu_delay"] = "天妒",
+  ["mou__tiandu_view_as"] = "天妒",
+
+  ["#mou__tiandu-invoke"] = "是否使用 天妒，弃置两张手牌来视为使用普通锦囊",
+  ["#mou__tiandu-viewas"] = "天妒：你可以视为使用普通锦囊",
+  ["@[suits]mou__tiandu"] = "天妒",
+
+  ["$mou__tiandu1"] = "顺应天命，即为大道所归。",
+  ["$mou__tiandu2"] = "计高于人，为天所妒。",
+}
+
+Fk:addSkill(tianduViewAs)
+tiandu:addRelatedSkill(tianduDelay)
+guojia:addSkill(tiandu)
+
+local yiji = fk.CreateTriggerSkill{
+  name = "mou__yiji",
+  anim_type = "masochism",
+  events = {fk.Damaged, fk.EnterDying},
+  can_trigger = function(self, event, target, player, data)
+    if not player:hasSkill(self) or target ~= player then return false end
+    if event == fk.EnterDying then
+      local room = player.room
+      local logic = room.logic
+      local dying_event = logic:getCurrentEvent():findParent(GameEvent.Dying, true)
+      if dying_event == nil then return false end
+      local mark = player:getMark("mou__yiji-round")
+      if mark == 0 then
+        logic:getEventsOfScope(GameEvent.Dying, 1, function (e)
+          local last_dying = e.data[1]
+          if last_dying.who == player.id then
+            mark = e.id
+            room:setPlayerMark(player, "mou__yiji-round", mark)
+            return true
+          end
+          return false
+        end, Player.HistoryRound)
+      end
+      return mark == dying_event.id
+    end
+    return true
+  end,
+  on_use = function(self, event, target, player, data)
+    local room = player.room
+    local x = event == fk.Damaged and 2 or 1
+    player:drawCards(x, self.name)
+    if player.dead or player:isKongcheng() then return end
+    room:askForYiji(player, player:getCardIds("h"), room:getOtherPlayers(player, false), self.name, 0, x)
+  end
+}
+
+Fk:loadTranslationTable{
+  ["mou__yiji"] = "遗计",
+  [":mou__yiji"] = "当你受到伤害后，你可以摸两张牌，然后可以将一至两张手牌交给其他角色。"..
+  "当你每轮首次进入濒死状态后，你可以摸一张牌，然后可以将一张手牌交给其他角色。",
+
+  ["$mou__yiji1"] = "身不能征伐，此计或可襄君太平！",
+  ["$mou__yiji2"] = "此身赴黄泉，望明公见计如晤。",
+}
+
+guojia:addSkill(yiji)
+
+
 
 return extension
