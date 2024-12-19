@@ -1342,9 +1342,7 @@ local ganglie = fk.CreateActiveSkill{
   end,
   on_use = function(self, room, effect)
     local player = room:getPlayerById(effect.from)
-    local playersTargeted = player:getTableMark("mou__ganglie_targeted")
-    table.insertIfNeed(playersTargeted, effect.tos[1])
-    room:setPlayerMark(player, "mou__ganglie_targeted", playersTargeted)
+    room:addTableMarkIfNeed(player, "mou__ganglie_targeted", effect.tos[1])
 
     room:damage{
       from = player,
@@ -1386,9 +1384,7 @@ local ganglieRecord = fk.CreateTriggerSkill{
 
       room:setPlayerMark(player, "mou__ganglie_enemy", enemies)
     else
-      local enemies = player:getTableMark("mou__ganglie_enemy")
-      table.insertIfNeed(enemies, data.damageEvent.from.id)
-      room:setPlayerMark(player, "mou__ganglie_enemy", enemies)
+      room:addTableMarkIfNeed(player, "mou__ganglie_enemy", data.damageEvent.from.id)
     end
   end,
 }

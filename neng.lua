@@ -737,9 +737,7 @@ local mou__zhiji = fk.CreateTriggerSkill{
     local tos = room:askForChoosePlayers(player, table.map(room.alive_players, Util.IdMapper), 1, 999, "#mou__zhiji-choose", self.name, true)
     for _, pid in ipairs(tos) do
       local p = room:getPlayerById(pid)
-      local mark = p:getTableMark("@@mou__zhiji")
-      table.insertIfNeed(mark, player.id)
-      room:setPlayerMark(p, "@@mou__zhiji", mark)
+      room:addTableMarkIfNeed(p, "@@mou__zhiji", player.id)
     end
   end,
   refresh_events = {fk.TurnStart, fk.Death},

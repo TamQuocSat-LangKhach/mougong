@@ -1129,9 +1129,7 @@ local moufangzhu = fk.CreateActiveSkill{
     if choice:startsWith("mou__fangzhu_only") then
       choice = choice:sub(-5)
       room:removePlayerMark(player, "@mou__xingshang_song", choice == "basic" and 2 or (choice == "trick" and 6 or 8))
-      local limit_mark = target:getTableMark("@mou__fangzhu_limit")
-      table.insertIfNeed(limit_mark, choice.."_char")
-      room:setPlayerMark(target, "@mou__fangzhu_limit", limit_mark)
+      room:addTableMarkIfNeed(target, "@mou__fangzhu_limit", choice.."_char")
     elseif choice == "mou__fangzhu_nullify_skill" then
       room:removePlayerMark(player, "@mou__xingshang_song", 6)
       room:setPlayerMark(target, "@@mou__fangzhu_skill_nullified", 1)

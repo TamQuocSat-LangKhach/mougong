@@ -990,14 +990,12 @@ local mouqianxun = fk.CreateTriggerSkill{
   on_use = function(self, event, target, player, data)
     local room = player.room
     if event == fk.CardEffecting then
-      local names = player:getTableMark("@$mou__qianxun_names")
-      table.insertIfNeed(names, data.card.trueName)
-      room:setPlayerMark(player, "@$mou__qianxun_names", names)
+      room:addTableMarkIfNeed(player, "@$mou__qianxun_names", data.card.trueName)
       if player:isNude() then
         return false
       end
 
-      local max = math.min(#names, 5)
+      local max = math.min(#player:getTableMark("@$mou__qianxun_names"), 5)
       local ids = room:askForCard(player, 1, max, true, self.name, true, ".", "#mou__qianxun-put:::" .. max)
       if #ids > 0 then
         player:addToPile("$mou__qianxun_xun", ids, false, self.name, player.id)
