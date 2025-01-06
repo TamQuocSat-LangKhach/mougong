@@ -524,7 +524,7 @@ local mou__duanliang = fk.CreateActiveSkill{
         local card = Fk:cloneCard("supply_shortage")
         card.skillName = self.name
         card:addSubcard(id)
-        if U.canUseCardTo(room, player, to, card, false) then
+        if player:canUseTo(card, to, { bypass_times = true, bypass_distances = true }) then
           room:useVirtualCard("supply_shortage", {id}, player, to, self.name, true)
           use = true
         end
