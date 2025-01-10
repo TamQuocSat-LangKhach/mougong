@@ -16,7 +16,7 @@ local mou__kurou = fk.CreateTriggerSkill{
   end,
   on_cost = function(self, event, target, player, data)
     local room = player.room
-    local tar, card =room:askForChooseCardAndPlayers( player, table.map(room:getOtherPlayers(player), Util.IdMapper), 1, 1,
+    local tar, card =room:askForChooseCardAndPlayers( player, table.map(room:getOtherPlayers(player, false), Util.IdMapper), 1, 1,
     ".|.|.|hand", "#mou__kurou-give", self.name , true)
     if #tar > 0 and card then
       self.cost_data = {tar[1], card}
@@ -288,7 +288,7 @@ local mou__jieyue = fk.CreateTriggerSkill{
     return player:hasSkill(self) and player == target and player.phase == Player.Finish
   end,
   on_cost = function (self, event, target, player, data)
-    local tos = player.room:askForChoosePlayers(player, table.map(player.room:getOtherPlayers(player), Util.IdMapper), 1, 1, "#mou__jieyue-choose", self.name, true)
+    local tos = player.room:askForChoosePlayers(player, table.map(player.room:getOtherPlayers(player, false), Util.IdMapper), 1, 1, "#mou__jieyue-choose", self.name, true)
     if #tos > 0 then
       self.cost_data = tos[1]
       return true

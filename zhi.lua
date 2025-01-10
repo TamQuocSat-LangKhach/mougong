@@ -232,12 +232,12 @@ local mou__qingzheng = fk.CreateTriggerSkill{
   events = {fk.EventPhaseStart},
   can_trigger = function(self, event, target, player, data)
     if target == player and player:hasSkill(self) and player.phase == Player.Play then
-      return not player:isKongcheng() and table.find(player.room:getOtherPlayers(player), function(p) return not p:isKongcheng() end)
+      return not player:isKongcheng() and table.find(player.room:getOtherPlayers(player, false), function(p) return not p:isKongcheng() end)
     end
   end,
   on_cost = function(self, event, target, player, data)
     local room = player.room
-    local targets = table.filter(room:getOtherPlayers(player), function(p) return not p:isKongcheng() end)
+    local targets = table.filter(room:getOtherPlayers(player, false), function(p) return not p:isKongcheng() end)
     local num = 3 - player:getMark("@mou__jianxiong")
     local listNames = {"log_spade", "log_club", "log_heart", "log_diamond"}
     local listCards = {{}, {}, {}, {}}
@@ -269,7 +269,7 @@ local mou__qingzheng = fk.CreateTriggerSkill{
     if player.dead then return end
     local to_throw = {}
     local listNames = {"log_spade", "log_club", "log_heart", "log_diamond"}
-    local listCards = {{}, {}, {}, {}}
+    local listCards = { {}, {}, {}, {} }
     local can_throw
     for _, id in ipairs(to.player_cards[Player.Hand]) do
       local suit = Fk:getCardById(id).suit
@@ -308,7 +308,7 @@ local mou__hujia = fk.CreateTriggerSkill{
     return player:hasSkill(self) and target == player and player:usedSkillTimes(self.name, Player.HistoryRound) == 0
   end,
   on_cost = function(self, event, target, player, data)
-    local targets = table.filter(player.room:getOtherPlayers(player), function(p) return p.kingdom == "wei" end)
+    local targets = table.filter(player.room:getOtherPlayers(player, false), function(p) return p.kingdom == "wei" end)
     if #targets > 0 then
       local to = player.room:askForChoosePlayers(player, table.map(targets, Util.IdMapper), 1, 1, "#mou__hujia-choose", self.name, true)
       if #to > 0 then

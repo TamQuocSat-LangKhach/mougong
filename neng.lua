@@ -846,13 +846,13 @@ local mouWuShengTrigger = fk.CreateTriggerSkill{
       target == player and
       player:hasSkill("mou__wusheng") and
       player.phase == Player.Play and
-      table.find(room:getOtherPlayers(player), function(p)
+      table.find(room:getOtherPlayers(player, false), function(p)
         return p.role ~= "lord" or not p.role_shown or table.contains({"m_1v2_mode", "brawl_mode"}, room.settings.gameMode)
       end)
   end,
   on_cost = function(self, event, target, player, data)
     local room = player.room
-    local targets = table.filter(room:getOtherPlayers(player), function(p)
+    local targets = table.filter(room:getOtherPlayers(player, false), function(p)
       return p.role ~= "lord" or not p.role_shown or table.contains({"m_1v2_mode", "brawl_mode"}, room.settings.gameMode)
     end)
 

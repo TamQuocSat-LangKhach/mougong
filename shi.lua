@@ -131,7 +131,7 @@ local mou__enyuan = fk.CreateTriggerSkill{
   events = {fk.EventPhaseStart},
   can_trigger = function(self, event, target, player, data)
     return player:hasSkill(self) and target == player and player.phase == Player.Start
-    and table.find(player.room:getOtherPlayers(player), function(p) return p:getMark("@@mou__xuanhuo") > 0 end)
+    and table.find(player.room:getOtherPlayers(player, false), function(p) return p:getMark("@@mou__xuanhuo") > 0 end)
   end,
   on_use = function(self, event, target, player, data)
     local room = player.room
@@ -170,7 +170,7 @@ Fk:loadTranslationTable{
   ["mou__enyuan"] = "恩怨",
   [":mou__enyuan"] = "锁定技，准备阶段，若有“眩”标记的角色自其获得“眩”标记开始你获得其的牌数：不小于3，你移除其“眩”标记，然后交给其三张牌；小于3，其移除“眩”标记并失去1点体力，然后你回复1点体力。",
   ["#mou__enyuan-give"] = "恩怨：交给 %src 三张牌",
-  
+
   ["$mou__xuanhuo1"] = "虚名虽然无用，可沽万人之心。",
   ["$mou__xuanhuo2"] = "效金台碣馆之事，布礼贤仁德之名。",
   ["$mou__enyuan1"] = "恩如泰山，当还以东海。",
@@ -297,7 +297,7 @@ local mou__mingce_trigger = fk.CreateTriggerSkill{
   end,
   on_cost = function(self, event, target, player, data)
     local room = player.room
-    local tos = room:askForChoosePlayers(player, table.map(room:getOtherPlayers(player), Util.IdMapper), 1, 1, "#mou__mingce-choose:::"..player:getMark("@mou__mingce"), self.name, true)
+    local tos = room:askForChoosePlayers(player, table.map(room:getOtherPlayers(player, false), Util.IdMapper), 1, 1, "#mou__mingce-choose:::"..player:getMark("@mou__mingce"), self.name, true)
     if #tos > 0 then
       self.cost_data = tos[1]
       return true
@@ -548,7 +548,7 @@ local mou__shipo = fk.CreateTriggerSkill{
   events = {fk.EventPhaseStart},
   can_trigger = function(self, event, target, player, data)
     if target == player and player:hasSkill(self) and player.phase == Player.Finish then
-      return table.find(player.room:getOtherPlayers(player), function (p) return p.hp < player.hp or p:hasDelayedTrick("supply_shortage") end)
+      return table.find(player.room:getOtherPlayers(player, false), function (p) return p.hp < player.hp or p:hasDelayedTrick("supply_shortage") end)
     end
   end,
   on_use = function(self, event, target, player, data)
@@ -573,7 +573,7 @@ local mou__shipo = fk.CreateTriggerSkill{
         local get = card[1]
         room:obtainCard(player, get, false, fk.ReasonGive)
         if room:getCardArea(get) == Card.PlayerHand and room:getCardOwner(get) == player then
-          local tos = room:askForChoosePlayers(player, table.map(room:getOtherPlayers(player), Util.IdMapper), 1, 1, "#mou__shipo-present:::"..Fk:getCardById(get):toLogString(), self.name, true)
+          local tos = room:askForChoosePlayers(player, table.map(room:getOtherPlayers(player, false), Util.IdMapper), 1, 1, "#mou__shipo-present:::"..Fk:getCardById(get):toLogString(), self.name, true)
           if #tos > 0 then
             room:obtainCard(tos[1], get, false, fk.ReasonGive)
           end
@@ -635,7 +635,7 @@ local mou__qiaobian = fk.CreateTriggerSkill{
     if data.to == Player.Judge then
       room:loseHp(player, 1, self.name)
       if #player:getCardIds("j") > 0 then
-        local tos = room:askForChoosePlayers(player, table.map(room:getOtherPlayers(player), Util.IdMapper), 1, 1, "#mou__qiaobian-choose", self.name, false)
+        local tos = room:askForChoosePlayers(player, table.map(room:getOtherPlayers(player, false), Util.IdMapper), 1, 1, "#mou__qiaobian-choose", self.name, false)
         if #tos > 0 then
           local to = room:getPlayerById(tos[1])
           local moveInfos = {}

@@ -726,7 +726,7 @@ local mou__yanyu_trigger = fk.CreateTriggerSkill{
   end,
   on_cost = function(self, event, target, player, data)
     local room = player.room
-    local to = room:askForChoosePlayers(player, table.map(room:getOtherPlayers(player), Util.IdMapper), 1, 1,
+    local to = room:askForChoosePlayers(player, table.map(room:getOtherPlayers(player, false), Util.IdMapper), 1, 1,
     "#mou__yanyu-draw:::" .. 3*player:getMark("mou__yanyu-turn"), self.name, true)
     if #to > 0 then
       self.cost_data = to[1]
@@ -1063,7 +1063,7 @@ local mou__xieji = fk.CreateTriggerSkill{
   end,
   on_cost = function (self, event, target, player, data)
     local room = player.room
-    local tos = room:askForChoosePlayers(player, table.map(room:getOtherPlayers(player), Util.IdMapper), 1, 1, "#mou__xieji-choose", self.name, true)
+    local tos = room:askForChoosePlayers(player, table.map(room:getOtherPlayers(player, false), Util.IdMapper), 1, 1, "#mou__xieji-choose", self.name, true)
     if #tos > 0 then
       self.cost_data = tos[1]
       return true
@@ -1110,7 +1110,7 @@ local mou__xieji_delay = fk.CreateTriggerSkill{
       room:notifySkillInvoked(player, "mou__xieji", "offensive")
       local slash = Fk:cloneCard("slash")
       slash.skillName = "mou__xieji"
-      local targets = table.filter(room:getOtherPlayers(player), function (p) return player:canUseTo(slash, p, {bypass_times = true}) end)
+      local targets = table.filter(room:getOtherPlayers(player, false), function (p) return player:canUseTo(slash, p, {bypass_times = true}) end)
       if #targets == 0 then return false end
       local tos = player.room:askForChoosePlayers(player, table.map(targets, Util.IdMapper), 1, 3, "#mou__xieji-slash", "mou__xieji", true)
       if #tos > 0 then
@@ -1254,7 +1254,7 @@ local mou__jizhu = fk.CreateTriggerSkill{
   on_cost = function (self, event, target, player, data)
     if event == fk.TurnEnd then return true end
     local room = player.room
-    local tos = room:askForChoosePlayers(player, table.map(room:getOtherPlayers(player), Util.IdMapper), 1, 1, "#mou__jizhu-choose", self.name, true)
+    local tos = room:askForChoosePlayers(player, table.map(room:getOtherPlayers(player, false), Util.IdMapper), 1, 1, "#mou__jizhu-choose", self.name, true)
     if #tos > 0 then
       self.cost_data = tos[1]
       return true
