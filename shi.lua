@@ -1648,17 +1648,24 @@ local yiji = fk.CreateTriggerSkill{
   end,
   on_use = function(self, event, target, player, data)
     local room = player.room
-    local x = event == fk.Damaged and 2 or 1
-    player:drawCards(x, self.name)
-    if player.dead or player:isKongcheng() then return end
-    room:askForYiji(player, player:getCardIds("h"), room:getOtherPlayers(player, false), self.name, 0, x)
+    local x = event == fk.Damaged and 2 or (room:isGameMode("2v2_mode") and 2 or 1)
+
+    local toGive = player:drawCards(x, self.name)
+    if (event == fk.Damaged and room:isGameMode("role_mode")) or (event == fk.EnterDying and not room:isGameMode("2v2_mode")) then
+      toGive = table.filter(toGive, function(id) return room:getCardArea(id) == Card.PlayerHand and room:getCardOwner(id) == player end)
+    else
+      toGive = player:getCardIds("h")
+    end
+
+    if player.dead or #toGive == 0 then return end
+    room:askForYiji(player, toGive, room:getOtherPlayers(player, false), self.name, 0, x)
   end
 }
 
 Fk:loadTranslationTable{
   ["mou__yiji"] = "遗计",
-  [":mou__yiji"] = "当你受到伤害后，你可以摸两张牌，然后可以将一至两张手牌交给其他角色。"..
-  "当你每轮首次进入濒死状态后，你可以摸一张牌，然后可以将一张手牌交给其他角色。",
+  [":mou__yiji"] = "当你受到伤害后，你可以摸两张牌，然后你可将至多等量张手牌交给其他角色（若为身份模式，则改为仅可给出以此法摸的牌）；" ..
+  "当你每轮首次进入濒死状态时，你可以摸一张牌，然后你可将此牌交给一名其他角色（若为团战模式，则改为摸两张牌且可将至多等量张手牌交给其他角色）。",
 
   ["$mou__yiji1"] = "身不能征伐，此计或可襄君太平！",
   ["$mou__yiji2"] = "此身赴黄泉，望明公见计如晤。",

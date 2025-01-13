@@ -1391,8 +1391,8 @@ local huanshi = fk.CreateTriggerSkill{
   on_use = function(self, event, target, player, data)
     local room = player.room
     local ex = {}
-    for i = 1, math.min(player.hp, #room.draw_pile) do
-      table.insert(ex, room.draw_pile[i])
+    if #room.draw_pile > 0 then
+      table.insert(ex, room.draw_pile[1])
     end
     local cards = room:askForCard(player, 1, 1, false, self.name, true, ".",
     "#mou__huanshi-card::"..target.id..":"..data.reason..":"..data.card:toLogString(), ex)
@@ -1414,7 +1414,7 @@ zhugejin:addSkill(huanshi)
 
 Fk:loadTranslationTable{
   ["mou__huanshi"] = "缓释",
-  [":mou__huanshi"] = "当一名角色的判定牌生效前，你观看牌堆顶的X张牌（X为你的体力值），然后你可以用这些牌/手牌中的其中一张牌替换之",
+  [":mou__huanshi"] = "当一名角色的判定牌生效前，你观看牌堆顶的一张牌，然后你可以用此牌或一张手牌替换之。",
   ["#mou__huanshi-card"] = "缓释：可以用手牌或牌堆顶牌替换 %dest 进行“%arg”判定的判定牌%arg2",
   ["$mou__huanshi1"] = "济危以仁，泽国生春。",
   ["$mou__huanshi2"] = "谏而不犯，正而不毅。",
@@ -1466,7 +1466,14 @@ local hongyuan = fk.CreateTriggerSkill{
         self.cost_data = {tos = tos}
         return true
       end
-    elseif room:askForSkillInvoke(player, self.name, nil, "#mou__hongyuan-invoke:"..target.id) then
+    elseif
+      room:askForSkillInvoke(
+        player,
+        self.name,
+        nil,
+        "#mou__hongyuan-invoke:" .. target.id .. "::" .. (room:isGameMode("role_mode") and 1 or 2)
+      )
+    then
       self.cost_data = {tos = {target.id}}
       return true
     end
@@ -1481,7 +1488,7 @@ local hongyuan = fk.CreateTriggerSkill{
         end
       end
     else
-      target:drawCards(2, self.name)
+      target:drawCards(room:isGameMode("role_mode") and 1 or 2, self.name)
     end
   end,
 
@@ -1491,9 +1498,9 @@ local hongyuan = fk.CreateTriggerSkill{
   end,
   on_refresh = function(self, event, target, player, data)
     if event == fk.EventAcquireSkill then
-      U.skillCharged(player, 1, 4)
+      U.skillCharged(player, 1, 3)
     else
-      U.skillCharged(player, -1, -4)
+      U.skillCharged(player, -1, -3)
     end
   end,
 }
@@ -1501,10 +1508,10 @@ zhugejin:addSkill(hongyuan)
 
 Fk:loadTranslationTable{
   ["mou__hongyuan"] = "弘援",
-  [":mou__hongyuan"] = "蓄力技（1/4），<br>①当你一次性获得至少两张牌时，你可以消耗1点“蓄力”点令至多两名角色各摸一张牌。"..
-  "<br>②当一名其他角色一次性失去至少两张牌时，你可以消耗1点“蓄力”点令其摸两张牌。",
+  [":mou__hongyuan"] = "蓄力技（1/3），<br>①当你一次性获得至少两张牌时，你可以消耗1点“蓄力”点令至多两名角色各摸一张牌。"..
+  "<br>②当一名其他角色一次性失去至少两张牌时，你可以消耗1点“蓄力”点令其摸两张牌（若为身份模式，则改为摸一张牌）。",
   ["#mou__hongyuan-choose"] = "弘援：你可以消耗1点“蓄力”点，令至多两名角色各摸一张牌",
-  ["#mou__hongyuan-invoke"] = "弘援：你可以消耗1点“蓄力”点，令 %src 其摸两张牌",
+  ["#mou__hongyuan-invoke"] = "弘援：你可以消耗1点“蓄力”点，令 %src 摸%arg张牌",
   ["$mou__hongyuan1"] = "舍己以私，援君之危急！",
   ["$mou__hongyuan2"] = "身为萤火之光，亦当照于天下！",
 }
@@ -1515,10 +1522,10 @@ local mingzhe = fk.CreateTriggerSkill{
   anim_type = "support",
   frequency = Skill.Compulsory,
   times = function (self)
-    return 3 - Self:usedSkillTimes(self.name, Player.HistoryRound)
+    return 2 - Self:usedSkillTimes(self.name, Player.HistoryRound)
   end,
   can_trigger = function(self, event, target, player, data)
-    if player:hasSkill(self) and player.phase == Player.NotActive and player:usedSkillTimes(self.name, Player.HistoryRound) < 3 then
+    if player:hasSkill(self) and player.phase == Player.NotActive and player:usedSkillTimes(self.name, Player.HistoryRound) < 2 then
       for _, move in ipairs(data) do
         if move.from == player.id then
           for _, info in ipairs(move.moveInfo) do
@@ -1532,35 +1539,45 @@ local mingzhe = fk.CreateTriggerSkill{
   end,
   on_use = function(self, event, target, player, data)
     local room = player.room
-    local num, draw = 0, false
+    local draw = false
     for _, move in ipairs(data) do
-      if move.from == player.id then
-        for _, info in ipairs(move.moveInfo) do
-          if info.fromArea == Player.Hand or info.fromArea == Player.Equip then
-            num = num + 1
-            if Fk:getCardById(info.cardId).type ~= Card.TypeBasic then
-              draw = true
-            end
+      if
+        move.from == player.id and
+        table.find(
+          move.moveInfo,
+          function(info)
+            return (info.fromArea == Player.Hand or info.fromArea == Player.Equip) and Fk:getCardById(info.cardId).type ~= Card.TypeBasic
           end
-        end
+        )
+      then
+        draw = true
+        break
       end
     end
-    if not draw then num = 0 end
-    local tos = room:askForChoosePlayers(player, table.map(room.alive_players, Util.IdMapper), 1, 1,
-    "#mou__mingzhe-choose:::"..num, self.name, false)
+
+    local tos = room:askForChoosePlayers(
+      player,
+      table.map(room.alive_players, Util.IdMapper),
+      1,
+      1,
+      "#mou__mingzhe-choose",
+      self.name,
+      false
+    )
     local to = room:getPlayerById(tos[1])
     U.skillCharged(to, 1)
-    if num > 0 then
-      to:drawCards(num, self.name)
+    if draw then
+      to:drawCards(1, self.name)
     end
   end,
 }
+
 zhugejin:addSkill(mingzhe)
 
 Fk:loadTranslationTable{
   ["mou__mingzhe"] = "明哲",
-  [":mou__mingzhe"] = "锁定技，每轮限三次。当你于回合外失去牌时，你选择一名角色，若其有“蓄力”技，令其获得1点“蓄力”点，若其中有非基本牌，其摸与你失去牌等量的牌",
-  ["#mou__mingzhe-choose"] = "明哲：选择一名角色，令其获得1点“蓄力”，摸%arg张牌",
+  [":mou__mingzhe"] = "锁定技，每轮限两次，当你于回合外失去牌时，你选择一名角色，若其有“蓄力技”，令其获得1点“蓄力”点，若其中有非基本牌，则其摸一张牌。",
+  ["#mou__mingzhe-choose"] = "明哲：选择一名角色，令其获得1点“蓄力”，摸一张牌",
   ["$mou__mingzhe1"] = "事事不求成功，但求尽善尽全。",
   ["$mou__mingzhe2"] = "明可查冒进之失，哲以避险躁之性。",
 }
