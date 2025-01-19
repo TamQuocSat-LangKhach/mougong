@@ -62,8 +62,27 @@ local mou__zhaxiang = fk.CreateTriggerSkill{
   on_use = function(self, event, target, player, data)
     data.n = data.n + player:getLostHp()
   end,
-}
 
+  on_acquire = function (self, player, is_start)
+    player.room:setPlayerMark(player, "@[mou__zhaxiang]", 1)
+  end,
+  on_lose = function (self, player, is_death)
+    player.room:setPlayerMark(player, "@[mou__zhaxiang]", 0)
+  end,
+}
+Fk:addQmlMark{
+  name = "mou__zhaxiang",
+  qml_path = "",
+  how_to_show = function(name, value, p)
+    if p.phase == Player.Play then
+      local x = p:getLostHp() - p:getMark("mou__zhaxiang-phase")
+      if x > 0 then
+        return tostring(x)
+      end
+    end
+    return "#hidden"
+  end,
+}
 local mou__zhaxiang_trigger = fk.CreateTriggerSkill{
   name = "#mou__zhaxiang_trigger",
   mute = true,
@@ -75,7 +94,7 @@ local mou__zhaxiang_trigger = fk.CreateTriggerSkill{
   on_use = function(self, event, target, player, data)
     data.disresponsive = true
   end,
-  
+
   refresh_events = {fk.CardUsing},
   can_refresh = function(self, event, target, player, data)
     return target == player and player:hasSkill("mou__zhaxiang", true) and player.phase == Player.Play
@@ -108,6 +127,7 @@ Fk:loadTranslationTable{
   ["mou__zhaxiang"] = "诈降",
   [":mou__zhaxiang"] = "锁定技，①摸牌阶段，你的摸牌基数+X；②出牌阶段，你使用的前X张牌无距离和次数限制且无法响应（X为你已损失的体力值）。",
   ["#mou__kurou-give"] = "苦肉：你可以将一张手牌交给一名其他角色，你失去1点体力，若交出【桃】或【酒】则改为2点",
+  ["@[mou__zhaxiang]"] = "诈降 剩余",
 
   ["$mou__kurou1"] = "既不能破，不如依张子布之言，投降便罢！",
   ["$mou__kurou2"] = "周瑜小儿！破曹不得，便欺吾三世老臣乎？",
