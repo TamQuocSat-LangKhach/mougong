@@ -790,7 +790,7 @@ local mou__huangtian = fk.CreateTriggerSkill{
   can_trigger = function(self, event, target, player, data)
     local room = player.room
     if event == fk.TurnStart then
-      return player:hasSkill(self) and target == player and player.room:getTag("RoundCount") == 1
+      return player:hasSkill(self) and target == player and player.room:getBanner("RoundCount") == 1
       and player:hasEmptyEquipSlot(Card.SubtypeTreasure)
       and room:getCardArea(U.prepareDeriveCards(room, peace_spell, "huangtian_spell")[1]) == Card.Void
     else
@@ -1025,7 +1025,7 @@ local mou__rende_response = fk.CreateTriggerSkill{
             return false
           end
         end
-        return not player:isProhibited(p, card) and card.skill:modTargetFilter(p.id, {}, player.id, card, true)
+        return not player:isProhibited(p, card) and card.skill:modTargetFilter(p.id, {}, player, card, true)
       end
       local findCardTarget = function(card)
         local tos = {}
@@ -1097,7 +1097,7 @@ local mou__zhangwu = fk.CreateActiveSkill{
   prompt = "#mou__zhangwu-prompt",
   on_use = function(self, room, effect)
     local player = room:getPlayerById(effect.from)
-    local x = math.min(3, (room:getTag("RoundCount") - 1))
+    local x = math.min(3, (room:getBanner("RoundCount") - 1))
     if x > 0 then
       local mark = player:getTableMark("mou__rende_target")
       for _, p in ipairs(room:getOtherPlayers(player)) do
