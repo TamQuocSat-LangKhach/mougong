@@ -1604,6 +1604,12 @@ Fk:loadTranslationTable{
   ["mou__tiandu"] = "天妒",
   [":mou__tiandu"] = "转换技，出牌阶段开始时，阳：你可以弃置两张手牌并记录这些牌的花色，然后可以视为使用任意普通锦囊牌；"..
   "阴：你判定，若结果为你记录过的花色，你受到1点无来源伤害。当此次判定的结果确定后，你获得判定牌。",
+  [":mou__tiandu_yang"] = "转换技，出牌阶段开始时，"..
+  "<font color=\"#E0DB2F\">阳：你可以弃置两张手牌并记录这些牌的花色，然后可以视为使用任意普通锦囊牌；"..
+  "<font color=\"gray\">阴：你判定，若结果为你记录过的花色，你受到1点无来源伤害。当此次判定的结果确定后，你获得判定牌。</font>",
+  [":mou__tiandu_yin"] = "转换技，出牌阶段开始时，"..
+  "<font color=\"gray\">阳：你可以弃置两张手牌并记录这些牌的花色，然后可以视为使用任意普通锦囊牌；"..
+  "<font color=\"#E0DB2F\">阴：你判定，若结果为你记录过的花色，你受到1点无来源伤害。当此次判定的结果确定后，你获得判定牌。</font>",
   ["#mou__tiandu_delay"] = "天妒",
   ["mou__tiandu_view_as"] = "天妒",
 
@@ -1622,6 +1628,14 @@ guojia:addSkill(tiandu)
 local yiji = fk.CreateTriggerSkill{
   name = "mou__yiji",
   anim_type = "masochism",
+  dynamic_desc = function(self, player)
+    if Fk:currentRoom():isGameMode("1v2_mode") then
+      return "mou__yiji_1v2"
+    elseif Fk:currentRoom():isGameMode("2v2_mode") then
+      return "mou__yiji_2v2"
+    end
+    return "mou__yiji_role"
+  end,
   events = {fk.Damaged, fk.EnterDying},
   can_trigger = function(self, event, target, player, data)
     if not player:hasSkill(self) or target ~= player then return false end
@@ -1663,9 +1677,28 @@ local yiji = fk.CreateTriggerSkill{
 }
 
 Fk:loadTranslationTable{
+  [":mou__yiji_role"] = "当你受到伤害后，你可以摸两张牌，然后你可将其中任意张牌交给其他角色；" ..
+  "当你每轮首次进入濒死状态时，你可以摸一张牌，然后你可将此牌交给一名其他角色。",
+  [":mou__yiji_2v2"] = "当你受到伤害后，或当你每轮首次进入濒死状态时，你可以摸两张牌，然后你可将至多等量张手牌交给其他角色。",
+  [":mou__yiji_1v2"] = "当你受到伤害后，你可以摸两张牌，然后你可将至多等量张手牌交给其他角色；" ..
+  "当你每轮首次进入濒死状态时，你可以摸一张牌，然后你可将此牌交给一名其他角色。",
+}
+
+Fk:loadTranslationTable{
   ["mou__yiji"] = "遗计",
+
   [":mou__yiji"] = "当你受到伤害后，你可以摸两张牌，然后你可将至多等量张手牌交给其他角色（若为身份模式，则改为仅可给出以此法摸的牌）；" ..
   "当你每轮首次进入濒死状态时，你可以摸一张牌，然后你可将此牌交给一名其他角色（若为团战模式，则改为摸两张牌且可将至多等量张手牌交给其他角色）。",
+
+  --TODO:需选将框（至少在22及斗地主模式）查看技能支持动态描述方可实装此部分，详见Fk/Cheat/GeneralDetail.qml
+  --[":mou__yiji"] = Fk:translate(":mou__yiji_role") ..
+  --"<br><strong>●身份模式</strong>  <a href=':mou__yiji_2v2'>团战模式</a>  <a href=':mou__yiji_1v2'>斗地主模式</a>",
+
+  [":mou__yiji_role"] = "当你受到伤害后，你可以摸两张牌，然后你可将其中任意张牌交给其他角色；" ..
+  "当你每轮首次进入濒死状态时，你可以摸一张牌，然后你可将此牌交给一名其他角色。",
+  [":mou__yiji_2v2"] = "当你受到伤害后，或当你每轮首次进入濒死状态时，你可以摸两张牌，然后你可将至多等量张手牌交给其他角色。",
+  [":mou__yiji_1v2"] = "当你受到伤害后，你可以摸两张牌，然后你可将至多等量张手牌交给其他角色；" ..
+  "当你每轮首次进入濒死状态时，你可以摸一张牌，然后你可将此牌交给一名其他角色。",
 
   ["$mou__yiji1"] = "身不能征伐，此计或可襄君太平！",
   ["$mou__yiji2"] = "此身赴黄泉，望明公见计如晤。",
