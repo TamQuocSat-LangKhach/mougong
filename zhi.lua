@@ -912,25 +912,25 @@ local mou__rende = fk.CreateActiveSkill{
   card_filter = function(self, to_select, selected)
     return self.interaction.data == "mou__rende"
   end,
-  target_filter = function(self, to_select, selected, selected_cards)
+  target_filter = function(self, to_select, selected, selected_cards, _, _, player)
     if self.interaction.data == "mou__rende" then
       return #selected == 0 and to_select ~= Self.id 
       and Fk:currentRoom():getPlayerById(to_select):getMark("mou__rende_target-phase") == 0
-    else
+    elseif self.interaction.data ~= nil then
       local to_use = Fk:cloneCard(self.interaction.data)
       to_use.skillName = self.name
       if (#selected == 0 or to_use.multiple_targets) and
-      Self:isProhibited(Fk:currentRoom():getPlayerById(to_select), to_use) then return false end
-      return to_use.skill:targetFilter(to_select, selected, selected_cards, to_use)
+      player:isProhibited(Fk:currentRoom():getPlayerById(to_select), to_use) then return false end
+      return to_use.skill:targetFilter(to_select, selected, selected_cards, to_use, nil, player)
     end
   end,
-  feasible = function(self, selected, selected_cards)
+  feasible = function(self, selected, selected_cards, player)
     if self.interaction.data == "mou__rende" then
       return #selected_cards > 0 and #selected == 1
     else
       local to_use = Fk:cloneCard(self.interaction.data)
       to_use.skillName = self.name
-      return to_use.skill:feasible(selected, selected_cards, Self, to_use)
+      return to_use.skill:feasible(selected, selected_cards, player, to_use)
     end
   end,
   on_use = function(self, room, effect)
@@ -943,6 +943,7 @@ local mou__rende = fk.CreateActiveSkill{
         room:setPlayerMark(player, "mou__rende_target", mark)
       end
       room:moveCardTo(effect.cards, Player.Hand, target, fk.ReasonGive, self.name, nil, false, player.id)
+      if player.dead then return end
       room:setPlayerMark(player, "@mou__renwang", math.min(8, player:getMark("@mou__renwang") + #effect.cards))
     else
       room:removePlayerMark(player, "@mou__renwang", 2)

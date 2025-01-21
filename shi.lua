@@ -370,15 +370,15 @@ local mou__lianhuan = fk.CreateActiveSkill{
   can_use = function(self, player)
     return not player:isKongcheng()
   end,
-  card_filter = function(self, to_select, selected, selected_targets)
+  card_filter = function(self, to_select, selected, player)
     return #selected == 0 and Fk:getCardById(to_select).suit == Card.Club and Fk:currentRoom():getCardArea(to_select) ~= Player.Equip
   end,
-  target_filter = function(self, to_select, selected, selected_cards)
-    if #selected_cards ~= 1 or Self:getMark("mou__lianhuan_used-phase") > 0 then return false end
+  target_filter = function(self, to_select, selected, selected_cards, _, _, player)
+    if #selected_cards ~= 1 or player:getMark("mou__lianhuan_used-phase") > 0 then return false end
     local card = Fk:cloneCard("iron_chain")
     card:addSubcard(selected_cards[1])
-    return card.skill:canUse(Self, card) and card.skill:targetFilter(to_select, selected, selected_cards, card) and
-    not Self:prohibitUse(card) and not Self:isProhibited(Fk:currentRoom():getPlayerById(to_select), card)
+    return card.skill:canUse(player, card) and card.skill:targetFilter(to_select, selected, selected_cards, card, nil, player) and
+    not player:prohibitUse(card) and not player:isProhibited(Fk:currentRoom():getPlayerById(to_select), card)
   end,
   on_use = function(self, room, effect)
     local player = room:getPlayerById(effect.from)
