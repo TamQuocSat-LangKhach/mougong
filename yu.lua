@@ -478,15 +478,23 @@ local mou__lvmeng = General(extension, "mou__lvmeng", "wu", 4)
 local mou__keji = fk.CreateActiveSkill{
   name = "mou__keji",
   anim_type = "defensive",
+  prompt = "#mou__keji",
+  dynamic_desc = function (self, player, lang)
+    if player:usedSkillTimes("dujiang", Player.HistoryGame) > 0 then
+      return "mou__keji_dyn"
+    end
+    return "mou__keji"
+  end,
   interaction = function()
+    local all_choices = {"moukeji_choice1", "moukeji_choice2"}
     local choices = {}
-    for _, c in ipairs({"moukeji_choice1","moukeji_choice2"}) do
+    for _, c in ipairs(all_choices) do
       if Self:getMark("mou__keji"..c.."-phase") == 0 then
         table.insert(choices, c)
       end
     end
     if #choices == 0 then return end
-    return UI.ComboBox {choices = choices}
+    return UI.ComboBox {choices = choices, all_choices = all_choices}
   end,
   can_use = function(self, player)
     if (not player:isKongcheng() or player.hp > 0) then
@@ -502,9 +510,9 @@ local mou__keji = fk.CreateActiveSkill{
     end
     return 999
   end,
-  card_filter = function(self, to_select, selected)
+  card_filter = function(self, to_select, selected, player)
     if self.interaction.data == "moukeji_choice1" then
-      return #selected == 0 and Fk:currentRoom():getCardArea(to_select) ~= Player.Equip
+      return #selected == 0 and Fk:currentRoom():getCardArea(to_select) ~= Player.Equip and not player:prohibitDiscard(to_select)
     end
     return false
   end,
@@ -563,54 +571,34 @@ local duojing = fk.CreateTriggerSkill{
     return target == player and player:hasSkill(self) and data.card.trueName == "slash" and player.shield > 0
   end,
   on_cost = function(self, event, target, player, data)
-    return player.room:askForSkillInvoke(player, self.name, nil, "#duojing-invoke:"..data.to)
+    if player.room:askForSkillInvoke(player, self.name, nil, "#duojing-invoke:"..data.to) then
+      self.cost_data = {tos = {data.to}}
+      return true
+    end
   end,
   on_use = function(self, event, target, player, data)
     local room = player.room
     room:changeShield(player, -1)
     local to = room:getPlayerById(data.to)
-    room:addPlayerMark(to, fk.MarkArmorNullified)
-    data.extra_data = data.extra_data or {}
-    data.extra_data.duojingNullified = data.extra_data.duojingNullified or {}
-    data.extra_data.duojingNullified[tostring(data.to)] = (data.extra_data.duojingNullified[tostring(data.to)] or 0) + 1
+    to:addQinggangTag(data)
     if not player.dead and not to:isKongcheng() then
       local id = room:askForCardChosen(player, to, "h", self.name)
-      room:obtainCard(player, id, false, fk.ReasonPrey)
+      room:obtainCard(player, id, false, fk.ReasonPrey, player.id, self.name)
     end
-    room:addPlayerMark(player, "duojing-phase")
-  end,
-  refresh_events = {fk.CardUseFinished},
-  can_refresh = function(self, event, target, player, data)
-    return data.extra_data and data.extra_data.duojingNullified
-  end,
-  on_refresh = function(self, event, target, player, data)
-    local room = player.room
-    for key, num in pairs(data.extra_data.duojingNullified) do
-      local p = room:getPlayerById(tonumber(key))
-      if p:getMark(fk.MarkArmorNullified) > 0 then
-        room:removePlayerMark(p, fk.MarkArmorNullified, num)
-      end
-    end
-    data.duojingNullified = nil
+    room:addPlayerMark(player, MarkEnum.SlashResidue.."-phase")
   end,
 }
-local duojing_tm = fk.CreateTargetModSkill{
-  name = "#duojing_tm",
-  residue_func = function(self, player, skill, scope, card)
-    if player:hasSkill("duojing") and skill and scope and skill.trueName == "slash_skill" and scope == Player.HistoryPhase then
-      return player:getMark("duojing-phase")
-    end
-  end,
-}
-duojing:addRelatedSkill(duojing_tm)
 mou__lvmeng:addRelatedSkill(duojing)
 Fk:loadTranslationTable{
   ["mou__lvmeng"] = "谋吕蒙",
   ["#mou__lvmeng"] = "苍江一笠",
   ["cv:mou__lvmeng"] = "刘强",
+  ["illustrator:mou__lvmeng"] = "君桓文化",
   ["mou__keji"] = "克己",
   [":mou__keji"] = "出牌阶段各限一次（若你已觉醒“渡江”，改为出牌阶段限一次），你可以选择一项：1.弃置一张手牌，获得1点护甲；2.失去1点体力，获得2点护甲（护甲值至多为5）。<br>"..
   "你的手牌上限+X（X为你的护甲值）。若你不处于濒死状态，你不能使用【桃】。",
+  [":mou__keji_dyn"] = "出牌阶段限一次，你可以选择一项：1.弃置一张手牌，获得1点护甲；2.失去1点体力，获得2点护甲。<br>你的手牌上限+X（X为你的护甲值）。若你不处于濒死状态，你不能使用【桃】。",
+  ["#mou__keji"] = "克己：你可以弃1手牌加1护甲，或失去1体力加2护甲",
   ["moukeji_choice1"] = "弃牌加1甲",
   ["moukeji_choice2"] = "掉血加2甲",
   ["#mou__keji_prohibit"] = "克己",
@@ -618,7 +606,7 @@ Fk:loadTranslationTable{
   [":dujiang"] = "觉醒技，准备阶段，若你的护甲值不小于3，你获得技能〖夺荆〗。",
   ["duojing"] = "夺荆",
   [":duojing"] = "当你使用【杀】指定一名角色为目标时，你可以失去1点护甲，令此【杀】无视该角色的防具，然后你获得该角色的一张手牌，本阶段你使用【杀】的次数上限+1。",
-  ["#duojing-invoke"] = "夺荆:你可以失去1点护甲，令此【杀】无视%src的防具，获得%src一张手牌，本阶段使用【杀】的次数上限+1",
+  ["#duojing-invoke"] = "夺荆:失去1点护甲，令此【杀】无视%src的防具，获得%src一张手牌，本阶段用【杀】次数+1",
 
   ["$mou__keji1"] = "事事克己，步步虚心！",
   ["$mou__keji2"] = "勤学潜习，始觉自新！",
