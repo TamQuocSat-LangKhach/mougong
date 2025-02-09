@@ -1477,4 +1477,157 @@ Fk:loadTranslationTable{
 
 xiahoudun:addSkill(qingjian)
 
+local shensu = fk.CreateTriggerSkill{
+  name = "mou__shensu",
+  anim_type = "offensive",
+  events = {fk.TurnStart},
+  can_trigger = function(self, event, target, player, data)
+    return player == target and player:hasSkill(self) and
+      (not (player.skipped_phases[Player.Judge] or player.skipped_phases[Player.Draw]) or
+      not (player.skipped_phases[Player.Draw] or player.skipped_phases[Player.Play]) or
+      not (player.skipped_phases[Player.Play] or player.skipped_phases[Player.Discard]))
+  end,
+  on_cost = function (self, event, target, player, data)
+    local choices = {}
+    if not (player.skipped_phases[Player.Judge] or player.skipped_phases[Player.Draw]) then
+      table.insert(choices, "mou__shensu_choice1")
+    end
+    if not (player.skipped_phases[Player.Draw] or player.skipped_phases[Player.Play]) then
+      table.insert(choices, "mou__shensu_choice2")
+    end
+    if not (player.skipped_phases[Player.Play] or player.skipped_phases[Player.Discard]) then
+      table.insert(choices, "mou__shensu_choice3")
+    end
+    choices = player.room:askForChoices(player, choices, 1, 3, self.name, "#mou__shensu-invoke",
+      true, false, { "mou__shensu_choice1", "mou__shensu_choice2", "mou__shensu_choice3" })
+    if #choices > 0 then
+      self.cost_data = { choice = choices }
+      return true
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    local choices = self.cost_data.choice
+    local extra_data = {}
+    if table.contains(choices, "mou__shensu_choice1") then
+      table.insert(extra_data, false)
+      player:skip(Player.Judge)
+      player:skip(Player.Draw)
+    end
+    if table.contains(choices, "mou__shensu_choice2") then
+      table.insert(extra_data, true)
+      player:skip(Player.Draw)
+      player:skip(Player.Play)
+    end
+    if table.contains(choices, "mou__shensu_choice3") then
+      table.insert(extra_data, true)
+      player:skip(Player.Play)
+      player:skip(Player.Discard)
+    end
+    local room = player.room
+    local tos = {}
+    for _, nojink in ipairs(extra_data) do
+      local slash = Fk:cloneCard("slash")
+      slash.skillName = self.name
+      local max_num = slash.skill:getMaxTargetNum(player, slash)
+      local targets = {}
+      for _, p in ipairs(room.alive_players) do
+        if p ~= player and not table.contains(tos, p.id) and not player:isProhibited(p, slash) then
+          table.insert(targets, p.id)
+        end
+      end
+      tos = room:askForChoosePlayers(player, targets, 1, max_num,
+        "#mou__shensu-slash:::" .. tostring(max_num) .. ":" .. (nojink and "mou__shensu_nojink" or ""), self.name, true,
+        false, "mou__shensu", tos)
+      if #tos > 0 then
+        local use = {
+          from = target.id,
+          tos = table.map(tos, function(pid) return { pid } end),
+          card = slash,
+          extraUse = true,
+        }
+        if nojink then
+          use.disresponsiveList = table.map(room.alive_players, Util.IdMapper)
+        end
+        room:useCard(use)
+        if player.dead then break end
+      end
+    end
+    if not player.dead and #choices > 1 and table.contains(choices, "mou__shensu_choice2") then
+      player:turnOver()
+    end
+  end,
+}
+
+Fk:addTargetTip{
+  name = "mou__shensu",
+  target_tip = function(_, to_select, _, _, _, _, extra_data)
+    if type(extra_data.extra_data) == "table" and table.contains(extra_data.extra_data, to_select) then
+      return { {content = "mou__shensu_prohibit", type = "warning"} }
+    end
+  end,
+}
+
+Fk:loadTranslationTable{
+  ["mou__shensu"] = "神速",
+  [":mou__shensu"] = "回合开始时，你可以选择任意项："..
+    "1.跳过判定阶段和摸牌阶段；2.跳过摸牌阶段和出牌阶段；3.跳过出牌阶段和弃牌阶段。"..
+    "每选择一项便可以视为使用一张【杀】（无距离限制，不可连续指定相同的目标，对应的选项包含跳过出牌阶段则不可被响应）。"..
+    "若这些选项包含跳过相同阶段，你翻面。",
+
+  ["#mou__shensu-invoke"] = "是否发动 神速，每选择一项便可使用一张无距离限制的【杀】",
+  ["mou__shensu_choice1"] = "跳过判定阶段和摸牌阶段",
+  ["mou__shensu_choice2"] = "跳过摸牌阶段和出牌阶段",
+  ["mou__shensu_choice3"] = "跳过出牌阶段和弃牌阶段",
+  ["#mou__shensu-slash"] = "神速：选择%arg名目标角色，对其使用【杀】%arg2",
+  ["mou__shensu_nojink"] = "（不可被响应）",
+  ["mou__shensu_prohibit"] = "重复目标",
+
+  ["$mou__shensu1"] = "兵贵出奇，先夺者胜！",
+  ["$mou__shensu2"] = "诸将岂不闻兵贵神速乎？",
+}
+
+local zhengzi = fk.CreateTriggerSkill{
+  name = "zhengzi",
+  anim_type = "drawcard",
+  events = {fk.TurnEnd},
+  can_trigger = function(self, event, target, player, data)
+    if target == player and player:hasSkill(self) then
+      local x = 0
+      player.room.logic:getActualDamageEvents(1, function (e)
+        local damage = e.data[1]
+        if damage.from == player then
+          x = x + damage.damage
+          return x >= player.hp
+        end
+        return false
+      end)
+      return x >= player.hp
+    end
+  end,
+  on_use = function(self, event, target, player, data)
+    player:drawCards(2, self.name)
+    if not player.dead then
+      player:reset()
+    end
+  end,
+}
+
+Fk:loadTranslationTable{
+  ["zhengzi"] = "整辎",
+  [":zhengzi"] = "回合结束时，若你于此回合内造成过的伤害值之和不小于X（X为你的体力值），你可以摸两张牌，复原武将牌。",
+
+  ["$zhengzi1"] = "整军深垒，备以待敌。",
+  ["$zhengzi2"] = "整甲缮兵，以乘其敝。",
+}
+
+local xiahouyuan = General(extension, "mou__xiahouyuan", "wei", 4)
+xiahouyuan:addSkill(shensu)
+xiahouyuan:addSkill(zhengzi)
+
+Fk:loadTranslationTable{
+  ["mou__xiahouyuan"] = "谋夏侯渊",
+  ["#mou__xiahouyuan"] = "虎步关右",
+  ["~mou__xiahouyuan"] = "若非中其奸计，吾岂会命丧贼手……",
+}
+
 return extension
