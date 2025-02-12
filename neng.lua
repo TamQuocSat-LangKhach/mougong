@@ -1588,11 +1588,26 @@ local tuxi = fk.CreateTriggerSkill{
   name = "mou__tuxi",
   anim_type = "control",
   events = {fk.AfterCardsMove},
+  dynamic_desc = function(self, player)
+    local room = Fk:currentRoom()
+    if room:isGameMode("1v2_mode") or room:isGameMode("2v2_mode") then
+      return "mou__tuxi_not_role"
+    else
+      return "mou__tuxi_role_mode"
+    end
+  end,
   times = function (self)
-    return 3 - Self:usedSkillTimes(self.name, Player.HistoryTurn)
+    local room = Fk:currentRoom()
+    local uselimitation = 2
+    if room:isGameMode("1v2_mode") or room:isGameMode("2v2_mode") then
+      uselimitation = 1
+    end
+    return uselimitation - Self:usedSkillTimes(self.name, Player.HistoryTurn)
   end,
   can_trigger = function(self, event, target, player, data)
-    if player:hasSkill(self) and player:usedSkillTimes(self.name, Player.HistoryTurn) < 3 and player.phase ~= Player.NotActive then
+    local room = player.room
+    local uselimitation = (room:isGameMode("1v2_mode") or room:isGameMode("2v2_mode")) and 1 or 2
+    if player:hasSkill(self) and player:usedSkillTimes(self.name, Player.HistoryTurn) < uselimitation and player.phase ~= Player.NotActive then
       local ids = {}
       for _, move in ipairs(data) do
         if move.to == player.id and move.toArea == Card.PlayerHand and move.skillName ~= self.name then
@@ -1603,7 +1618,7 @@ local tuxi = fk.CreateTriggerSkill{
           end
         end
       end
-      ids = U.moveCardsHoldingAreaCheck(player.room, ids)
+      ids = U.moveCardsHoldingAreaCheck(room, ids)
       if #ids > 0 then
         self.cost_data = ids
         return true
@@ -1693,7 +1708,12 @@ Fk:loadTranslationTable{
   ["#mou__zhangliao"] = "古之召虎",
 
   ["mou__tuxi"] = "突袭",
-  [":mou__tuxi"] = "你的回合内限三次，当你不因此技能获得牌后，你可以将其中任意张牌置入弃牌堆，然后你获得至多X名其他角色各一张手牌（X为你此次以此法置入弃牌堆的牌数）。",
+  [":mou__tuxi"] = "你的回合内限两次（若为斗地主或2v2模式则改为一次），当你不因此技能获得牌后，你可以将其中任意张牌置入弃牌堆，" ..
+  "然后你获得至多X名其他角色各一张手牌（X为你此次以此法置入弃牌堆的牌数）。",
+  [":mou__tuxi_not_role"] = "你的回合内限一次，当你不因此技能获得牌后，你可以将其中任意张牌置入弃牌堆，" ..
+  "然后你获得至多X名其他角色各一张手牌（X为你此次以此法置入弃牌堆的牌数）。",
+  [":mou__tuxi_role_mode"] = "你的回合内限两次，当你不因此技能获得牌后，你可以将其中任意张牌置入弃牌堆，" ..
+  "然后你获得至多X名其他角色各一张手牌（X为你此次以此法置入弃牌堆的牌数）。",
   ["mou__tuxi_active"] = "突袭",
   ["#mou__tuxi"] = "突袭：你可以将获得的牌置入弃牌堆，获得至多等量其他角色各一张牌",
 
