@@ -1,18 +1,16 @@
-local tong = require 'packages.mougong.tong'
-local yu = require 'packages.mougong.yu'
-local zhi = require 'packages.mougong.zhi'
-local shi = require 'packages.mougong.shi'
-local neng = require 'packages.mougong.neng'
+-- SPDX-License-Identifier: GPL-3.0-or-later
 
-Fk:loadTranslationTable{
-  ["mou"] = "谋",
-  ["mougong"] = "谋攻篇",
+-- require("packages.mougong.i18n.en_US")
+
+local prefix = "packages.mougong.pkg."
+
+local neng = require (prefix .. "neng")
+
+Fk:loadTranslationTable {
+    ["mougong"] = "谋攻篇",
+    ["mou"] = "谋",
 }
 
 return {
-  tong,
-  yu,
-  zhi,
-  neng,
-  shi,
+    neng,
 }
