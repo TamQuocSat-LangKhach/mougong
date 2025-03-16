@@ -29,18 +29,7 @@ mouXuanhuo:addEffect("active", {
   on_use = function(self, room, effect)
     local to = effect.tos[1]
     room:obtainCard(to, effect.cards[1], false, fk.ReasonGive)
-    local moveData = {}
-    for i, p in ipairs(room.alive_players) do
-      room:setPlayerMark(p, "@@mou__xuanhuo", 1)
-      table.insert(moveData, {
-        ids = { room.draw_pile[i] },
-        to = p,
-        toArea = Card.PlayerHand,
-        moveReason = fk.ReasonDraw,
-      })
-    end
-
-    room:moveCards(table.unpack(moveData))
+    room:setPlayerMark(to, "@@mou__xuanhuo", 1)
   end,
 })
 
@@ -119,10 +108,8 @@ mouXuanhuo:addEffect(fk.AfterCardsMove, {
     table.insert(xuanhuoTargets.done, player)
     event:setSkillData(self, "mou__xuanhuo_" .. player.id, xuanhuoTargets)
 
-    if player.room:askForSkillInvoke(player, self.name, nil, "#mou__xuanhuo-invoke::" .. to.id) then
-      event:setCostData(self, to)
-      return true
-    end
+    event:setCostData(self, to)
+    return true
   end,
   on_use = function(self, event, target, player, data)
     local room = player.room
