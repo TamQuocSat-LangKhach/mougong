@@ -63,4 +63,37 @@ Fk:loadTranslationTable{
   ["~mou__zhanghe"] = "未料竟中孔明之计……",
 }
 
+General:new(extension, "mou__ganning", "wu", 4):addSkills { "mou__qixi", "mou__fenwei" }
+Fk:loadTranslationTable{
+  ["mou__ganning"] = "谋甘宁",
+  ["#mou__ganning"] = "兴王定霸",
+	["illustrator:mou__ganning"] = "君桓文化",
+
+  ["~mou__ganning"] = "蛮将休得猖狂！呃啊！",
+}
+
+General:new(extension, "mou__caopi", "wei", 3):addSkills { "mou__xingshang", "mou__fangzhu", "mou__songwei" }
+Fk:loadTranslationTable{
+  ["mou__caopi"] = "谋曹丕",
+  ["#mou__caopi"] = "魏文帝",
+
+  ["~mou__caopi"] = "大魏如何踏破吴蜀，就全看叡儿了……",
+}
+
+General:new(extension, "mou__handang", "wu", 4):addSkills { "mou__gongqi", "mou__jiefan" }
+Fk:loadTranslationTable{
+  ["mou__handang"] = "谋韩当",
+  ["#mou__handang"] = "石城侯",
+
+  ["~mou__handang"] = "吾子难堪大用，主公勿以重任相托……",
+}
+
+General:new(extension, "mou__guojia", "wei", 3):addSkills { "mou__tiandu", "mou__yiji" }
+Fk:loadTranslationTable{
+  ["mou__guojia"] = "谋郭嘉",
+  ["#mou__guojia"] = "奉己佐君",
+
+  ["~mou__guojia"] = "蒙天所召，嘉先去矣，咳咳咳……",
+}
+
 return extension

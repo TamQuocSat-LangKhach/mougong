@@ -21,9 +21,11 @@ local mouJieyinCanUse = function (player)
 end
 
 local mouJieyinFailed = function (self, event, target, player, data)
+  ---@type string
+  local skillName = mouJieyin.name
   local room = player.room
-  player:broadcastSkillInvoke(mouJieyin.name, 2)
-  room:updateQuestSkillState(player, mouJieyin.name, true)
+  player:broadcastSkillInvoke(skillName, 2)
+  room:updateQuestSkillState(player, skillName, true)
   local mark = player:getMark("mou__jieyin_target")
   room:setPlayerMark(player, "mou__jieyin_target", 0)
   local to = room:getPlayerById(mark)
@@ -37,7 +39,7 @@ local mouJieyinFailed = function (self, event, target, player, data)
       who = player,
       num = 1,
       recoverBy = player,
-      skillName = mouJieyin.name
+      skillName = skillName,
     })
   end
   room:changeKingdom(player, "wu", true)
@@ -50,12 +52,12 @@ local mouJieyinFailed = function (self, event, target, player, data)
       toArea = Card.PlayerHand,
       moveReason = fk.ReasonPrey,
       proposer = player.id,
-      skillName = mouJieyin.name,
+      skillName = skillName,
       moveVisible = true
     })
   end
   room:changeMaxHp(player, -1)
-  room:invalidateSkill(player, mouJieyin.name)
+  room:invalidateSkill(player, skillName)
 end
 
 mouJieyin:addEffect(fk.GameStart, {
@@ -65,18 +67,20 @@ mouJieyin:addEffect(fk.GameStart, {
   end,
   on_cost = Util.TrueFunc,
   on_use = function(self, event, target, player, data)
+    ---@type string
+    local skillName = mouJieyin.name
     local room = player.room
-    room:notifySkillInvoked(player, mouJieyin.name)
-    player:broadcastSkillInvoke(mouJieyin.name, 1)
+    room:notifySkillInvoked(player, skillName)
+    player:broadcastSkillInvoke(skillName, 1)
     local tos = room:askToChoosePlayers(
       player,
       {
         targets = room:getOtherPlayers(player, false),
         min_num = 1,
         max_num = 1,
-        skill_name = mouJieyin.name,
+        skill_name = skillName,
         prompt = "#mou__jieyin-choose",
-        cancelable = false
+        cancelable = false,
       }
     )
     if #tos > 0 then
@@ -101,8 +105,10 @@ mouJieyin:addEffect(fk.EventPhaseStart, {
   end,
   on_cost = Util.TrueFunc,
   on_use = function(self, event, target, player, data)
+    ---@type string
+    local skillName = mouJieyin.name
     local room = player.room
-    player:broadcastSkillInvoke(mouJieyin.name, 1)
+    player:broadcastSkillInvoke(skillName, 1)
     local mark = player:getMark("mou__jieyin_target")
     if mark ~= 0 then
       local to = room:getPlayerById(mark)
@@ -113,7 +119,7 @@ mouJieyin:addEffect(fk.EventPhaseStart, {
           min_num = x,
           max_num = 2,
           include_equip = false,
-          skill_name = mouJieyin.name,
+          skill_name = skillName,
           cancelable = true,
           pattern = ".",
           prompt = "#mou__jieyin-price:" .. player.id .. "::".. tostring(x)
@@ -127,7 +133,7 @@ mouJieyin:addEffect(fk.EventPhaseStart, {
           toArea = Card.PlayerHand,
           moveReason = fk.ReasonGive,
           proposer = mark,
-          skillName = mouJieyin.name,
+          skillName = skillName,
           moveVisible = false
         })
         room:changeShield(to, 1)
@@ -151,7 +157,7 @@ mouJieyin:addEffect(fk.EventPhaseStart, {
                 min_num = 1,
                 max_num = 1,
                 prompt = "#mou__jieyin-transfer::" .. mark,
-                skill_name = mouJieyin.name,
+                skill_name = skillName,
                 cancelable = true
               }
             )

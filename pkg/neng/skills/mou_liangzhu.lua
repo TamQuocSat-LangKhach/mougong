@@ -22,18 +22,20 @@ mouLiangzhu:addEffect("active", {
   card_num = 0,
   target_num = 1,
   can_use = function(self, player)
-    return player:usedSkillTimes(self.name, Player.HistoryPhase) == 0
+    return player:usedSkillTimes(mouLiangzhu.name, Player.HistoryPhase) == 0
   end,
   card_filter = function() return false end,
   target_filter = function(self, player, to_select, selected)
     return #selected == 0 and to_select ~= player and #to_select:getCardIds(Player.Equip) > 0
   end,
   on_use = function(self, room, effect)
+    ---@type string
+    local skillName = mouLiangzhu.name
     local player = effect.from
     local target = effect.tos[1]
     if target.dead or player.dead or #target:getCardIds(Player.Equip) == 0 then return end
-    local id = room:askToChooseCard(player, { target = target, flag = "e", skill_name = self.name })
-    player:addToPile("mou__liangzhu_dowry", id, true, self.name)
+    local id = room:askToChooseCard(player, { target = target, flag = "e", skill_name = skillName })
+    player:addToPile("mou__liangzhu_dowry", id, true, skillName)
     local mark = player:getMark("mou__jieyin_target")
     if mark ~= 0 then
       local to = room:getPlayerById(mark)
@@ -46,20 +48,20 @@ mouLiangzhu:addEffect("active", {
         to,
         {
           choices = choices,
-          skill_name = self.name,
+          skill_name = skillName,
           prompt = "#mou__liangzhu-choice",
           cancelable = false,
           all_choices = {"draw2", "recover"}
         }
       )
       if choice == "draw2" then
-        room:drawCards(to, 2, self.name)
+        room:drawCards(to, 2, skillName)
       else
         room:recover({
           who = to,
           num = 1,
           recoverBy = player,
-          skillName = self.name
+          skillName = skillName,
         })
       end
     end
