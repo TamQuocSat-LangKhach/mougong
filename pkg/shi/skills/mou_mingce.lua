@@ -37,7 +37,7 @@ mouMingce:addEffect("active", {
     if player.dead or target.dead then return end
 
     local skillName = mouMingce.name
-    if room:askToChoice(target, { choices = {"mou__mingce_losehp:" .. player.id, "draw1"}, skill_name = skillName}) == "draw1" then
+    if room:askToChoice(target, { choices = {"mou__mingce_losehp:" .. player.id, "draw1"}, skill_name = skillName }) == "draw1" then
       target:drawCards(1, skillName)
     else
       room:loseHp(target, 1, skillName)

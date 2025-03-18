@@ -50,8 +50,7 @@ mouLiangzhu:addEffect("active", {
           choices = choices,
           skill_name = skillName,
           prompt = "#mou__liangzhu-choice",
-          cancelable = false,
-          all_choices = {"draw2", "recover"}
+          all_choices = { "draw2", "recover" }
         }
       )
       if choice == "draw2" then
