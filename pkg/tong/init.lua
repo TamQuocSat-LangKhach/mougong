@@ -104,4 +104,12 @@ Fk:loadTranslationTable{
   ["~mou__xiahoudun"] = "急功盲进，实是有愧丞相……",
 }
 
+General:new(extension, "mou__xiahouyuan", "wei", 4):addSkills { "mou__shensu", "zhengzi" }
+Fk:loadTranslationTable{
+  ["mou__xiahouyuan"] = "谋夏侯渊",
+  ["#mou__xiahouyuan"] = "虎步关右",
+
+  ["~mou__xiahouyuan"] = "若非中其奸计，吾岂会命丧贼手……",
+}
+
 return extension
