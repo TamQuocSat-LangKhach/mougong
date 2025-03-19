@@ -33,25 +33,27 @@ mouTieji:addEffect(fk.TargetSpecified, {
       data.card.trueName == "slash"
   end,
   on_use = function(self, event, target, player, data)
+    ---@type string
+    local skillName = mouTieji.name
     local room = player.room
-    room:notifySkillInvoked(player, self.name)
-    player:broadcastSkillInvoke(self.name, 1)
+    room:notifySkillInvoked(player, skillName)
+    player:broadcastSkillInvoke(skillName, 1)
     local to = data.to
     data.disresponsive = true
     room:addPlayerMark(to, "@@tieji-turn")
     room:addPlayerMark(to, MarkEnum.UncompulsoryInvalidity .. "-turn")
-    local choices = U.doStrategy(room, player, to, {"tieji-zhiqu","tieji-raozheng"}, {"tieji-chuzheng","tieji-huwei"}, self.name, 1)
+    local choices = U.doStrategy(room, player, to, { "tieji-zhiqu", "tieji-raozheng" }, { "tieji-chuzheng", "tieji-huwei" }, skillName, 1)
     if choices[1] == "tieji-zhiqu" and choices[2] ~= "tieji-chuzheng" then
-      player:broadcastSkillInvoke(self.name, 2)
+      player:broadcastSkillInvoke(skillName, 2)
       if not to:isNude() then
-        local card = room:askToChooseCard(player, { target = to, flag = "he", skill_name = mouTieji.name})
+        local card = room:askToChooseCard(player, { target = to, flag = "he", skill_name = mouTieji.name })
         room:obtainCard(player, card, false, fk.ReasonPrey)
       end
     elseif choices[1] == "tieji-raozheng" and choices[2] ~= "tieji-huwei" then
-      player:broadcastSkillInvoke(self.name, 3)
-      player:drawCards(2, self.name)
+      player:broadcastSkillInvoke(skillName, 3)
+      player:drawCards(2, skillName)
     else
-      player:broadcastSkillInvoke(self.name, 4)
+      player:broadcastSkillInvoke(skillName, 4)
     end
   end,
 })
