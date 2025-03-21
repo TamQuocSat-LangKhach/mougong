@@ -71,7 +71,7 @@ mingxuan:addEffect(fk.EventPhaseStart, {
             skill_name = skillName,
             prompt = "#mingxuan-slash:" .. player.id,
             cancelable = true,
-            extra_data = { include_targets = {player.id}, bypass_distances = true, bypass_times = true }
+            extra_data = { include_targets = { player.id }, bypass_distances = true, bypass_times = true }
           }
         )
         if use then
