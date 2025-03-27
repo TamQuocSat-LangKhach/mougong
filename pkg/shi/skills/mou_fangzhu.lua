@@ -129,12 +129,16 @@ mouFangzhu:addEffect(fk.CardUsing, {
 
 mouFangzhu:addEffect("prohibit", {
   prohibit_use = function(self, player, card)
-    local typeLimited = player:getMark("@mou__fangzhu_limit")
-    if typeLimited == 0 then return false end
-    if table.every(Card:getIdList(card), function(id)
-      return table.contains(player:getCardIds(Player.Hand), id)
-    end) then
-      return #typeLimited > 1 or typeLimited[1] ~= card:getTypeString() .. "_char"
+    local typeLimited = player:getTableMark("@mou__fangzhu_limit")
+    for _, type in ipairs(typeLimited) do
+      if type ~= card:getTypeString() .. "_char" then
+        local subcards = Card:getIdList(card)
+        return
+          #subcards > 0 and
+          table.every(subcards, function(id)
+            return table.contains(player:getCardIds("h"), id)
+          end)
+      end
     end
   end,
 })

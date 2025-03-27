@@ -35,11 +35,11 @@ mouKongcheng:addEffect(fk.DamageInflicted, {
       }
       room:judge(judge)
       if judge.card.number < #player:getPile("$mou__guanxing&") then
-        data.damage = data.damage - 1
+        data:changeDamage(-1)
       end
     else
       room:notifySkillInvoked(player, skillName, "negative")
-      data.damage = data.damage + 1
+      data:changeDamage(1)
     end
   end,
 })

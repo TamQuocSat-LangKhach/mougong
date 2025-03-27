@@ -21,6 +21,7 @@ mouWusheng:addEffect("viewas", {
   pattern = "slash",
   card_num = 1,
   prompt = "#mou__wusheng",
+  handly_pile = true,
   card_filter = function(self, player, to_select, selected)
     if #selected == 1 or not table.contains(player:getHandlyIds(true), to_select) then return false end
     local c = Fk:cloneCard("slash")
