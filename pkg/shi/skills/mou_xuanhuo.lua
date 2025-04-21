@@ -111,6 +111,11 @@ mouXuanhuo:addEffect(fk.AfterCardsMove, {
     event:setCostData(self, to)
     return true
   end,
+  on_trigger = function(self, event, target, player, data)
+    event:setSkillData(self, "cancel_cost", false)
+    self:doCost(event, target, player, data)
+    event:setSkillData(self, "cancel_cost", false)
+  end,
   on_use = function(self, event, target, player, data)
     local room = player.room
 
