@@ -23,7 +23,8 @@ mouCaoren.shield = 1
 mouCaoren:addSkills { "mou__jushou", "mou__jiewei" }
 Fk:loadTranslationTable{
   ["mou__caoren"] = "谋曹仁",
-  ["#mou__caoren"] = "大将军",
+  ["#mou__caoren"] = "固若金汤",
+  ["illustrator:mou__caoren"] = "铁杵",
 
   ["~mou__caoren"] = "吾身可殉，然襄樊之地万不可落于吴蜀之手……",
 }
@@ -32,6 +33,7 @@ General:new(extension, "mou__yujin", "wei", 4):addSkills { "mou__xiayuan", "mou_
 Fk:loadTranslationTable{
   ["mou__yujin"] = "谋于禁",
   ["#mou__yujin"] = "威严毅重",
+  ["illustrator:mou__yujin"] = "君桓文化",
 
   ["~mou__yujin"] = "禁……愧于丞相……",
 }
@@ -65,6 +67,7 @@ General:new(extension, "mou__huangyueying", "shu", 3, 3, General.Female):addSkil
 Fk:loadTranslationTable{
   ["mou__huangyueying"] = "谋黄月英",
   ["#mou__huangyueying"] = "足智多谋",
+  ["illustrator:mou__huangyueying"] = "黯荧岛",
 
   ["~mou__huangyueying"] = "何日北平中原，夫君再返隆中……",
 }
@@ -74,6 +77,7 @@ Fk:loadTranslationTable{
   ["mou__luzhi"] = "谋卢植",
   ["#mou__luzhi"] = "国之桢干",
   ["cv:mou__luzhi"] = "袁国庆",
+  ["illustrator:mou__luzhi"] = "君桓文化",
 
   ["~mou__luzhi"] = "历数有尽，天命有归……",
 }
@@ -82,9 +86,18 @@ General:new(extension, "mou__luxun", "wu", 3):addSkills { "mou__qianxun", "mou__
 Fk:loadTranslationTable{
   ["mou__luxun"] = "谋陆逊",
   ["#mou__luxun"] = "儒生雄才",
-  -- ["illustrator:mou__luxun"] = "",
+  ["illustrator:mou__luxun"] = "凝聚永恒",
 
   ["~mou__luxun"] = "清玉岂容有污，今唯以死自证！",
+}
+
+--General:new(extension, "mou__guohuai", "wei", 4):addSkills { "mou__jingce" }
+Fk:loadTranslationTable{
+  ["mou__guohuai"] = "谋郭淮",
+  ["#mou__guohuai"] = "垂问秦雍",
+  --["illustrator:mou__guohuai"] = "",
+
+  ["~mou__guohuai"] = "五子哀母，不惜其身，淮又安能坐视。",
 }
 
 return extension

@@ -24,6 +24,7 @@ General:new(extension, "mou__yuanshao", "qun", 4):addSkills { "mou__luanji", "mo
 Fk:loadTranslationTable{
   ["mou__yuanshao"] = "谋袁绍",
   ["#mou__yuanshao"] = "高贵的名门",
+  ["illustrator:mou__yuanshao"] = "铁杵",
 
   ["~mou__yuanshao"] = "我不可能输给曹阿瞒，不可能！",
 }
@@ -34,6 +35,7 @@ mouHuaxiong:addSkills { "mou__yaowu", "mou__yangwei" }
 Fk:loadTranslationTable{
   ["mou__huaxiong"] = "谋华雄",
   ["#mou__huaxiong"] = "跋扈雄狮",
+  ["illustrator:mou__huaxiong"] = "三道纹",
 
   ["~mou__huaxiong"] = "小小马弓手，竟然……啊……",
 }
@@ -54,6 +56,7 @@ Fk:loadTranslationTable{
   ["mou__jiangwei"] = "谋姜维",
   ["#mou__jiangwei"] = "见危授命",
   ["cv:mou__jiangwei"] = "杨超然",
+  ["illustrator:mou__jiangwei"] = "君桓文化",
 
   ["~mou__jiangwei"] = "市井鱼龙易一统，护国麒麟难擎天……",
 }
@@ -62,6 +65,7 @@ General:new(extension, "mou__guanyu", "shu", 4):addSkills { "mou__wusheng", "mou
 Fk:loadTranslationTable{
   ["mou__guanyu"] = "谋关羽",
   ["#mou__guanyu"] = "关圣帝君",
+  ["illustrator:mou__guanyu"] = "错落宇宙",
 
   ["~mou__guanyu"] = "大哥，翼德，来生再于桃园，论豪情壮志……",
 }
@@ -70,6 +74,7 @@ General:new(extension, "mou__gaoshun", "qun", 4):addSkills { "mou__xianzhen", "m
 Fk:loadTranslationTable{
   ["mou__gaoshun"] = "谋高顺",
   ["#mou__gaoshun"] = "攻无不克",
+  ["illustrator:mou__gaoshun"] = "铁杵",
 
   ["~mou__gaoshun"] = "宁为断头鬼，不当受降虏……",
 }
@@ -78,6 +83,7 @@ General:new(extension, "mou__gongsunzan", "qun", 4):addSkills { "mou__yicong", "
 Fk:loadTranslationTable{
   ["mou__gongsunzan"] = "谋公孙瓒",
   ["#mou__gongsunzan"] = "劲震幽土",
+  ["illustrator:mou__gongsunzan"] = "铁杵",
 
   ["~mou__gongsunzan"] = "称雄半生，岂可为他人俘虏，啊啊啊……",
 }
