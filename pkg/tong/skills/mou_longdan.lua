@@ -50,10 +50,10 @@ mouLongdan:addEffect("viewas", {
     return "#mou__longdan" .. player:getMark("@@mou__jizhu")
   end,
   interaction = function(self, player)
-    local names = player:getMark("@@mou__jizhu") == 0 and { "slash", "jink" } or U.getAllCardNames("b")
-    names = U.getViewAsCardNames(player, mouLongdan.name, names)
+    local all_names = player:getMark("@@mou__jizhu") == 0 and { "slash", "jink" } or Fk:getAllCardNames("b")
+    local names = player:getViewAsCardNames(mouLongdan.name, all_names)
     if #names == 0 then return end
-    return UI.ComboBox { choices = names }
+    return U.CardNameBox { choices = names, all_choices = all_names }
   end,
   card_filter = function(self, player, to_select, selected)
     if #selected ~= 0 or not self.interaction.data then return false end
@@ -82,7 +82,7 @@ mouLongdan:addEffect("viewas", {
   end,
   enabled_at_response = function (self, player, response)
     if getLongdanTimes(player) > 0 and Fk.currentResponsePattern then
-      local names = player:getMark("@@mou__jizhu") == 0 and { "slash", "jink" } or U.getAllCardNames("b")
+      local names = player:getMark("@@mou__jizhu") == 0 and { "slash", "jink" } or Fk:getAllCardNames("b")
       return table.find(names, function (name)
         local card = Fk:cloneCard(name)
         card.skillName = mouLongdan.name

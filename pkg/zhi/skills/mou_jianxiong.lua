@@ -14,17 +14,22 @@ Fk:loadTranslationTable{
   ["$mou__jianxiong2"] = "骖六龙行御九州，行四海路下八邦！",
 }
 
-local U = require "packages/utility/utility"
-
 mouJianxiong:addEffect(fk.GameStart, {
   anim_type = "support",
   can_trigger = function(self, event, target, player, data)
     return player:hasSkill(mouJianxiong.name)
   end,
   on_cost = function (self, event, target, player, data)
-    local _, dat = player.room:askToUseActiveSkill(player, { skill_name = "mou__jianxiong_gamestart", prompt = "#mou__jianxiong-gamestart" })
-    if dat then
-      event:setCostData(self, dat.interaction)
+    local room = player.room
+    local n = room:askToNumber(player, {
+      skill_name = mouJianxiong.name,
+      prompt = "#mou__jianxiong-gamestart",
+      min = 1,
+      max = 2,
+      cancelable = true,
+    })
+    if n then
+      event:setCostData(self, n)
       return true
     end
   end,
@@ -40,7 +45,7 @@ mouJianxiong:addEffect(fk.Damaged, {
       target == player and
       player:hasSkill(mouJianxiong.name) and
       (
-        (data.card and U.hasFullRealCard(player.room, data.card)) or
+        (data.card and player.room:getCardArea(data.card) == Card.Processing) or
         player:getMark("@mou__jianxiong") == 0
       )
   end,
@@ -48,7 +53,7 @@ mouJianxiong:addEffect(fk.Damaged, {
     ---@type string
     local skillName = mouJianxiong.name
     local room = player.room
-    if data.card and U.hasFullRealCard(player.room, data.card) then
+    if data.card and room:getCardArea(data.card) == Card.Processing then
       room:moveCardTo(data.card, Player.Hand, player, fk.ReasonPrey, skillName)
       if player.dead then return end
     end

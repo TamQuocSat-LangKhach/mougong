@@ -11,8 +11,8 @@ local U = require "packages/utility/utility"
 
 mouTianduViewAs:addEffect("viewas", {
   interaction = function(self, player)
-    local all_names = U.getAllCardNames("t")
-    local names = U.getViewAsCardNames(player, "mou__tiandu", all_names)
+    local all_names = Fk:getAllCardNames("t")
+    local names = player:getViewAsCardNames("mou__tiandu", all_names)
     if #names > 0 then
       return U.CardNameBox { choices = names, all_choices = all_names, default_choice = "AskForCardsChosen" }
     end

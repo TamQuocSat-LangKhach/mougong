@@ -31,7 +31,7 @@ mouKanpo:addEffect(fk.RoundStart, {
     local room = player.room
     local all_names = player:getMark("mou__kanpo")
     if all_names == 0 then
-      all_names = U.getAllCardNames("btd", true)
+      all_names = Fk:getAllCardNames("btd", true)
       room:setPlayerMark(player, "mou__kanpo", all_names)
     end
     local names = table.simpleClone(all_names)

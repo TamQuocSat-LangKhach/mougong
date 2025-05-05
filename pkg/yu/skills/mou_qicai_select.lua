@@ -6,8 +6,6 @@ Fk:loadTranslationTable{
   ["mou__qicai_select"] = "奇才",
 }
 
-local U = require "packages/utility/utility"
-
 mouQicaiSelect:addEffect("active", {
   expand_pile = function (self, player)
     return player:getTableMark("mou__qicai_discardpile")
@@ -28,7 +26,7 @@ mouQicaiSelect:addEffect("active", {
     return
       card.type == Card.TypeEquip and
       (table.contains(player:getTableMark("mou__qicai_discardpile"), to_select) or Fk:currentRoom():getCardArea(to_select) ~= Card.PlayerEquip) and
-      U.canMoveCardIntoEquip(Fk:currentRoom():getPlayerById(player:getMark("mou__qicai_target-tmp")), to_select, false)
+      Fk:currentRoom():getPlayerById(player:getMark("mou__qicai_target-tmp"):canMoveCardIntoEquip(to_select, false))
   end,
 })
 

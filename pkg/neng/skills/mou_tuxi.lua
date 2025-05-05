@@ -25,8 +25,6 @@ Fk:loadTranslationTable{
   ["$mou__tuxi2"] = "及敌未合，折其盛势，以安众心！",
 }
 
-local U = require "packages/utility/utility"
-
 mouTuxi:addEffect(fk.AfterCardsMove, {
   anim_type = "control",
   times = function (self, player)
@@ -57,7 +55,7 @@ mouTuxi:addEffect(fk.AfterCardsMove, {
           end
         end
       end
-      ids = U.moveCardsHoldingAreaCheck(room, ids)
+      ids = room.logic:moveCardsHoldingAreaCheck(ids)
       if #ids > 0 then
         event:setCostData(self, ids)
         return true
