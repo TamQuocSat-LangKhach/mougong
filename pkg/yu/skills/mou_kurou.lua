@@ -5,7 +5,7 @@ local mouKurou = fk.CreateSkill({
 Fk:loadTranslationTable{
   ["mou__kurou"] = "苦肉",
   ["#mou__kurou_hujia"] = "苦肉",
-  [":mou__kurou"] = "①出牌阶段开始时，你可以将一张手牌交给一名其他角色，若如此做，你失去1点体力，若你交出的牌为【桃】或【酒】则改为2点；" ..
+  [":mou__kurou"] = "①出牌阶段开始时，你可以将一张牌交给一名其他角色，若如此做，你失去1点体力，若你交出的牌为【桃】或【酒】则改为2点；" ..
   "②当你失去1点体力值时，你获得2点护甲。",
 
   ["#mou__kurou-give"] = "苦肉：你可以将一张手牌交给一名其他角色，你失去1点体力，若交出【桃】或【酒】则改为2点",
@@ -29,7 +29,6 @@ mouKurou:addEffect(fk.EventPhaseStart, {
         max_num = 1,
         min_card_num = 1,
         max_card_num = 1,
-        pattern = ".|.|.|hand",
         prompt = "#mou__kurou-give",
         skill_name = mouKurou.name,
       }
