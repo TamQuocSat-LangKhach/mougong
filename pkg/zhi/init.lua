@@ -96,6 +96,7 @@ mouZhugeliang.hidden = true
 mouZhugeliang:addSkills { "mou__guanxing", "mou__kongcheng" }
 Fk:loadTranslationTable{
   ["mou__zhugeliang"] = "谋诸葛亮",
+  ["illustrator:mou__zhugeliang"] = "MUMU",
 
   ["~mou__zhugeliang"] = "琴焚身陨，功败垂成啊……",
 }
@@ -126,6 +127,7 @@ General:new(extension, "mou__jiaxu", "qun", 3):addSkills {
 Fk:loadTranslationTable{
   ["mou__jiaxu"] = "谋贾诩",
   ["#mou__jiaxu"] = "计深似海",
+  ["illustrator:mou__jiaxu"] = "凝聚永恒",
 
   ["~mou__jiaxu"] = "踽踽黄泉，与吾行事又有何异？",
 }

@@ -42,7 +42,7 @@ mouKanpo:addEffect(fk.RoundStart, {
       end
       room:setPlayerMark(player, "@[private]$mou__kanpo", 0)
     end
-    local max_limit = room:isGameMode("1v2_mode") and room:isGameMode("2v2_mode") and 2 or 4
+    local max_limit = (room:isGameMode("1v2_mode") or room:isGameMode("2v2_mode")) and 2 or 4
     max_limit = max_limit - player:getMark("mou__kanpo_times")
     if max_limit > 0 then
       local mark = U.askForChooseCardNames(room, player, names, 1, max_limit, mouKanpo.name, "#mou__kanpo-choice:::"..max_limit,
@@ -74,7 +74,7 @@ mouKanpo:addEffect(fk.CardUsing, {
         }
       )
     then
-      room:doIndicate(player, { target.id })
+      room:doIndicate(player, { target })
       return true
     end
   end,

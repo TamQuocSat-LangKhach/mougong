@@ -96,6 +96,7 @@ General:new(extension, "mou__zhugejin", "wu", 3):addSkills {
 Fk:loadTranslationTable{
   ["mou__zhugejin"] = "谋诸葛瑾",
   ["#mou__zhugejin"] = "才猷蕴借",
+  ["illustrator:mou__zhugejin"] = "铁杵",
 
   ["~mou__zhugejin"] = "君臣相托，生死不渝……",
 }

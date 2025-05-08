@@ -19,17 +19,18 @@ Fk:loadTranslationTable{
   ["mou__xingshang_restore"] = "2枚：复原武将牌",
   ["mou__xingshang_draw"] = "2枚：摸三张牌",
   ["mou__xingshang_recover"] = "3枚：恢复体力与区域",
-  ["mou__xingshang_memorialize"] = "4枚：追思技能",
+  ["mou__xingshang_memorialize"] = "4枚：追思技能（选择自己点“确定”，然后选择要追思的角色）",
 
   ["$mou__xingshang1"] = "纵是身死，仍要为我所用。",
-  ["$mou__xingshang2"] = "汝九泉之下，定会感朕之情。",s
+  ["$mou__xingshang2"] = "汝九泉之下，定会感朕之情。",
 }
 
 mouXingshang:addEffect("active", {
   anim_type = "support",
   prompt = "#mou__xingshang",
   card_num = 0,
-  target_num = 1,
+  min_target_num = 0,
+  max_target_num = 1,
   interaction = function(self, player)
     local choiceList = {
       "mou__xingshang_restore",
@@ -78,15 +79,20 @@ mouXingshang:addEffect("active", {
     if #selected > 0 then
       return false
     end
-
-    local interactionData = self.interaction.data
-    if interactionData == "mou__xingshang_recover" then
+    if self.interaction.data == "mou__xingshang_recover" then
       return to_select.maxHp < 10
-    elseif interactionData == "mou__xingshang_memorialize" then
-      return to_select == player
+    elseif self.interaction.data == "mou__xingshang_memorialize" then
+      return false
     end
 
     return true
+  end,
+  feasible = function (self, player, selected, selected_cards, card)
+    if self.interaction.data == "mou__xingshang_memorialize" then
+      return #selected == 0
+    else
+      return #selected == 1
+    end
   end,
   on_use = function(self, room, effect)
     ---@type string
