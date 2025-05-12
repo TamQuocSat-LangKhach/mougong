@@ -19,7 +19,7 @@ Fk:loadTranslationTable{
   ["mou__xingshang_restore"] = "2枚：复原武将牌",
   ["mou__xingshang_draw"] = "2枚：摸三张牌",
   ["mou__xingshang_recover"] = "3枚：恢复体力与区域",
-  ["mou__xingshang_memorialize"] = "4枚：追思技能（选择自己点“确定”，然后选择要追思的角色）",
+  ["mou__xingshang_memorialize"] = "4枚：追思一名已阵亡的角色",
 
   ["$mou__xingshang1"] = "纵是身死，仍要为我所用。",
   ["$mou__xingshang2"] = "汝九泉之下，定会感朕之情。",

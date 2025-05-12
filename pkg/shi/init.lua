@@ -99,6 +99,7 @@ General:new(extension, "mou__guojia", "wei", 3):addSkills { "mou__tiandu", "mou_
 Fk:loadTranslationTable{
   ["mou__guojia"] = "谋郭嘉",
   ["#mou__guojia"] = "奉己佐君",
+  ["illustrator:mou__guojia"] = "铁杵",
 
   ["~mou__guojia"] = "蒙天所召，嘉先去矣，咳咳咳……",
 }

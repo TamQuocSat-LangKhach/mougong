@@ -7,9 +7,7 @@ Fk:loadTranslationTable{
   ["mou_yu"] = "谋攻篇-虞包",
 }
 
-local mouHuanggai = General:new(extension, "mou__huanggai", "wu", 4)
-mouHuanggai.shield = 1
-mouHuanggai:addSkills { "mou__kurou", "mou__zhaxiang" }
+General:new(extension, "mou__huanggai", "wu", 4):addSkills { "mou__kurou", "mou__zhaxiang" }
 Fk:loadTranslationTable{
   ["mou__huanggai"] = "谋黄盖",
   ["#mou__huanggai"] = "轻身为国",
