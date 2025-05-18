@@ -8,8 +8,8 @@ Fk:loadTranslationTable{
   "将手牌或弃牌堆中一张装备牌置入其装备区（若为斗地主模式，则改为防具牌且每种牌名限一次），"..
   "然后其获得“奇”标记。有“奇”标记的角色接下来获得的三张普通锦囊牌须交给你。",
 
-  ["#mou__qicai-active"] = "发动 奇才，选择1名角色令其装装备，然后其获得的锦囊牌须交给你",
-  ["#mou__qicai-choose"] = "奇才：令%dest装备你手牌或弃牌堆里的一张装备牌",
+  ["#mou__qicai"] = "奇才：选择一名角色，将装备置入其装备区，然后其获得的锦囊牌须交给你",
+  ["#mou__qicai-choose"] = "奇才：令 %dest 装备你手牌或弃牌堆里的一张装备牌",
   ["mou__qicai_select"] = "奇才",
   ["mou__qicai_discardpile"] = "弃牌堆",
   ["@mou__qicai_target"] = "奇",
@@ -21,7 +21,7 @@ Fk:loadTranslationTable{
 }
 
 mouQicai:addEffect("active", {
-  prompt = "#mou__qicai-active",
+  prompt = "#mou__qicai",
   anim_type = "support",
   can_use = function(self, player)
     return player:usedSkillTimes(mouQicai.name, Player.HistoryPhase) == 0
@@ -34,29 +34,17 @@ mouQicai:addEffect("active", {
   on_use = function(self, room, effect)
     local player = effect.from
     local target = effect.tos[1]
-    local mark = player:getTableMark("@$mou__qicai")
-    local ids = table.filter(room.discard_pile, function (id)
-      local card = Fk:getCardById(id)
-      if
-        room:isGameMode("1v2_mode") and
-        (table.contains(mark, card.trueName) or card.sub_type ~= Card.SubtypeArmor)
-      then
-        return false
-      end
-
-      return card.type == Card.TypeEquip
-    end)
-
-    room:setPlayerMark(player, "mou__qicai_target-tmp", target.id)
-    room:setPlayerMark(player, "mou__qicai_discardpile", ids)
-    local success, dat = room:askToUseActiveSkill(player, { skill_name = "mou__qicai_select", prompt = "#mou__qicai-choose::" .. effect.tos[1].id })
-    room:setPlayerMark(player, "qicai_target-tmp", 0)
-    room:setPlayerMark(player, "mou__qicai_discardpile", 0)
+    local success, dat = room:askToUseActiveSkill(player, {
+      skill_name = "mou__qicai_select",
+      prompt = "#mou__qicai-choose::" .. target.id,
+      extra_data = {
+        mou__qicai_target = target.id,
+      }
+    })
 
     if success and dat then
       if room:isGameMode("1v2_mode") then
-        table.insert(mark, Fk:getCardById(dat.cards[1]).trueName)
-        room:setPlayerMark(player, "@$mou__qicai", mark)
+        room:addTableMark(player, mouQicai.name, Fk:getCardById(dat.cards[1]).trueName)
       end
       room:moveCardIntoEquip(target, dat.cards, mouQicai.name)
       room:setPlayerMark(target, "@mou__qicai_target", 3)
@@ -128,7 +116,7 @@ mouQicai:addEffect(fk.AfterCardsMove, {
 
 mouQicai:addLoseEffect(function (self, player)
   local room = player.room
-    room:setPlayerMark(player, "@$mou__qicai", 0)
+    room:setPlayerMark(player, mouQicai.name, 0)
     for _, p in ipairs(room.alive_players) do
       if p:getMark("mou__qicai_source") == player.id then
         room:setPlayerMark(p, "@mou__qicai_target", 0)

@@ -8,7 +8,16 @@ Fk:loadTranslationTable{
 
 mouQicaiSelect:addEffect("active", {
   expand_pile = function (self, player)
-    return player:getTableMark("mou__qicai_discardpile")
+    local cards = Fk:currentRoom().discard_pile
+    if Fk:currentRoom():isGameMode("1v2_mode") then
+      return table.filter(cards, function(id)
+        return Fk:getCardById(id).sub_type == Card.SubtypeArmor
+      end)
+    else
+      return table.filter(cards, function(id)
+        return Fk:getCardById(id).type == Card.TypeEquip
+      end)
+    end
   end,
   can_use = Util.FalseFunc,
   target_num = 0,
@@ -16,17 +25,14 @@ mouQicaiSelect:addEffect("active", {
   card_filter = function(self, player, to_select, selected)
     if #selected ~= 0 then return false end
     local card = Fk:getCardById(to_select)
-    if
-      Fk:currentRoom():isGameMode("1v2_mode") and
-      (card.sub_type ~= Card.SubtypeArmor or table.contains(player:getTableMark("@$mou__qicai"), card.trueName))
-    then
-      return false
+    if Fk:currentRoom():isGameMode("1v2_mode") then
+      if table.contains(player:getTableMark("mou__qicai"), Fk:getCardById(to_select).trueName) then
+        return
+      end
     end
 
-    return
-      card.type == Card.TypeEquip and
-      (table.contains(player:getTableMark("mou__qicai_discardpile"), to_select) or Fk:currentRoom():getCardArea(to_select) ~= Card.PlayerEquip) and
-      Fk:currentRoom():getPlayerById(player:getMark("mou__qicai_target-tmp"):canMoveCardIntoEquip(to_select, false))
+    return card.type == Card.TypeEquip and not table.contains(player:getCardIds("e"), to_select) and
+      Fk:currentRoom():getPlayerById(self.mou__qicai_target):canMoveCardIntoEquip(to_select, false)
   end,
 })
 

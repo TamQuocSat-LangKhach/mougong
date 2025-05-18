@@ -105,6 +105,7 @@ General:new(extension, "mou__zhangliao", "wei", 4):addSkills { "mou__tuxi", "mou
 Fk:loadTranslationTable{
   ["mou__zhangliao"] = "谋张辽",
   ["#mou__zhangliao"] = "古之召虎",
+  ["illustrator:mou__zhangliao"] = "MUMU",
 
   ["~mou__zhangliao"] = "陛下亲临问疾，臣诚惶诚恐……",
 }
