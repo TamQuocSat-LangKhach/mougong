@@ -7,12 +7,11 @@ Fk:loadTranslationTable{
   [":mou__xingshang"] = "当一名角色受到伤害后（每回合限一次）或死亡时，则你获得两枚“颂”标记（你至多拥有9枚“颂”标记）；" ..
   "出牌阶段限两次，你可选择一名角色并移去至少一枚“颂”令其执行对应操作：2枚，复原武将牌或摸三张牌；" ..
   "3枚，回复1点体力并加1点体力上限，然后随机恢复一个已废除的装备栏（目标体力上限不大于9方可选择）；" ..
-  "4枚，<a href='memorialize'>追思</a>一名已阵亡的角色（你选择自己且你的武将牌上有〖行殇〗时方可选择此项），"..
+  "4枚，<a href='memorialize'>追思</a>一名已阵亡的角色（你的武将牌上有〖行殇〗时方可选择此项），"..
   "获得其武将牌上除主公技外的所有技能，然后你失去〖行殇〗、〖放逐〗、〖颂威〗。",
 
   ["memorialize"] = "#\"<b>追思</b>\"：被追思过的角色本局游戏不能再成为追思的目标。",
   ["#mou__xingshang"] = "放逐：你可选择一名角色，消耗一定数量的“颂”标记对其进行增益",
-  ["#mou__xingshang_trigger"] = "行殇",
   ["$MouXingShang"] = "行殇",
   ["@mou__xingshang_song"] = "颂",
   ["@mou__xingshang_memorialized"] = "行殇",
@@ -47,14 +46,9 @@ mouXingshang:addEffect("active", {
       table.insert(choices, choiceList[3])
     end
     if markValue > 3 then
-      if
-        table.find(
-          Fk:currentRoom().players,
-          function(p)
-            return p.dead and p.rest < 1 and not table.contains(Fk:currentRoom():getBanner('memorializedPlayers') or {}, p.id)
-          end
-        )
-      then
+      if table.find(Fk:currentRoom().players, function(p)
+        return p.dead and p.rest < 1 and not table.contains(Fk:currentRoom():getBanner("memorializedPlayers") or {}, p.id)
+      end) then
         local skills = Fk.generals[player.general]:getSkillNameList()
         if player.deputyGeneral ~= "" then
           table.insertTableIfNeed(skills, Fk.generals[player.deputyGeneral]:getSkillNameList())
@@ -123,18 +117,16 @@ mouXingshang:addEffect("active", {
       end
     elseif choice == "mou__xingshang_memorialize" then
       room:removePlayerMark(player, "@mou__xingshang_song", 4)
-      local zhuisiPlayers = room:getBanner('memorializedPlayers') or {}
-      table.insertIfNeed(zhuisiPlayers, target.id)
-      room:setBanner('memorializedPlayers', zhuisiPlayers)
 
       local availablePlayers = table.map(table.filter(room.players, function(p)
         return not p:isAlive() and p.rest < 1 and not table.contains(room:getBanner('memorializedPlayers') or {}, p.id)
       end), Util.IdMapper)
       local toId
-      local result = room:askToCustomDialog(
-        target,
-        { qml_path = "packages/mougong/qml/ZhuiSiBox.qml", skill_name = skillName, extra_data = { availablePlayers, "$MouXingShang" } }
-      )
+      local result = room:askToCustomDialog(player, {
+        qml_path = "packages/mougong/qml/ZhuiSiBox.qml",
+        skill_name = skillName,
+        extra_data = { availablePlayers, "$MouXingShang" }
+      })
 
       if result == "" then
         toId = table.random(availablePlayers)
@@ -143,6 +135,9 @@ mouXingshang:addEffect("active", {
       end
 
       local to = room:getPlayerById(toId)
+      local zhuisiPlayers = room:getBanner('memorializedPlayers') or {}
+      table.insertIfNeed(zhuisiPlayers, to.id)
+      room:setBanner('memorializedPlayers', zhuisiPlayers)
       local skills = Fk.generals[to.general]:getSkillNameList()
       if to.deputyGeneral ~= "" then
         table.insertTableIfNeed(skills, Fk.generals[to.deputyGeneral]:getSkillNameList())
@@ -150,21 +145,20 @@ mouXingshang:addEffect("active", {
       skills = table.filter(skills, function(skill_name)
         local skill = Fk.skills[skill_name]
         local attachedKingdom = skill:getSkeleton().attached_kingdom or {}
-        return not skill:hasTag(Skill.Lord) and not (#attachedKingdom > 0 and not table.contains(attachedKingdom, target.kingdom))
+        return not skill:hasTag(Skill.Lord) and not (#attachedKingdom > 0 and not table.contains(attachedKingdom, player.kingdom))
       end)
       if #skills > 0 then
-        room:handleAddLoseSkills(target, table.concat(skills, "|"))
+        room:handleAddLoseSkills(player, table.concat(skills, "|"))
       end
 
-      room:setPlayerMark(target, "@mou__xingshang_memorialized", to.deputyGeneral ~= "" and "seat#" .. to.seat or to.general)
+      room:setPlayerMark(player, "@mou__xingshang_memorialized", to.deputyGeneral ~= "" and "seat#" .. to.seat or to.general)
       room:handleAddLoseSkills(player, "-" .. skillName .. '|-mou__fangzhu|-mou__songwei')
     end
   end,
 })
 
-local xingshangMarkOnUse = function (self, event, target, player, data)
-  local room = player.room
-  room:addPlayerMark(player, "@mou__xingshang_song", math.min(2, 9 - player:getMark("@mou__xingshang_song")))
+local spec = function (self, event, target, player, data)
+  player.room:addPlayerMark(player, "@mou__xingshang_song", math.min(2, 9 - player:getMark("@mou__xingshang_song")))
 end
 
 mouXingshang:addEffect(fk.Damaged, {
@@ -177,7 +171,7 @@ mouXingshang:addEffect(fk.Damaged, {
       data.to:isAlive()
   end,
   on_cost = Util.TrueFunc,
-  on_use = xingshangMarkOnUse,
+  on_use = spec,
 })
 
 mouXingshang:addEffect(fk.Death, {
@@ -186,7 +180,7 @@ mouXingshang:addEffect(fk.Death, {
     return player:hasSkill(mouXingshang.name) and player:getMark("@mou__xingshang_song") < 9
   end,
   on_cost = Util.TrueFunc,
-  on_use = xingshangMarkOnUse,
+  on_use = spec,
 })
 
 mouXingshang:addLoseEffect(function (self, player)
