@@ -109,21 +109,17 @@ mouFangzhu:addEffect(fk.TurnEnd, {
 
 mouFangzhu:addEffect(fk.CardUsing, {
   can_refresh = function(self, event, target, player, data)
-    return
-      target == player and
-      table.find(
-        player.room.alive_players,
-        function(p) return p:getMark("@@mou__fangzhu_disresponsable") > 0 and p ~= target end
-      )
+    return target == player and table.find(player.room.alive_players, function(p)
+      return p:getMark("@@mou__fangzhu_disresponsable") > 0 and p ~= target
+    end)
   end,
   on_refresh = function(self, event, target, player, data)
     local room = player.room
     data.disresponsiveList = data.disresponsiveList or {}
-      local tos = table.filter(
-        room.alive_players,
-        function(p) return p:getMark("@@mou__fangzhu_disresponsable") > 0 and p ~= target end
-      )
-      table.insertTableIfNeed(data.disresponsiveList, table.map(tos, Util.IdMapper))
+    local tos = table.filter(room.alive_players, function(p)
+      return p:getMark("@@mou__fangzhu_disresponsable") > 0 and p ~= target
+    end)
+    table.insertTableIfNeed(data.disresponsiveList, tos)
   end,
 })
 
