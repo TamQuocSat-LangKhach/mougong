@@ -10,11 +10,11 @@ mingxuanActive:addEffect("active", {
   can_use = Util.FalseFunc,
   target_num = 0,
   min_card_num = 1,
-  max_card_num = function ()
+  max_card_num = function (self, player)
     local room = Fk:currentRoom()
-    local targetRecorded = Self:getTableMark("@[player]mingxuan")
+    local targetRecorded = player:getTableMark("@[player]mingxuan")
     return #table.filter(room.alive_players, function (p)
-      return p.id ~= Self.id and not table.contains(targetRecorded, p.id)
+      return p ~= player and not table.contains(targetRecorded, p.id)
     end)
   end,
   card_filter = function(self, player, to_select, selected)

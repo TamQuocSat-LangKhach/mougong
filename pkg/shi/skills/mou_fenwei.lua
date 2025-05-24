@@ -62,7 +62,6 @@ mouFenwei:addEffect("active", {
 
 mouFenwei:addEffect(fk.TargetConfirming, {
   anim_type = "defensive",
-  events = {fk.TargetConfirming},
   can_trigger = function(self, event, target, player, data)
     return player:hasSkill(mouFenwei.name) and data.card.type == Card.TypeTrick and #target:getPile("@mou__fenwei") > 0
   end,

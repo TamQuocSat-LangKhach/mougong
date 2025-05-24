@@ -28,7 +28,7 @@ mouMingce:addEffect("active", {
     return #selected == 0
   end,
   target_filter = function(self, player, to_select, selected)
-    return #selected == 0 and to_select ~= Self.id
+    return #selected == 0 and to_select ~= player
   end,
   on_use = function(self, room, effect)
     local player = effect.from

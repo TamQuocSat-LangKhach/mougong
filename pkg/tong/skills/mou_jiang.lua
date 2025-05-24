@@ -21,7 +21,7 @@ mouJiang:addEffect("viewas", {
   card_filter = Util.FalseFunc,
   view_as = function(self, player, cards)
     local card = Fk:cloneCard("duel")
-    card:addSubcards(Self:getCardIds(Player.Hand))
+    card:addSubcards(player:getCardIds("h"))
     card.skillName = self.name
     return card
   end,

@@ -44,7 +44,7 @@ mouGuose:addEffect("active", {
       if #cards ~= 1 then return false end
       local card = Fk:cloneCard("indulgence")
       card:addSubcard(cards[1])
-      return to_select ~= player and not Self:isProhibited(to_select, card)
+      return to_select ~= player and not player:isProhibited(to_select, card)
     else
       return to_select:hasDelayedTrick("indulgence")
     end

@@ -26,14 +26,14 @@ mouLiangzhu:addEffect("active", {
   end,
   card_filter = function() return false end,
   target_filter = function(self, player, to_select, selected)
-    return #selected == 0 and to_select ~= player and #to_select:getCardIds(Player.Equip) > 0
+    return #selected == 0 and to_select ~= player and #to_select:getCardIds("e") > 0
   end,
   on_use = function(self, room, effect)
     ---@type string
     local skillName = mouLiangzhu.name
     local player = effect.from
     local target = effect.tos[1]
-    if target.dead or player.dead or #target:getCardIds(Player.Equip) == 0 then return end
+    if target.dead or player.dead or #target:getCardIds("e") == 0 then return end
     local id = room:askToChooseCard(player, { target = target, flag = "e", skill_name = skillName })
     player:addToPile("mou__liangzhu_dowry", id, true, skillName)
     local mark = player:getMark("mou__jieyin_target")

@@ -18,8 +18,8 @@ local U = require "packages/utility/utility"
 
 mouMingzhe:addEffect(fk.AfterCardsMove, {
   anim_type = "support",
-  times = function (self)
-    return 2 - Self:usedSkillTimes(mouMingzhe.name, Player.HistoryRound)
+  times = function (self, player)
+    return 2 - player:usedSkillTimes(mouMingzhe.name, Player.HistoryRound)
   end,
   can_trigger = function(self, event, target, player, data)
     if

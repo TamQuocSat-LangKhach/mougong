@@ -58,7 +58,7 @@ mouLongdan:addEffect("viewas", {
   card_filter = function(self, player, to_select, selected)
     if #selected ~= 0 or not self.interaction.data then return false end
     local card = Fk:getCardById(to_select)
-    if Self:getMark("@@mou__jizhu") == 0 then
+    if player:getMark("@@mou__jizhu") == 0 then
       return card.trueName == (self.interaction.data == "jink" and "slash" or "jink")
     else
       return card.type == Card.TypeBasic

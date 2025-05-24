@@ -27,11 +27,11 @@ Fk:loadTranslationTable{
 mouKeji:addEffect("active", {
   anim_type = "defensive",
   prompt = "#mou__keji",
-  interaction = function()
+  interaction = function(self, player)
     local all_choices = { "moukeji_choice1", "moukeji_choice2" }
     local choices = {}
     for _, c in ipairs(all_choices) do
-      if Self:getMark("mou__keji" .. c .. "-phase") == 0 then
+      if player:getMark("mou__keji" .. c .. "-phase") == 0 then
         table.insert(choices, c)
       end
     end

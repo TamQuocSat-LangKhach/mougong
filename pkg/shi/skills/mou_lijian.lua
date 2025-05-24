@@ -23,7 +23,7 @@ mouLijian:addEffect("active", {
     return player:usedSkillTimes(mouLijian.name) == 0
   end,
   card_filter = function(self, player, to_select, selected)
-    return #selected < #Fk:currentRoom().alive_players and not Self:prohibitDiscard(Fk:getCardById(to_select))
+    return #selected < #Fk:currentRoom().alive_players and not player:prohibitDiscard(to_select)
   end,
   target_filter = function(self, player, to_select, selected, selected_cards)
     return #selected < #selected_cards + 1 and to_select ~= player

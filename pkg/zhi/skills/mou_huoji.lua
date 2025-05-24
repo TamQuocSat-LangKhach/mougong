@@ -97,7 +97,6 @@ mouHuoji:addEffect(fk.EventPhaseStart, {
 
 mouHuoji:addEffect(fk.EnterDying, {
   mute = true,
-  events = {fk.EventPhaseStart, fk.EnterDying},
   can_trigger = function(self, event, target, player, data)
     return target == player and player:hasSkill(mouHuoji.name) and not player:getQuestSkillState(mouHuoji.name)
   end,

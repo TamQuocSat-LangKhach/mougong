@@ -60,7 +60,6 @@ mouQianxun:addEffect(fk.CardEffecting, {
 
 mouQianxun:addEffect(fk.EventPhaseStart, {
   anim_type = "support",
-  events = {fk.CardEffecting, fk.EventPhaseStart},
   can_trigger = function(self, event, target, player, data)
     if not (target == player and player:hasSkill(mouQianxun.name)) then
       return false

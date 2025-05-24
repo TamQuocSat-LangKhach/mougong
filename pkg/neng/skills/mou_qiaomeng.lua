@@ -17,7 +17,6 @@ local U = require "packages/utility/utility"
 
 mouQiaomeng:addEffect(fk.Damage, {
   anim_type = "offensive",
-  events = {fk.Damage},
   can_trigger = function(self, event, target, player, data)
     return
       target == player and

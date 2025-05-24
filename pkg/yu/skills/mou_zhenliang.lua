@@ -25,7 +25,7 @@ mouZhenliang:addEffect("active", {
   card_filter = function(self, player, to_select, selected)
     local cid = player:getPile("mou__duty")[1]
     if not cid then return end
-    return Fk:getCardById(cid).color == Fk:getCardById(to_select).color and not Self:prohibitDiscard(Fk:getCardById(to_select))
+    return Fk:getCardById(cid).color == Fk:getCardById(to_select).color and not player:prohibitDiscard(Fk:getCardById(to_select))
   end,
   target_num = 1,
   target_filter = function(self, player, to_select, selected, cards)

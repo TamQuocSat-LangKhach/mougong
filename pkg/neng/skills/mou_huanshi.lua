@@ -14,7 +14,6 @@ Fk:loadTranslationTable{
 
 mouHuanshi:addEffect(fk.AskForRetrial, {
   anim_type = "control",
-  events = {fk.AskForRetrial},
   can_trigger = function(self, event, target, player, data)
     return player:hasSkill(mouHuanshi.name) and not (player:isNude() and player.hp < 1)
   end,
