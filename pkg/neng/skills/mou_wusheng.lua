@@ -71,13 +71,13 @@ mouWusheng:addEffect(fk.EventPhaseStart, {
       player:hasSkill(mouWusheng.name) and
       player.phase == Player.Play and
       table.find(room:getOtherPlayers(player, false), function(p)
-        return p.role ~= "lord" or not p.role_shown or room:isGameMode("2v2_mode")
+        return p.role ~= "lord" or not p.role_shown or room:isGameMode("1v2_mode")
       end)
   end,
   on_cost = function(self, event, target, player, data)
     local room = player.room
     local targets = table.filter(room:getOtherPlayers(player, false), function(p)
-      return p.role ~= "lord" or not p.role_shown or room:isGameMode("2v2_mode")
+      return p.role ~= "lord" or not p.role_shown or room:isGameMode("1v2_mode")
     end)
 
     if #targets > 0 then

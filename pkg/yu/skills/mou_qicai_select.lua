@@ -25,10 +25,14 @@ mouQicaiSelect:addEffect("active", {
   card_filter = function(self, player, to_select, selected)
     if #selected ~= 0 then return false end
     local card = Fk:getCardById(to_select)
-    if Fk:currentRoom():isGameMode("1v2_mode") then
-      if table.contains(player:getTableMark("mou__qicai"), Fk:getCardById(to_select).trueName) then
-        return
-      end
+    if
+      Fk:currentRoom():isGameMode("1v2_mode") and
+      (
+        card.sub_type ~= Card.SubtypeArmor or
+        table.contains(player:getTableMark("mou__qicai"), Fk:getCardById(to_select).trueName)
+      )
+    then
+      return
     end
 
     return card.type == Card.TypeEquip and not table.contains(player:getCardIds("e"), to_select) and
