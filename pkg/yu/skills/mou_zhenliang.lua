@@ -29,7 +29,7 @@ mouZhenliang:addEffect("active", {
   end,
   target_num = 1,
   target_filter = function(self, player, to_select, selected, cards)
-    return #selected == 0 and player:inMyAttackRange(to_select) and #cards == math.max(1, math.abs(player.hp - to_select.hp))
+    return #selected == 0 and player:inMyAttackRange(to_select, nil, cards) and #cards == math.max(1, math.abs(player.hp - to_select.hp))
   end,
   on_use = function(self, room, effect)
     ---@type string
