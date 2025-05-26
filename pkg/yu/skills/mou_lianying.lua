@@ -18,7 +18,7 @@ mouLianying:addEffect(fk.TurnEnd, {
       target ~= player and
       player:hasSkill(mouLianying.name) and
       (
-        player.room:isGameMode("2v2_mode") or
+        player.room:isGameMode("1v2_mode") or
         #player.room.logic:getEventsOfScope(GameEvent.MoveCards, 1, function(e)
           for _, move in ipairs(e.data) do
             if
@@ -39,7 +39,7 @@ mouLianying:addEffect(fk.TurnEnd, {
   end,
   on_use = function(self, event, target, player, data)
     local room = player.room
-    local sum = room:isGameMode("2v2_mode") and 1 or 0
+    local sum = room:isGameMode("1v2_mode") and 1 or 0
     room.logic:getEventsOfScope(GameEvent.MoveCards, 1, function(e)
       for _, move in ipairs(e.data) do
         if
