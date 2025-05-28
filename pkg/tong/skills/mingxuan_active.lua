@@ -18,7 +18,7 @@ mingxuanActive:addEffect("active", {
     end)
   end,
   card_filter = function(self, player, to_select, selected)
-    if #selected >= self.max_card_num() then return false end
+    if #selected >= self:max_card_num(player) then return false end
     local card = Fk:getCardById(to_select)
     return table.every(selected, function (id)
       return card.suit ~= Fk:getCardById(id).suit
